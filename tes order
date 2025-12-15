@@ -1,0 +1,58 @@
+import ccxt
+import time
+
+# --- ISI API KEY DARI MOCK TRADING BINANCE ---
+API_KEY = 'Vir005RqmDLFeQFaOzlijfaY9yONcJiYAqfgB9snJXxWei2wjoOcmYmTHtlLurCM'
+SECRET_KEY = '0le4T0ByB2a6CAPKtooKIz4gZ65rICCpOksfMCSkNP9WGSoc1ssQViQEsWs0WDzp'
+
+SYMBOL = 'BTC/USDT'
+AMOUNT = 0.005 # Beli 0.005 BTC
+
+print("--- TEST LIMIT ORDER BINANCE DEMO ---")
+
+try:
+    # 1. KONEKSI
+    exchange = ccxt.binance({
+        'apiKey': API_KEY,
+        'secret': SECRET_KEY,
+        'enableRateLimit': True,
+        'options': {
+            'defaultType': 'future', 
+        }
+    })
+    
+    # AKTIFKAN MODE DEMO BARU
+    exchange.enable_demo_trading(True)
+
+    # 2. AMBIL HARGA SEKARANG
+    print("1. Mengecek harga pasar...")
+    ticker = exchange.fetch_ticker(SYMBOL)
+    harga_sekarang = ticker['last']
+    print(f"   Harga BTC Sekarang: ${harga_sekarang}")
+
+    # 3. TENTUKAN HARGA LIMIT (Diskon $1000)
+    # Kita pasang di bawah harga pasar biar masuk antrian (Pending Order)
+    harga_limit = harga_sekarang - 1000
+    
+    # Pastikan harga sesuai aturan exchange (pembulatan)
+    harga_limit_fix = float(exchange.price_to_precision(SYMBOL, harga_limit))
+
+    print(f"2. Bersiap pasang LIMIT BUY di harga: ${harga_limit_fix}")
+
+    # 4. EKSEKUSI LIMIT ORDER
+    # Parameter: (Symbol, Type, Side, Amount, Price)
+    print(">>> MENGIRIM ORDER...")
+    order = exchange.create_order(SYMBOL, 'limit', 'buy', AMOUNT, harga_limit_fix)
+
+    print("\n✅ SUKSES! ORDER MASUK ANTRIAN.")
+    print("---------------------------------")
+    print(f"Order ID : {order['id']}")
+    print(f"Status   : {order['status']}")
+    print(f"Tipe     : {order['type']}")
+    print(f"Harga    : ${order['price']}")
+    print(f"Jumlah   : {order['amount']} BTC")
+    print("---------------------------------")
+    print("👉 Cek website Binance Demo di tab 'Open Orders'. Harusnya ada antrian di sana.")
+
+except Exception as e:
+    print(f"\n❌ GAGAL: {e}")
