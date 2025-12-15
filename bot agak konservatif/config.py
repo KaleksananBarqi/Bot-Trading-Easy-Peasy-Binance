@@ -37,7 +37,15 @@ VOL_PERIOD = 20
 # Risk Management
 ATR_PERIOD = 14
 SL_MULTIPLIER = 2.0    # SL Standar
-TP_MULTIPLIER = 2.5    # TP Standar
+TP_MULTIPLIER = 3.0    # TP Standar
+
+# Filter Sideways
+ADX_PERIOD = 14
+ADX_LIMIT = 20  # Trend dianggap kuat jika ADX > 20
+
+# Safety
+MAX_OPEN_POSITIONS = 3 # Maksimal cuma boleh pegang 3 koin sekaligus
+
 # --- 3. DAFTAR KOIN ---
 DAFTAR_KOIN = [
     {"symbol": "BTC/USDT", "modal": 200, "leverage": 10},
