@@ -46,15 +46,61 @@ ADX_LIMIT = 20  # Trend dianggap kuat jika ADX > 20
 # Safety
 MAX_OPEN_POSITIONS = 3 # Maksimal cuma boleh pegang 3 koin sekaligus
 
-# --- 3. DAFTAR KOIN ---
+# =========================================================
+# 3. DAFTAR PAIR KOIN YANG DIPANTAU
+# =========================================================
+
 DAFTAR_KOIN = [
-    {"symbol": "BTC/USDT", "modal": 200, "leverage": 10},
-    {"symbol": "ETH/USDT", "modal": 60,  "leverage": 10},
-    {"symbol": "ZEC/USDT", "modal": 60,  "leverage": 10},
-    {"symbol": "SOL/USDT", "modal": 200,  "leverage": 10},
-    {"symbol": "BNB/USDT", "modal": 60,  "leverage": 10},
-    {"symbol": "XRP/USDT", "modal": 60,  "leverage": 10},
-    {"symbol": "TRX/USDT", "modal": 60,  "leverage": 10},
-    {"symbol": "SUI/USDT", "modal": 60,  "leverage": 10},
-    {"symbol": "DOGE/USDT", "modal": 60, "leverage": 10},
+    # --- 1. THE KINGS (Major & Aman) ---
+    {"symbol": "BTC/USDT", "modal": 2000, "leverage": 30}, # King coin, modal lebih besar
+    {"symbol": "ETH/USDT", "modal": 500,  "leverage": 30},
+    {"symbol": "BNB/USDT", "modal": 500,  "leverage": 30},
+    {"symbol": "SOL/USDT", "modal": 500,  "leverage": 30},
+    {"symbol": "XRP/USDT", "modal": 500,  "leverage": 30},
+    {"symbol": "ADA/USDT", "modal": 500,  "leverage": 30},
+    {"symbol": "AVAX/USDT", "modal": 500, "leverage": 30},
+
+    # --- 2. CLASSIC & ESTABLISHED ALTS ---
+    {"symbol": "LTC/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "BCH/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "TRX/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "LINK/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "DOT/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "UNI/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "FIL/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "AAVE/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "NEAR/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "ZEC/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "XLM/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "ETC/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "XMR/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "DASH/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "XTZ/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "ATOM/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "ONT/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "CRV/USDT", "modal": 500, "leverage": 30},
+
+    # --- 3. TRENDING / AI / L2 (Modern) ---
+    {"symbol": "SUI/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "APT/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "ARB/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "TAO/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "WLD/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "ENA/USDT", "modal": 500, "leverage": 30},
+    {"symbol": "PNUT/USDT", "modal": 500, "leverage": 30},
+
+    # --- 4. MEMES (High Volatility) ---
+    {"symbol": "DOGE/USDT",     "modal": 500, "leverage": 30},
+    {"symbol": "1000PEPE/USDT", "modal": 500, "leverage": 30}, # Pastikan pakai 1000PEPE di Binance
+    {"symbol": "WIF/USDT",      "modal": 500, "leverage": 30},
+
+    # --- 5. HATI-HATI / BELUM LISTING FUTURES MAJOR (Cek Manual) ---
+    # Hilangkan tanda pagar (#) HANYA jika sudah yakin ada di exchange futures Anda
+     {"symbol": "BEAT/USDT",     "modal": 500, "leverage": 20},
+     {"symbol": "PIPPIN/USDT",   "modal": 500, "leverage": 20},
+     {"symbol": "ASTER/USDT",    "modal": 500, "leverage": 20},
+     {"symbol": "FARTCOIN/USDT", "modal": 500, "leverage": 20},
+     {"symbol": "PUMP/USDT",     "modal": 500, "leverage": 20},
+     {"symbol": "ARC/USDT",      "modal": 500, "leverage": 20},
+     {"symbol": "HYPE/USDT",     "modal": 500, "leverage": 20},
 ]
