@@ -154,6 +154,3 @@ screen -r bot_trading
 > **Trading Crypto Futures memiliki risiko finansial yang tinggi.** Bot ini hanyalah alat bantu eksekusi strategi dan bukan jaminan keuntungan. Gunakan dengan bijak dan resiko ditanggung pengguna (**DYOR**).
 
 Happy Trading\! 🚀
-
-```
-```
