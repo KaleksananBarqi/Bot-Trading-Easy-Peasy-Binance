@@ -61,8 +61,8 @@ LIMIT_EXEC = 100
 
 # [UPDATED] ATR diperkecil untuk Win Rate Tinggi (Scalping Agresif)
 ATR_PERIOD = 14             
-ATR_MULTIPLIER_SL = 1.2     # Stoploss lebih ketat (Sebelumnya 1.5)
-ATR_MULTIPLIER_TP1 = 1.5    # TP diperpendek biar gampang 'HIT' (Sebelumnya 2.5)
+ATR_MULTIPLIER_SL = 1.1     # Stoploss lebih ketat (Sebelumnya 1.5)
+ATR_MULTIPLIER_TP1 = 1.0    # TP diperpendek biar gampang 'HIT' (Sebelumnya 2.5)
 
 MIN_ORDER_USDT = 5           
 ORDER_TYPE = 'market'     
@@ -93,3 +93,9 @@ DAFTAR_KOIN = [
     {"symbol": "ENA/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
     {"symbol": "SEI/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
 ]
+
+# --- Tambahkan di bagian 5. TEKNIKAL & EKSEKUSI ---
+
+# MODE LIQUIDITY HUNT (Anti-Retail)
+USE_LIQUIDITY_HUNT = True  # Set True untuk aktifkan strategi "Jaring Bawah/Atas"
+TRAP_SAFETY_SL = 1.0       # Jarak SL baru dari Entry baru (Satuan ATR)

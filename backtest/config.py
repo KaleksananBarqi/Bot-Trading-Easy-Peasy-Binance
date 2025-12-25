@@ -21,7 +21,7 @@ DEFAULT_AMOUNT_USDT = 10
 # --- 3. FILTER BTC (GLOBAL TREND) ---
 BTC_SYMBOL = 'BTC/USDT'
 BTC_TIMEFRAME = '1h'
-BTC_EMA_PERIOD = 20             
+BTC_EMA_PERIOD = 50             
 BTC_CHECK_INTERVAL = 300        
 
 # --- 4. STRATEGI INDIKATOR (REVISED FOR CHOPPY MARKET) ---
@@ -93,3 +93,9 @@ DAFTAR_KOIN = [
     {"symbol": "ENA/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
     {"symbol": "SEI/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
 ]
+
+# --- Tambahkan di bagian 5. TEKNIKAL & EKSEKUSI ---
+
+# MODE LIQUIDITY HUNT (Anti-Retail)
+USE_LIQUIDITY_HUNT = True  # Set True untuk aktifkan strategi "Jaring Bawah/Atas"
+TRAP_SAFETY_SL = 1.0       # Jarak SL baru dari Entry baru (Satuan ATR)
