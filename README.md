@@ -70,8 +70,7 @@ Bot otomatis mendeteksi kondisi pasar menggunakan indikator **ADX**:
     ```
 
 4.  **Konfigurasi**
-    * Rename file `config.example.py` menjadi `config.py`.
-    * Isi `API_KEY`, `SECRET_KEY`, dan `TELEGRAM_TOKEN` milik Anda di dalamnya.
+    * Buat file .env dan Isi `API_KEY`, `SECRET_KEY`, dan `TELEGRAM_TOKEN` milik Anda di dalamnya.
 
 5.  **Jalankan Bot**
     ```bash
