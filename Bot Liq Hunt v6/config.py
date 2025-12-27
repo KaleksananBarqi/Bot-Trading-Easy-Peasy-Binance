@@ -26,7 +26,7 @@ DEFAULT_AMOUNT_USDT = 10
 # --- 3. FILTER BTC (GLOBAL TREND) ---
 BTC_SYMBOL = 'BTC/USDT'
 BTC_TIMEFRAME = '1h'
-BTC_EMA_PERIOD = 50             
+BTC_EMA_PERIOD = 21             
 BTC_CHECK_INTERVAL = 300        
 
 # --- 4. STRATEGI INDIKATOR (REVISED FOR CHOPPY MARKET) ---
@@ -66,8 +66,8 @@ LIMIT_EXEC = 100
 
 # [UPDATED] ATR diperkecil untuk Win Rate Tinggi (Scalping Agresif)
 ATR_PERIOD = 14             
-ATR_MULTIPLIER_SL = 1.1     # Stoploss lebih ketat (Sebelumnya 1.5)
-ATR_MULTIPLIER_TP1 = 1.0    # TP diperpendek biar gampang 'HIT' (Sebelumnya 2.5)
+ATR_MULTIPLIER_SL = 1.0    # Stoploss lebih ketat (Sebelumnya 1.5)
+ATR_MULTIPLIER_TP1 = 2.0    # TP diperpendek biar gampang 'HIT' (Sebelumnya 2.5)
 
 MIN_ORDER_USDT = 5           
 ORDER_TYPE = 'market'     
@@ -130,4 +130,4 @@ DAFTAR_KOIN = [
 
 # MODE LIQUIDITY HUNT (Anti-Retail)
 USE_LIQUIDITY_HUNT = True  # Set True untuk aktifkan strategi "Jaring Bawah/Atas"
-TRAP_SAFETY_SL = 1.0       # Jarak SL baru dari Entry baru (Satuan ATR)
+TRAP_SAFETY_SL = 0.5       # Jarak SL baru dari Entry baru (Satuan ATR)
