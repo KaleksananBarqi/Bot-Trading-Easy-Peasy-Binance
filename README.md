@@ -1,5 +1,6 @@
 # 🤖 Bot Trading Easy Peasy - Liquidity Hunter
 <img width="1235" height="874" alt="Image" src="https://github.com/user-attachments/assets/be6471f0-5364-4b0b-bea3-4d00d5be6c4b" />
+
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue?style=for-the-badge&logo=python)
 ![Exchange](https://img.shields.io/badge/Exchange-Binance%20Futures-yellow?style=for-the-badge&logo=binance)
 ![Status](https://img.shields.io/badge/Status-Aktif-success?style=for-the-badge)
