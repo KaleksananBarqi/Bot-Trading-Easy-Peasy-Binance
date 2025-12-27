@@ -524,9 +524,21 @@ async def main():
             print(f"⏳ Loop selesai. Active Pos: {len(positions_cache)}")
             await asyncio.sleep(10)
 
+        except asyncio.CancelledError:
+            # Tangkap jika task di-cancel secara internal
+            raise
         except Exception as e:
             print(f"Loop error: {e}")
             await asyncio.sleep(30)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        # 1. Handle Stop Manual (Ctrl+C)
+        print("\n🛑 Bot dihentikan oleh User...")
+        asyncio.run(kirim_tele("🛑 <b>BOT STOPPED</b>\nBot dimatikan secara manual oleh User", alert=True))
+    except Exception as e:
+        # 2. Handle Crash / Error Sistem Tak Terduga
+        print(f"\n❌ Bot Crash: {e}")
+        asyncio.run(kirim_tele(f"❌ <b>BOT CRASHED</b>\nSistem berhenti mendadak karena error:\n<code>{str(e)}</code>", alert=True))
