@@ -249,3 +249,13 @@ pandas-ta-development/tests/test_metrics.py
 pandas-ta-development/tests/test_numba.py
 pandas-ta-development/tests/test_studies.py
 pandas-ta-development/tests/test_utils.py
+# Logs
+*.log
+logs/
+
+# State files (jika json ini cuma buat nyimpen status sementara)
+signal_tracker.json
+
+# Python Cache
+__pycache__/
+*.py[cod]
