@@ -59,8 +59,8 @@ STOCH_OVERSOLD = 20
 STOCH_OVERBOUGHT = 80
 
 # --- 5. TEKNIKAL & EKSEKUSI ---
-TIMEFRAME_TREND = '1h'      
-TIMEFRAME_EXEC = '15m'      
+TIMEFRAME_TREND = '30m'      
+TIMEFRAME_EXEC = '5m'      
 LIMIT_TREND = 500           
 LIMIT_EXEC = 100            
 
@@ -124,6 +124,18 @@ DAFTAR_KOIN = [
     {"symbol": "RECALL/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
     {"symbol": "VELVET/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
     {"symbol": "STBL/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
+    
+    # --- High Volume Futures (New Additions) ---
+    {"symbol": "AT/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
+    {"symbol": "ZEC/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
+    {"symbol": "BEAT/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
+    {"symbol": "ZKP/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
+    {"symbol": "LIGHT/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
+    {"symbol": "PIPPIN/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
+    {"symbol": "BCH/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
+    {"symbol": "AVNT/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
+    {"symbol": "KAITO/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
+    {"symbol": "1000PEPE/USDT", "leverage": 5, "margin_type": "isolated", "amount": 10},
 ]
 
 # --- Tambahkan di bagian 5. TEKNIKAL & EKSEKUSI ---

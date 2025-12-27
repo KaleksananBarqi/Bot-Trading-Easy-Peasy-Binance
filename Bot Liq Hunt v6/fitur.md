@@ -121,7 +121,7 @@ Kalau memang tidak dipakai, hapus fetch 1h itu supaya hemat request. Kalau mau d
 
 ---
 
-## 7) Risiko safety: JSON tracker bisa bikin posisi jadi “dianggap aman” padahal SL/TP hilang
+## 7) Risiko safety: JSON tracker bisa bikin posisi jadi “dianggap aman” padahal SL/TP hilang✅
 
 Di satpam, kamu skip pemasangan SL/TP kalau tracker bilang True. 
 Tracker itu diload saat startup. 
@@ -138,7 +138,7 @@ Risikonya:
 
 ---
 
-## 8) Mode Liquidity Hunt: TP dihitung dari harga “sekarang”, bukan dari entry limit
+## 8) Mode Liquidity Hunt: TP dihitung dari harga “sekarang”, bukan dari entry limit✅
 
 Di `calculate_trade_parameters()`:
 

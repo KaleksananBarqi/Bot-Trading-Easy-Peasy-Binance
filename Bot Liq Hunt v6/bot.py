@@ -181,52 +181,93 @@ async def _async_eksekusi_binance(symbol, side, entry_price, sl_price, tp1, coin
         return False
 
 # ==========================================
-# 2. MONITOR & SAFETY (AUTO SL/TP - V6 FIXED)
+# 2. MONITOR & SAFETY (AUTO SL/TP - FIXED DETECTION V2)
 # ==========================================
 async def monitor_positions_safety():
     """
-    Fungsi Satpam V6:
-    - Fix Short Logic (TP < Entry, SL > Entry).
-    - SL Trigger: Mark Price.
-    - TP Trigger: Last Price / Contract Price.
+    Fungsi Satpam V9 (Fixed):
+    - Memperbaiki deteksi reduceOnly yang sering gagal terbaca.
+    - Menghapus order lama by ID jika cancel_all gagal.
     """
     global safety_orders_tracker 
 
     try:
-        # 1. Ambil Posisi Aktif dari Binance
+        # 1. Ambil Posisi Aktif
         pos_raw = await exchange.fetch_positions()
-        # Filter posisi yang size-nya > 0
         active_positions = [p for p in pos_raw if float(p.get('contracts', 0)) > 0]
         
         active_symbols_now = [] 
 
         for pos in active_positions:
             symbol = pos['symbol']
+            # Normalisasi simbol (misal METIS/USDT:USDT -> METIS/USDT)
             market_symbol = symbol.split(':')[0] if ':' in symbol else symbol
             active_symbols_now.append(market_symbol)
 
-            if safety_orders_tracker.get(market_symbol, False) == True:
-                continue
-
-            # --- DETEKSI POSISI (LONG/SHORT) FIXED ---
-            # Kita cek langsung ke 'info' -> 'positionAmt' dari Binance
-            # Karena ccxt kadang membuat 'notional' jadi absolut (positif semua)
+            # --- DETEKSI ARAH POSISI ---
             raw_amt = float(pos['info'].get('positionAmt', 0))
-            
-            if raw_amt > 0:
-                is_long_pos = True  # Positif berarti LONG
-            elif raw_amt < 0:
-                is_long_pos = False # Negatif berarti SHORT
-            else:
-                continue # Skip jika 0 (tidak ada posisi)
+            if raw_amt > 0: is_long_pos = True
+            elif raw_amt < 0: is_long_pos = False
+            else: continue 
 
             side_text = "LONG" if is_long_pos else "SHORT"
-            print(f"🧐 Posisi {side_text} baru di {market_symbol}. Menghitung SL/TP...")
 
+            # --- [STEP PENTING] VALIDASI REAL-TIME KE EXCHANGE ---
+            try:
+                # Fetch orders (termasuk conditional orders)
+                open_orders = await exchange.fetch_open_orders(market_symbol)
+                
+                has_stop_loss = False
+                has_take_profit = False
+                
+                # List order yang perlu dihapus jika settingan salah
+                orders_to_cancel = []
+
+                for o in open_orders:
+                    o_type = o.get('type', '').lower()
+                    o_info = o.get('info', {})
+                    
+                    # --- DETEKSI LEBIH ROBUST UNTUK REDUCE ONLY ---
+                    # Binance kadang mengembalikan 'reduceOnly': true, kadang 'closePosition': true
+                    # Kadang string "true", kadang boolean True. Kita cek semua.
+                    is_reduce = (o.get('reduceOnly') is True) or \
+                                (str(o.get('reduceOnly')).lower() == 'true') or \
+                                (o_info.get('reduceOnly') is True) or \
+                                (str(o_info.get('reduceOnly')).lower() == 'true') or \
+                                (o_info.get('closePosition') is True) or \
+                                (str(o_info.get('closePosition')).lower() == 'true')
+
+                    # Jika order tipe STOP/TP tapi BUKAN reduceOnly, anggap sampah -> Hapus
+                    if ('stop' in o_type or 'take_profit' in o_type) and not is_reduce:
+                        orders_to_cancel.append(o['id'])
+                        continue
+
+                    # DETEKSI SL
+                    if ('stop' in o_type) and is_reduce:
+                        has_stop_loss = True
+                    
+                    # DETEKSI TP
+                    if ('take_profit' in o_type) and is_reduce:
+                        has_take_profit = True
+                
+                # JIKA KEDUANYA ADA -> AMAN, SKIP
+                if has_stop_loss and has_take_profit:
+                    if not safety_orders_tracker.get(market_symbol):
+                        safety_orders_tracker[market_symbol] = True
+                    continue 
+                
+                # Jika salah satu hilang, kita anggap TIDAK AMAN
+                print(f"⚠️ {market_symbol} ({side_text}) Tidak lengkap! (SL:{has_stop_loss}, TP:{has_take_profit}). Resetting...")
+
+            except Exception as e:
+                print(f"⚠️ Error fetch orders {market_symbol}: {e}")
+                continue # Jangan lanjut kalau fetch error, bahaya double order
+
+            # --- KALKULASI & PASANG ULANG ---
             amount = float(pos['contracts'])
             entry_price = float(pos['entryPrice'])
             
-            # Hitung ATR saat ini
+            # Fetch ATR
             bars = await exchange.fetch_ohlcv(market_symbol, config.TIMEFRAME_EXEC, limit=20)
             df = pd.DataFrame(bars, columns=['time','open','high','low','close','volume'])
             atr = df.ta.atr(length=config.ATR_PERIOD).iloc[-1]
@@ -234,78 +275,52 @@ async def monitor_positions_safety():
             sl_dist = atr * config.ATR_MULTIPLIER_SL
             tp_dist = atr * config.ATR_MULTIPLIER_TP1
             
-            # --- LOGIKA HARGA SL/TP (FIXED) ---
             if is_long_pos:
-                # LONG: SL di Bawah, TP di Atas
-                sl_price = entry_price - sl_dist
-                tp_price = entry_price + tp_dist
-                sl_side = 'sell' 
+                sl_price = entry_price - sl_dist; tp_price = entry_price + tp_dist; sl_side = 'sell'
             else:
-                # SHORT: SL di Atas, TP di Bawah
-                sl_price = entry_price + sl_dist
-                tp_price = entry_price - tp_dist
-                sl_side = 'buy'
+                sl_price = entry_price + sl_dist; tp_price = entry_price - tp_dist; sl_side = 'buy'
             
             amount_final = exchange.amount_to_precision(market_symbol, amount)
 
             try:
-                # 1. Cancel order lama
-                try: await exchange.cancel_all_orders(market_symbol)
-                except: pass
+                # 1. CANCEL ORDER LAMA (LEBIH AGRESIF)
+                # Kita cancel manual by ID agar lebih bersih daripada cancel_all_orders yang kadang miss
+                if len(open_orders) > 0:
+                    print(f"🧹 Membersihkan {len(open_orders)} order lama di {market_symbol}...")
+                    for old_order in open_orders:
+                        try:
+                            await exchange.cancel_order(old_order['id'], market_symbol)
+                        except:
+                            pass # Skip error kalau order sudah close
+                    await asyncio.sleep(1) # Wajib jeda agar Binance proses cancel
 
-                # 2. Pasang Order
+                # 2. Pasang Order Baru
                 tasks = []
-                
-                # STOP LOSS (Trigger: MARK PRICE)
-                params_sl = {
-                    'stopPrice': exchange.price_to_precision(market_symbol, sl_price), 
-                    'workingType': 'MARK_PRICE', 
-                    'reduceOnly': True
-                }
+                # SL MARKET
+                params_sl = {'stopPrice': exchange.price_to_precision(market_symbol, sl_price), 'workingType': 'MARK_PRICE', 'reduceOnly': True}
                 tasks.append(exchange.create_order(market_symbol, 'STOP_MARKET', sl_side, amount_final, params=params_sl))
                 
-                # TAKE PROFIT (Trigger: CONTRACT_PRICE / LAST PRICE)
-                # User request: "Mau TP last price"
-                params_tp = {
-                    'stopPrice': exchange.price_to_precision(market_symbol, tp_price), 
-                    'workingType': 'CONTRACT_PRICE', # Contract price biasanya mengacu ke Last Price di futures
-                    'reduceOnly': True
-                }
+                # TP MARKET
+                params_tp = {'stopPrice': exchange.price_to_precision(market_symbol, tp_price), 'workingType': 'CONTRACT_PRICE', 'reduceOnly': True}
                 tasks.append(exchange.create_order(market_symbol, 'TAKE_PROFIT_MARKET', sl_side, amount_final, params=params_tp))
                 
                 await asyncio.gather(*tasks)
 
-                # 3. Simpan Status
                 safety_orders_tracker[market_symbol] = True
                 save_tracker()
                 
-                print(f"✅ {market_symbol} ({side_text}) SL/TP Terpasang.")
-                
-                # --- NOTIFIKASI BERHASIL PASANG TP/SL ---
-                icon_pos = "📈" if is_long_pos else "📉"
-                msg_safety = (
-                    f"🛡️ <b>SAFETY ACTIVATED</b>\n"
-                    f"{icon_pos} <b>{market_symbol}</b> ({side_text})\n"
-                    f"━━━━━━━━━━━━━━━━━━\n"
-                    f"🎯 <b>TP Set:</b> {tp_price:.5f}\n"
-                    f"🛑 <b>SL Set:</b> {sl_price:.5f}"
-                )
-                await kirim_tele(msg_safety)
+                print(f"✅ {market_symbol} Safety Replaced.")
+                await kirim_tele(f"🛡️ <b>SAFETY RESTORED</b>\n{market_symbol}\nSL: {sl_price:.4f} | TP: {tp_price:.4f}")
 
             except Exception as e:
                 print(f"❌ Gagal pasang safety {market_symbol}: {e}")
-        
-        # --- CLEANUP (HAPUS ORDER SISA) ---
+
+        # CLEANUP Tracker
         clean_needed = False
         for recorded_symbol in list(safety_orders_tracker.keys()):
             if recorded_symbol not in active_symbols_now:
-                print(f"♻️ Posisi {recorded_symbol} tutup/hilang. Hapus order sisa...")
-                try:
-                    await exchange.cancel_all_orders(recorded_symbol)
-                except: pass 
                 del safety_orders_tracker[recorded_symbol]
                 clean_needed = True
-        
         if clean_needed: save_tracker()
 
     except Exception as e:
@@ -323,6 +338,7 @@ def calculate_trade_parameters(signal, df):
     retail_sl_dist = atr * config.ATR_MULTIPLIER_SL
     retail_tp_dist = atr * config.ATR_MULTIPLIER_TP1
     
+    # Hitung Level Retail (Standard)
     if signal == "LONG":
         retail_sl = current_price - retail_sl_dist
         retail_tp = current_price + retail_tp_dist
@@ -333,20 +349,29 @@ def calculate_trade_parameters(signal, df):
         retail_tp = current_price - retail_tp_dist
         side_api = 'sell'
 
-    # Mode Liquidity Hunt
+    # Mode Liquidity Hunt (Anti-Retail)
     if getattr(config, 'USE_LIQUIDITY_HUNT', False):
+        # Entry digeser ke posisi SL Retail (Trap)
         new_entry = retail_sl 
-        final_tp = retail_tp 
+        
+        # SL untuk safety trap (Jarak dari entry baru)
         safety_sl_dist = atr * getattr(config, 'TRAP_SAFETY_SL', 1.0)
+
+        # [FIX] TP DIHITUNG ULANG DARI ENTRY BARU
+        # Agar RR tetap konsisten sesuai config (misal 2.0 ATR)
+        trap_tp_dist = atr * config.ATR_MULTIPLIER_TP1 
         
         if signal == "LONG":
             final_sl = new_entry - safety_sl_dist
+            final_tp = new_entry + trap_tp_dist # TP Relatif terhadap Entry Bawah
         else:
             final_sl = new_entry + safety_sl_dist
+            final_tp = new_entry - trap_tp_dist # TP Relatif terhadap Entry Atas
             
         return {"entry_price": new_entry, "sl": final_sl, "tp1": final_tp, "side_api": side_api, "type": "limit"}
 
     else:
+        # Mode Normal (Market Order)
         return {"entry_price": current_price, "sl": retail_sl, "tp1": retail_tp, "side_api": side_api, "type": "market"}
 
 async def analisa_market(coin_config, btc_trend_status):
@@ -376,25 +401,25 @@ async def analisa_market(coin_config, btc_trend_status):
         elif btc_trend_status == "BEARISH": allowed_signal = "SHORT_ONLY"
 
     try:
-        # 1. FETCH DATA (15m dan 1H)
+        # 1. FETCH DATA (TIMEFRAME TREND & EKSEKUSI)
         bars = await exchange.fetch_ohlcv(symbol, config.TIMEFRAME_EXEC, limit=config.LIMIT_EXEC)
         bars_h1 = await exchange.fetch_ohlcv(symbol, config.TIMEFRAME_TREND, limit=config.LIMIT_TREND) 
         
         if not bars or not bars_h1: return
 
-        # 2. PROSES DATA 1H (MAJOR TREND FILTER)
+        # 2. PROSES DATA MAJOR TREND FILTER
         df_h1 = pd.DataFrame(bars_h1, columns=['time','open','high','low','close','volume'])
         df_h1['EMA_MAJOR'] = df_h1.ta.ema(length=config.EMA_TREND_MAJOR)
         
-        # Tentukan Bias Koin di 1H (Up/Down)
+        # Tentukan Bias Koin di Major Trend (Up/Down)
         trend_major_val = df_h1['EMA_MAJOR'].iloc[-1]
         price_h1_now = df_h1['close'].iloc[-1]
         is_coin_uptrend_h1 = price_h1_now > trend_major_val
 
-        # 3. PROSES DATA 15m (EKSEKUSI)
+        # 3. PROSES DATA TIMEFRAME EKSEKUSI
         df = pd.DataFrame(bars, columns=['time','open','high','low','close','volume'])
         
-        # Hitung Indikator 15m DULU SEBELUM LOGIKA
+        # Hitung Indikator TIMEFRAME EKSEKUSI DULU SEBELUM LOGIKA
         df['EMA_FAST'] = df.ta.ema(length=config.EMA_FAST)
         df['EMA_SLOW'] = df.ta.ema(length=config.EMA_SLOW)
         df['ATR'] = df.ta.atr(length=config.ATR_PERIOD)
@@ -424,28 +449,28 @@ async def analisa_market(coin_config, btc_trend_status):
         # Jika Market Trending (ADX Tinggi)
         if adx_val > config.ADX_LIMIT_TREND:
             
-            # CEK LONG (Harus sesuai BTC Trend & Koin 1H Uptrend)
+            # CEK LONG (Harus sesuai BTC Trend & Koin TIMEFRAME BESAR Uptrend)
             if (allowed_signal in ["LONG_ONLY", "BOTH"]):
                 is_uptrend_15m = (confirm['close'] > confirm['EMA_FAST']) and (confirm['EMA_FAST'] > confirm['EMA_SLOW'])
                 
-                # SYARAT: 15m Uptrend AND 1H Uptrend AND Harga < BB Atas (biar gak pucuk)
+                # SYARAT: TIMEFRAME EKSEKSUSI Uptrend AND TIMEFRAME BESAR Uptrend AND Harga < BB Atas (biar gak pucuk)
                 if is_uptrend_15m and is_coin_uptrend_h1 and (current_price < confirm['BBU']) and (current_rsi < 70) and is_volume_valid:
                     signal = "LONG"; strategy_type = "TREND_STRONG (Major H1 Up)"
             
-            # CEK SHORT (Harus sesuai BTC Trend & Koin 1H Downtrend)
+            # CEK SHORT (Harus sesuai BTC Trend & Koin TIMEFRAME BESAR Downtrend)
             if (allowed_signal in ["SHORT_ONLY", "BOTH"]) and (signal is None):
                 is_downtrend_15m = (confirm['close'] < confirm['EMA_FAST']) and (confirm['EMA_FAST'] < confirm['EMA_SLOW'])
                 
-                # SYARAT: 15m Downtrend AND 1H Downtrend AND Harga > BB Bawah
+                # SYARAT: TIMEFRAME EKSEKUSI Downtrend AND TIMEFRAME BESAR Downtrend AND Harga > BB Bawah
                 if is_downtrend_15m and not is_coin_uptrend_h1 and (current_price > confirm['BBL']) and (current_rsi > 30) and is_volume_valid:
                     signal = "SHORT"; strategy_type = "TREND_STRONG (Major H1 Down)"
 
-        # Jika Market Sideways (ADX Rendah) -> Scalping Reversal (Opsional: Bisa skip 1H filter di sini kalau mau agresif)
+        # Jika Market Sideways (ADX Rendah) -> Scalping Reversal (Opsional: Bisa skip TIMEFRAME BESAR filter di sini kalau mau agresif)
         else:
             if (allowed_signal in ["LONG_ONLY", "BOTH"]):
                 is_bottom = current_price <= (confirm['BBL'] * 1.002)
                 is_stoch_buy = (confirm['STOCH_K'] > confirm['STOCH_D']) and (confirm['STOCH_K'] < 30)
-                # Di kondisi sideways, kita bisa abaikan tren H1 atau tetap pakai. Di sini saya tetap pakai agar aman.
+                # Di kondisi sideways, kita bisa abaikan tren TIMEFRAME BESAR atau tetap pakai. Di sini saya tetap pakai agar aman.
                 if is_bottom and is_stoch_buy and is_volume_valid and is_coin_uptrend_h1: 
                     signal = "LONG"; strategy_type = "SCALP_REVERSAL"
             
