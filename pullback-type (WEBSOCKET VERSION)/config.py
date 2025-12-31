@@ -85,27 +85,23 @@ SIDEWAYS_ADX_MAX = 20
 # --- 7. DAFTAR KOIN ---
 # Jika leverage/amount tidak diisi, akan memakai DEFAULT dari Section 2
 DAFTAR_KOIN = [
+    # --- Major Coins (Cross Margin) ---
     {"symbol": "BTC/USDT", "leverage": 20, "margin_type": "cross", "amount": 50},
     {"symbol": "ETH/USDT", "leverage": 20, "margin_type": "cross", "amount": 40},
+
+    # --- Strong Alts (Isolated, Mid Leverage) ---
     {"symbol": "SOL/USDT", "leverage": 15, "margin_type": "isolated", "amount": 30},
     {"symbol": "BNB/USDT", "leverage": 15, "margin_type": "isolated", "amount": 30},
-    {"symbol": "XRP/USDT"}, # Contoh tanpa setting khusus, akan ikut DEFAULT
-    {"symbol": "ADA/USDT"},
-    {"symbol": "DOGE/USDT"},
-    {"symbol": "DOT/USDT"},
-    {"symbol": "LTC/USDT"},
-    {"symbol": "AVAX/USDT"},
-    {"symbol": "LINK/USDT"},
-    {"symbol": "UNI/USDT"},
-    {"symbol": "ATOM/USDT"},
-    {"symbol": "ALGO/USDT"},
-    {"symbol": "VET/USDT"},
-    {"symbol": "FTM/USDT"},
-    {"symbol": "NEAR/USDT"},
-    {"symbol": "FTM/USDT"},
-    {"symbol": "XLM/USDT"},
-    {"symbol": "TRX/USDT"},
-    {"symbol": "XMR/USDT"},
-    {"symbol": "EOS/USDT"},
-    {"symbol": "AAVE/USDT"},
+    
+    # --- Standard Alts (Sesuai Backtest) ---
+    {"symbol": "XRP/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    {"symbol": "ADA/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    {"symbol": "DOGE/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    {"symbol": "TRX/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    {"symbol": "LTC/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    {"symbol": "AVAX/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    {"symbol": "LINK/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    
+    # --- THE CHAMPION (WAJIB ADA) ---
+    {"symbol": "ZEC/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
 ]

@@ -118,7 +118,10 @@ class BinanceWSManager:
             for coin in config.DAFTAR_KOIN:
                 sym_clean = coin['symbol'].replace('/', '').lower()
                 streams.append(f"{sym_clean}@kline_{config.TIMEFRAME_EXEC}")
-                streams.append(f"{sym_clean}@kline_{config.BTC_TIMEFRAME}")
+                
+                # [FIX 3]: Optimasi Stream. Hanya BTC yang subscribe timeframe BTC.
+                if coin['symbol'] == config.BTC_SYMBOL:
+                    streams.append(f"{sym_clean}@kline_{config.BTC_TIMEFRAME}")
             
             streams.append(self.listen_key) 
             url = self.base_url + "/".join(streams)
@@ -166,7 +169,7 @@ class BinanceWSManager:
             if symbol not in market_data_store: return
             target_list = market_data_store[symbol].get(interval, [])
             
-            # Logic update candle: Jika timestamp sama, replace. Jika beda, append.
+            # Logic update candle
             if len(target_list) > 0 and new_candle[0] == target_list[-1][0]:
                 target_list[-1] = new_candle
             else:
@@ -177,15 +180,14 @@ class BinanceWSManager:
 
             # --- UPDATE TREND BTC (KING FILTER) ---
             if symbol == config.BTC_SYMBOL and interval == config.BTC_TIMEFRAME:
-                # Perlu minimal 50 candle untuk EMA 50
                 closes = [c[4] for c in target_list]
                 if len(closes) >= config.BTC_EMA_PERIOD:
-                    # Hitung EMA Manual sederhana untuk BTC Filter
+                    # Menggunakan pandas.ewm manual untuk performa di loop WS
+                    # Pastikan parameter span sesuai dengan config
                     ema_val = pd.Series(closes).ewm(span=config.BTC_EMA_PERIOD, adjust=False).mean().iloc[-1]
                     price_now = closes[-1]
                     prev_trend = btc_trend_direction
                     
-                    # Logic: Close > EMA = Bullish
                     btc_trend_direction = "BULLISH" if price_now > ema_val else "BEARISH"
                     
                     if prev_trend != btc_trend_direction:
@@ -197,10 +199,10 @@ class BinanceWSManager:
             positions = data['a']['P']
             async with data_lock:
                 for p in positions:
-                    sym = p['s'].replace('USDT', '/USDT')
+                    sym = p['s'].replace('USDT', '/USDT') # Format: BTC/USDT
                     amt = float(p['pa'])
                     entry = float(p['ep'])
-                    base_sym = sym.split('/')[0]
+                    base_sym = sym.split('/')[0] # Format: BTC
                     
                     if amt != 0:
                         position_cache_ws[base_sym] = {
@@ -212,6 +214,9 @@ class BinanceWSManager:
                         if base_sym in position_cache_ws:
                             print(f"📉 Position Closed (WS): {sym}")
                             del position_cache_ws[base_sym]
+                            
+                            # [FIX 2]: Perbaiki penghapusan tracker
+                            # Cek apakah symbol ada di tracker (menggunakan format BTC/USDT)
                             if sym in safety_orders_tracker:
                                 del safety_orders_tracker[sym]
                                 save_tracker()
@@ -283,7 +288,6 @@ async def fetch_existing_positions():
         print(f"❌ Failed to fetch positions: {e}")
 
 async def install_safety_for_existing_positions():
-    # Helper untuk recovery restart
     current_positions = dict(position_cache_ws)
     for base_sym, pos_data in current_positions.items():
         symbol = pos_data['symbol']
@@ -295,18 +299,28 @@ async def install_safety_for_existing_positions():
 
 async def initialize_market_data():
     print("📥 Initializing Market Data (REST)...")
+    
+    # [FIX 1]: Pre-Initialize Data Structure untuk mencegah error key
+    async with data_lock:
+        for coin in config.DAFTAR_KOIN:
+            market_data_store[coin['symbol']] = {
+                config.TIMEFRAME_EXEC: [],
+                config.BTC_TIMEFRAME: []
+            }
+
     tasks = []
     
     async def fetch_pair(coin):
         symbol = coin['symbol']
-        market_data_store[symbol] = {}
         try:
             # Ambil data sedikit lebih banyak untuk aman
             bars_5m = await exchange.fetch_ohlcv(symbol, config.TIMEFRAME_EXEC, limit=config.LIMIT_EXEC)
             bars_btc = await exchange.fetch_ohlcv(symbol, config.BTC_TIMEFRAME, limit=config.LIMIT_TREND)
             async with data_lock:
-                market_data_store[symbol][config.TIMEFRAME_EXEC] = bars_5m
-                market_data_store[symbol][config.BTC_TIMEFRAME] = bars_btc
+                # Pastikan key ada sebelum assign (double safety)
+                if symbol in market_data_store:
+                    market_data_store[symbol][config.TIMEFRAME_EXEC] = bars_5m
+                    market_data_store[symbol][config.BTC_TIMEFRAME] = bars_btc
             print(f"   ✅ Loaded: {symbol}")
         except Exception as e:
             print(f"   ❌ Failed Load {symbol}: {e}")
@@ -317,17 +331,21 @@ async def initialize_market_data():
     # Initialize BTC Trend
     if config.BTC_SYMBOL in market_data_store:
         bars = market_data_store[config.BTC_SYMBOL][config.BTC_TIMEFRAME]
-        df_btc = pd.DataFrame(bars, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-        ema_btc = df_btc.ta.ema(length=config.BTC_EMA_PERIOD).iloc[-1]
-        global btc_trend_direction
-        btc_trend_direction = "BULLISH" if df_btc['close'].iloc[-1] > ema_btc else "BEARISH"
-        print(f"👑 INITIAL BTC TREND: {btc_trend_direction}")
+        if bars:
+            df_btc = pd.DataFrame(bars, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+            ema_btc = df_btc.ta.ema(length=config.BTC_EMA_PERIOD).iloc[-1]
+            global btc_trend_direction
+            btc_trend_direction = "BULLISH" if df_btc['close'].iloc[-1] > ema_btc else "BEARISH"
+            print(f"👑 INITIAL BTC TREND: {btc_trend_direction}")
 
 # ==========================================
 # CORE LOGIC: ANALISA MARKET (FIXED 1:1 BACKTEST)
 # ==========================================
 
 def calculate_trade_parameters(signal, df, symbol=None, strategy_type="TREND_TRAP", tech_info=None):
+    # [FIX]: Validasi panjang DF sebelum iloc
+    if len(df) < 2: return None
+
     # [FIX POINT 4]: WAJIB pakai iloc[-2] (Candle yg sudah Close)
     current = df.iloc[-2] 
     atr = current['ATR']
@@ -352,34 +370,23 @@ def calculate_trade_parameters(signal, df, symbol=None, strategy_type="TREND_TRA
     order_type = config.ORDER_TYPE
 
     # --- [FIX POINT 1]: LOGIKA SNIPER / LIQUIDITY HUNT (Anti-Retail) ---
-    # Syarat: Hanya aktif jika config TRUE dan strategy bukan murni momentum (optional)
     if config.USE_LIQUIDITY_HUNT:
-        
-        # [FIX]: Gunakan jarak safety trap (Trap Safety SL)
         safety_sl_dist = atr * getattr(config, 'TRAP_SAFETY_SL', 1.0)
         
         if signal == "LONG":
-            # [FIX]: Entry persis di Retail SL (Tanpa buffer variabel, hardcoded logic backtest)
             sniper_entry = retail_sl 
-            
-            # Cek logika dasar: Entry limit harus dibawah harga sekarang
             if sniper_entry < current_price:
                 entry_price = sniper_entry
                 sl_price = entry_price - safety_sl_dist
-                # [FIX POINT 2]: TP dihitung dari ENTRY BARU + (ATR * Multiplier)
-                # Bukan berdasarkan Risk Ratio, tapi Fixed Distance sesuai Config Backtest
                 tp_price = entry_price + (atr * config.ATR_MULTIPLIER_TP1)
                 order_type = 'limit'
                 print(f"🔫 SNIPER LONG: Entry moved to Retail SL @ {entry_price}")
 
         elif signal == "SHORT":
-            # [FIX]: Entry persis di Retail SL
             sniper_entry = retail_sl
-            
             if sniper_entry > current_price:
                 entry_price = sniper_entry
                 sl_price = entry_price + safety_sl_dist
-                # [FIX POINT 2]: TP dihitung dari ENTRY BARU - (ATR * Multiplier)
                 tp_price = entry_price - (atr * config.ATR_MULTIPLIER_TP1)
                 order_type = 'limit'
                 print(f"🔫 SNIPER SHORT: Entry moved to Retail SL @ {entry_price}")
@@ -400,7 +407,7 @@ async def analisa_market_hybrid(coin_config):
     if symbol in SYMBOL_COOLDOWN and now < SYMBOL_COOLDOWN[symbol]: return
     base_sym = symbol.split('/')[0]
     
-    # Cek cache posisi (jangan entry kalau sudah punya posisi)
+    # Cek cache posisi
     is_in_position = False
     async with data_lock:
         if base_sym in position_cache_ws: is_in_position = True
@@ -413,14 +420,13 @@ async def analisa_market_hybrid(coin_config):
             bars_5m = market_data_store[symbol].get(config.TIMEFRAME_EXEC, [])
             bars_h1 = market_data_store[symbol].get(config.BTC_TIMEFRAME, []) 
         
-        if len(bars_5m) < config.EMA_SLOW + 2 or len(bars_h1) < config.EMA_TREND_MAJOR + 2: return
+        # Validasi Data Cukup
+        if len(bars_5m) < config.EMA_SLOW + 5 or len(bars_h1) < config.EMA_TREND_MAJOR + 5: return
 
         # --- [FIX POINT 3]: FILTER TREND MAJOR (H1 COIN) ---
-        # Backtest menggunakan EMA 50 di Timeframe 1H untuk filter bias koin
         df_h1 = pd.DataFrame(bars_h1, columns=['timestamp','open','high','low','close','volume'])
         df_h1['EMA_MAJOR'] = df_h1.ta.ema(length=config.EMA_TREND_MAJOR)
         
-        # Trend H1 Coin (Confirmed Candle / iloc[-1] aman utk H1 karena update lama)
         trend_major_val = df_h1['EMA_MAJOR'].iloc[-1] 
         price_h1_now = df_h1['close'].iloc[-1]
         is_coin_uptrend_h1 = price_h1_now > trend_major_val
@@ -429,6 +435,7 @@ async def analisa_market_hybrid(coin_config):
         df = pd.DataFrame(bars_5m, columns=['timestamp','open','high','low','close','volume'])
         
         df['EMA_FAST'] = df.ta.ema(length=config.EMA_FAST)
+        df['EMA_SLOW'] = df.ta.ema(length=config.EMA_SLOW)
         df['ADX'] = df.ta.adx(length=config.ADX_PERIOD)[f"ADX_{config.ADX_PERIOD}"]
         df['RSI'] = df.ta.rsi(length=14)
         df['ATR'] = df.ta.atr(length=config.ATR_PERIOD)
@@ -442,16 +449,15 @@ async def analisa_market_hybrid(coin_config):
         df['STOCH_K'] = stoch.iloc[:, 0] 
 
         # --- [FIX POINT 4]: GUNAKAN ILOC[-2] (CANDLE CLOSE) ---
-        # Backtest logic selalu melihat candle yg baru saja close
         confirm = df.iloc[-2] 
-        
         price_now = confirm['close']
-        ema_fast_m5 = confirm['EMA_FAST'] # EMA Fast pada candle close
+        ema_fast_m5 = confirm['EMA_FAST'] 
         
+        # [FIX 4]: Debug Prints (Supaya tahu botnya jalan)
+        # print(f"🔍 {symbol} | Price: {price_now} | ADX: {confirm['ADX']:.1f} | RSI: {confirm['RSI']:.1f}")
+
         signal = None
         strategy_type = "NONE"
-
-        # FILTER ARAH BERDASARKAN BTC TREND (GLOBAL)
         allowed_signal = "BOTH"
         if symbol != config.BTC_SYMBOL:
             if btc_trend_direction == "BULLISH": allowed_signal = "LONG_ONLY"
@@ -460,27 +466,17 @@ async def analisa_market_hybrid(coin_config):
         # --- STRATEGI A: TREND TRAP (PULLBACK) ---
         if config.USE_TREND_TRAP_STRATEGY and confirm['ADX'] > config.TREND_TRAP_ADX_MIN:
             
-            # CEK LONG (Trend H1 Naik + M5 Koreksi)
+            # CEK LONG
             if (allowed_signal in ["LONG_ONLY", "BOTH"]) and is_coin_uptrend_h1:
-                
-                # [FIX POINT 5]: LOGIKA PULLBACK ZONE
-                # 1. Harga Close < EMA Fast (Menunjukkan koreksi/pullback)
-                # 2. Harga Close > BB Lower (Belum jebol BB bawah, masih wajar)
                 is_pullback_valid = (price_now < ema_fast_m5) and (price_now > confirm['BBL'])
-                
                 if is_pullback_valid:
                     if config.TREND_TRAP_RSI_LONG_MIN <= confirm['RSI'] <= config.TREND_TRAP_RSI_LONG_MAX:
                         signal = "LONG"
                         strategy_type = "TREND_PULLBACK"
 
-            # CEK SHORT (Trend H1 Turun + M5 Koreksi Naik)
+            # CEK SHORT
             elif (allowed_signal in ["SHORT_ONLY", "BOTH"]) and (not is_coin_uptrend_h1):
-                
-                # [FIX POINT 5]: LOGIKA PULLBACK ZONE SELL
-                # 1. Harga Close > EMA Fast (Menunjukkan koreksi naik sementara)
-                # 2. Harga Close < BB Upper (Belum jebol BB atas)
                 is_pullback_valid_sell = (price_now > ema_fast_m5) and (price_now < confirm['BBU'])
-                
                 if is_pullback_valid_sell:
                     if config.TREND_TRAP_RSI_SHORT_MIN <= confirm['RSI'] <= config.TREND_TRAP_RSI_SHORT_MAX:
                         signal = "SHORT"
@@ -488,14 +484,10 @@ async def analisa_market_hybrid(coin_config):
 
         # --- STRATEGI B: SIDEWAYS SCALP (BB BOUNCE) ---
         elif config.USE_SIDEWAYS_SCALP and confirm['ADX'] < config.SIDEWAYS_ADX_MAX and signal is None:
-            
-            # BB Bounce Bottom (Long)
             if price_now <= confirm['BBL'] and confirm['STOCH_K'] < config.STOCH_OVERSOLD:
                 if (allowed_signal in ["LONG_ONLY", "BOTH"]): 
                     signal = "LONG"
                     strategy_type = "BB_BOUNCE_BOTTOM"
-            
-            # BB Bounce Top (Short)
             elif price_now >= confirm['BBU'] and confirm['STOCH_K'] > config.STOCH_OVERBOUGHT:
                 if (allowed_signal in ["SHORT_ONLY", "BOTH"]): 
                     signal = "SHORT"
@@ -515,20 +507,18 @@ async def analisa_market_hybrid(coin_config):
             }
             
             params = calculate_trade_parameters(signal, df, symbol, strategy_type, tech_info) 
-            await execute_order(symbol, params['side_api'], params, strategy_type, coin_config)
+            if params:
+                await execute_order(symbol, params['side_api'], params, strategy_type, coin_config)
 
     except Exception as e:
         logger.error(f"Error Analisa Hybrid {symbol}: {e}") 
 
-# GANTI FUNGSI execute_order DENGAN INI AGAR NOTIF LENGKAP:
 async def execute_order(symbol, side, params, strategy, coin_cfg):
     try:
-        # 1. Bersihkan order lama
         try:
             await exchange.cancel_all_orders(symbol)
         except: pass
 
-        # 2. Setup Leverage & Margin
         leverage = coin_cfg.get('leverage', config.DEFAULT_LEVERAGE)
         amount = coin_cfg.get('amount', config.DEFAULT_AMOUNT_USDT)
         margin_type = coin_cfg.get('margin_type', config.DEFAULT_MARGIN_TYPE)
@@ -541,21 +531,20 @@ async def execute_order(symbol, side, params, strategy, coin_cfg):
 
         logger.info(f"🚀 PREPARING ORDER: {symbol} | Side: {side} | Strat: {strategy} | Price: {params['entry_price']}")
 
-        # 3. Hitung Quantity
         qty = (amount * leverage) / params['entry_price']
         qty = exchange.amount_to_precision(symbol, qty)
         
-        # 4. Eksekusi Order (Limit/Market)
         order = None
         if params['type'] == 'limit':
             order = await exchange.create_order(symbol, 'limit', side, qty, params['entry_price'])
             logger.info(f"✅ LIMIT PLACED: {symbol} | ID: {order['id']}")
             
-            # Update Tracker ke WAITING_ENTRY
+            # [FIX 5]: Tambahkan Expiry untuk limit order (1 Jam)
             safety_orders_tracker[symbol] = {
                 "status": "WAITING_ENTRY",
                 "entry_id": str(order['id']),
                 "created_at": time.time(),
+                "expires_at": time.time() + 3600, 
                 "strategy": strategy
             }
             save_tracker()
@@ -563,20 +552,15 @@ async def execute_order(symbol, side, params, strategy, coin_cfg):
             order = await exchange.create_order(symbol, 'market', side, qty)
             logger.info(f"✅ MARKET FILLED: {symbol} | Qty: {qty}")
         
-        # 5. Set Cooldown
         SYMBOL_COOLDOWN[symbol] = time.time() + config.COOLDOWN_PER_SYMBOL_SECONDS
         
-        # --- 6. FORMAT NOTIFIKASI TELEGRAM (YANG DIPERBAIKI) ---
         try:
             rr_ratio = round(abs(params['tp1'] - params['entry_price']) / abs(params['entry_price'] - params['sl']), 2)
         except: rr_ratio = 0
         
         icon_side = "🟢 LONG" if side == 'buy' else "🔴 SHORT"
-        
-        # Ambil data tech_info yang dikirim dari analisa
         ti = params.get('tech_info', {})
         
-        # Format Data Indikator (Restored)
         vol_status = "✅ High" if ti.get('vol_valid') else "⚠️ Low"
         btc_t = ti.get('btc_trend', 'NEUTRAL')
         btc_icon = "🟢" if btc_t == "BULLISH" else ("🔴" if btc_t == "BEARISH" else "⚪")
@@ -628,9 +612,6 @@ async def install_safety_orders(symbol, pos_data):
     sl_dist = atr * config.ATR_MULTIPLIER_SL
     tp_dist = atr * config.ATR_MULTIPLIER_TP1
     
-    # Override logic jika menggunakan mode Sniper/Trap (ATR Trap Safety mungkin beda)
-    # Namun untuk Safety Monitor (posisi sudah jalan), kita pakai ATR Multiplier Standard untuk SL
-    # Atau sesuaikan dengan logic config.TRAP_SAFETY_SL jika ingin konsisten dengan Sniper
     if config.USE_LIQUIDITY_HUNT:
         sl_dist = atr * getattr(config, 'TRAP_SAFETY_SL', 1.0)
 
@@ -683,10 +664,19 @@ async def safety_monitor_hybrid():
                     else:
                         safety_orders_tracker[symbol] = {"status": "PENDING", "last_check": now}
             
-            # CHECK GHOST ORDERS
+            # CHECK GHOST ORDERS & EXPIRY
             active_trackers = list(safety_orders_tracker.items())
             for sym, tracker in active_trackers:
-                if tracker.get("status") == "SECURED":
+                # Cek Expiry Limit Order (jika WAITING_ENTRY)
+                if tracker.get("status") == "WAITING_ENTRY":
+                    if now > tracker.get("expires_at", now + 999999):
+                        print(f"⏳ ORDER EXPIRED: {sym}. Cleaning up...")
+                        del safety_orders_tracker[sym]
+                        try: await exchange.cancel_all_orders(sym)
+                        except: pass
+                        save_tracker()
+
+                elif tracker.get("status") == "SECURED":
                     last_check = tracker.get("last_check", 0)
                     if (now - last_check) > 300: # 5 Menit Verification
                         try:
@@ -719,7 +709,7 @@ async def main():
     })
     if config.PAKAI_DEMO: exchange.enable_demo_trading(True)
 
-    await kirim_tele("🤖 <b>BOT STARTED (FINAL FIXED VERSION)</b>\nLogic aligned 1:1 with Backtest", alert=True)
+    await kirim_tele("🤖 <b>BOT STARTED (OPTIMIZED)</b>\nSystem is Online & Healthy.", alert=True)
 
     try:
         load_tracker()

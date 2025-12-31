@@ -24,10 +24,11 @@
     "strategy": "SIDEWAYS_SCALP"
   },
   "BNB/USDT": {
-    "created_at": 1767177106.311376,
-    "entry_id": "1111067918",
+    "created_at": 1767184312.5455098,
+    "entry_id": "1111302432",
+    "expires_at": 1767187912.5455103,
     "status": "WAITING_ENTRY",
-    "strategy": "TREND_TRAP"
+    "strategy": "TREND_PULLBACK"
   },
   "BTC/USDT": {
     "created_at": 1767177475.7702434,
@@ -82,5 +83,12 @@
     "entry_id": "214645443",
     "status": "WAITING_ENTRY",
     "strategy": "SIDEWAYS_SCALP"
+  },
+  "ZEC/USDT": {
+    "created_at": 1767184034.2446656,
+    "entry_id": "1053862899",
+    "expires_at": 1767187634.244666,
+    "status": "WAITING_ENTRY",
+    "strategy": "BB_BOUNCE_BOTTOM"
   }
 }
