@@ -304,7 +304,7 @@ async def fetch_existing_positions():
         print(f"❌ Failed to fetch positions: {e}")
 
 async def install_safety_for_existing_positions():
-    print("🔍 Checking Existing Positions & Orders...")
+    logger.info("🔍 Checking Existing Positions & Orders...")
     current_positions = dict(position_cache_ws)
     
     # Ambil semua open order sekaligus untuk efisiensi
@@ -326,10 +326,12 @@ async def install_safety_for_existing_positions():
         # LOGIKA BARU: Jika sudah ada minimal 2 order (kemungkinan SL & TP), anggap aman
         if existing_order_count >= 2:
             safety_orders_tracker[symbol] = {"status": "SECURED", "last_check": time.time()}
-            print(f"   ✅ {symbol}: Terdeteksi aman ({existing_order_count} active orders).")
+            # Log Khusus SUCCESS
+            logger.info(f"✅ EXISTING CHECK: {symbol} | Status: SECURED ({existing_order_count} active orders)")
         else:
             safety_orders_tracker[symbol] = {"status": "PENDING", "last_check": time.time()}
-            print(f"   ⚠️ {symbol}: Posisi telanjang/kurang order -> Set PENDING.")
+            # Log Khusus WARNING
+            logger.info(f"⚠️ EXISTING CHECK: {symbol} | Status: PENDING (Only {existing_order_count} orders) -> Triggering Monitor")
             safety_event.set() # Bangunkan monitor segera
             
     save_tracker()
@@ -732,7 +734,7 @@ async def safety_monitor_hybrid():
                     
                     # Cek apakah perlu install
                     if status == "PENDING":
-                        print(f"🛡️ Installing Safety for: {symbol}...")
+                        logger.info(f"🛡️ SAFETY MONITOR: Installing orders for {symbol}...")
                         
                         # Update status dulu biar gak diproses ulang thread lain
                         safety_orders_tracker[symbol]["status"] = "PROCESSING"
@@ -747,11 +749,11 @@ async def safety_monitor_hybrid():
                                 "last_check": now
                             }
                             save_tracker()
-                            print(f"✅ {symbol} Secured.")
+                            logger.info(f"✅ {symbol} SECURED. Order IDs saved.")
                         else:
                             # Jika gagal, kembalikan ke PENDING biar dicoba lagi next loop
                             safety_orders_tracker[symbol]["status"] = "PENDING"
-                            print(f"❌ {symbol} Failed to Secure. Retrying next loop.")
+                            logger.warning(f"❌ {symbol} Failed to install safety orders. Retrying...")
 
                 # CHECK GHOST ORDERS & EXPIRY (Sama seperti logika lama, tapi di dalam lock)
                 active_trackers = list(safety_orders_tracker.items())
@@ -768,7 +770,7 @@ async def safety_monitor_hybrid():
                     # Cek Expiry Limit Order (WAITING_ENTRY)
                     elif tracker.get("status") == "WAITING_ENTRY":
                         if now > tracker.get("expires_at", now + 999999):
-                            print(f"⏳ ORDER EXPIRED: {sym}. Canceling...")
+                            logger.info(f"⏳ LIMIT ORDER EXPIRED: {sym}. Canceling entry...")
                             entry_id = tracker.get("entry_id")
                             if entry_id:
                                 try: await exchange.cancel_order(entry_id, sym)
