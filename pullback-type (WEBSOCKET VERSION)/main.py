@@ -115,13 +115,11 @@ class BinanceWSManager:
                 continue
 
             streams = []
+            # PERBAIKAN di BinanceWSManager -> start_stream
             for coin in config.DAFTAR_KOIN:
                 sym_clean = coin['symbol'].replace('/', '').lower()
-                streams.append(f"{sym_clean}@kline_{config.TIMEFRAME_EXEC}")
-                
-                # [FIX 3]: Optimasi Stream. Hanya BTC yang subscribe timeframe BTC.
-                if coin['symbol'] == config.BTC_SYMBOL:
-                    streams.append(f"{sym_clean}@kline_{config.BTC_TIMEFRAME}")
+                streams.append(f"{sym_clean}@kline_{config.TIMEFRAME_EXEC}") # 5m
+                streams.append(f"{sym_clean}@kline_{config.BTC_TIMEFRAME}") # 1h (UNTUK SEMUA KOIN)
             
             streams.append(self.listen_key) 
             url = self.base_url + "/".join(streams)
@@ -133,6 +131,10 @@ class BinanceWSManager:
                 async with websockets.connect(url) as ws:
                     print("✅ WebSocket Connected!")
                     await kirim_tele("✅ <b>WebSocket Connected</b>. System Online.")
+                    # --- TAMBAHAN WAJIB AGAR DATA SYNC ---
+                    # Refresh posisi agar cache tidak basi setelah reconnect
+                    asyncio.create_task(fetch_existing_positions()) 
+                     # -------------------------------------
                     self.last_heartbeat = time.time()
                     
                     while True:
@@ -238,7 +240,11 @@ class BinanceWSManager:
                 if order_type == 'LIMIT':
                     # Entry Sniper Filled
                     logger.info(f"⚡ LIMIT FILLED: {symbol} | Side: {side} | Price: {price}")
-                    
+                    async def fast_safety_trigger():
+                        await asyncio.sleep(2) 
+                        await install_safety_orders(symbol, {'entryPrice': price, 'contracts': float(order_info['z']), 'side': side}) # 'z' is filled quantity
+
+                    asyncio.create_task(fast_safety_trigger())
                     async with data_lock:
                         # --- [FIX START] ---
                         # Cek status saat ini agar tidak menimpa jika sedang diproses
@@ -440,8 +446,9 @@ async def analisa_market_hybrid(coin_config):
     try:
         async with data_lock:
             if symbol not in market_data_store: return
-            bars_5m = market_data_store[symbol].get(config.TIMEFRAME_EXEC, [])
-            bars_h1 = market_data_store[symbol].get(config.BTC_TIMEFRAME, []) 
+            # Bungkus dengan list() untuk meng-copy data agar aman dari perubahan WS
+            bars_5m = list(market_data_store[symbol].get(config.TIMEFRAME_EXEC, []))
+            bars_h1 = list(market_data_store[symbol].get(config.BTC_TIMEFRAME, []))
         
         # Validasi Data Cukup
         if len(bars_5m) < config.EMA_SLOW + 5 or len(bars_h1) < config.EMA_TREND_MAJOR + 5: return
@@ -706,8 +713,12 @@ async def safety_monitor_hybrid():
                     if now > tracker.get("expires_at", now + 999999):
                         print(f"⏳ ORDER EXPIRED: {sym}. Cleaning up...")
                         del safety_orders_tracker[sym]
-                        try: await exchange.cancel_all_orders(sym)
-                        except: pass
+                        try:
+                            entry_id = tracker.get("entry_id")
+                            if entry_id:
+                                await exchange.cancel_order(entry_id, sym)
+                        except Exception as e:
+                            logger.warning(f"⚠️ Gagal cancel expired order {sym}: {e}")
                         save_tracker()
 
                 elif tracker.get("status") == "SECURED":
@@ -760,7 +771,7 @@ async def main():
         while True:
             try:
                 tasks = [analisa_market_hybrid(koin) for koin in config.DAFTAR_KOIN]
-                await asyncio.gather(*tasks)
+                await asyncio.gather(*tasks, return_exceptions=True)
                 await asyncio.sleep(1) 
             except asyncio.CancelledError: raise 
             except Exception: await asyncio.sleep(config.ERROR_SLEEP_DELAY)
