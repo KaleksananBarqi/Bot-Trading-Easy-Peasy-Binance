@@ -10,3 +10,4 @@ __pycache__/
 *.json
 .log
 *.log
+./bot_trading.log
