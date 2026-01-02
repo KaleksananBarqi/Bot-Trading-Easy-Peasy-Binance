@@ -168,4 +168,3 @@ Bot ini adalah alat bantu trading (tools), bukan mesin pencetak uang ajaib.
 
 * **Logic Core:** Based on Hybrid Price Action (Trend + Mean Reversion).
 * **Special Thanks:** To Open Source Community (CCXT, Pandas TA) & Crypto Analyst Mentors.
-```
