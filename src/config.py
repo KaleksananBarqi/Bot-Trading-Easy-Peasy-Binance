@@ -23,11 +23,11 @@ LOG_FILENAME = 'bot_trading.log'
 TRACKER_FILENAME = 'safety_tracker.json'
 DEFAULT_LEVERAGE = 10
 DEFAULT_MARGIN_TYPE = 'isolated' 
+DEFAULT_AMOUNT_USDT = 10      # Cadangan jika dynamic false / error
   
 # --- SETTING DYNAMIC SIZING (COMPOUNDING) ---
 USE_DYNAMIC_SIZE = True       # Set True untuk aktifkan compounding
 RISK_PERCENT_PER_TRADE = 5.0  # Bot akan pakai 5% dari saldo USDT Available per trade
-DEFAULT_AMOUNT_USDT = 10      # Cadangan jika dynamic false / error
 
 # --- 3. FILTER BTC (GLOBAL TREND) ---
 BTC_SYMBOL = 'BTC/USDT'
