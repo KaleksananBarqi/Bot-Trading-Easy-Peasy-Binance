@@ -79,8 +79,7 @@ Pastikan komputer/laptop Anda sudah terinstall:
 ### Langkah 1: Download / Clone Repository
 Buka terminal (CMD atau PowerShell), lalu arahkan ke folder di mana Anda ingin menyimpan bot.
 ```bash
-git clone [https://github.com/username-anda/easy-peasy-bot.git](https://github.com/username-anda/easy-peasy-bot.git)
-cd easy-peasy-bot
+gh repo clone KaleksananBarqi/Bot-Trading-Easy-Peasy-Binance
 
 ```
 
