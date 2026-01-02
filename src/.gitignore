@@ -6,3 +6,5 @@ user_data/
 venv/
 __pycache__/
 .env
+.json
+*.json

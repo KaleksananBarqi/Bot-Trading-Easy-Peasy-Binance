@@ -262,19 +262,29 @@ class BinanceWSManager:
                 # Jika PnL tidak 0, atau tipe order khusus close, atau reduce only
                 if pnl != 0 or order_type in ['TAKE_PROFIT_MARKET', 'STOP_MARKET'] or is_reduce:
                     logger.info(f"🏁 POSITION CLOSED: {symbol} | PnL: ${pnl:.2f}")
-                    
+                    # Batalkan semua order sisa (TP/SL pasangannya)
+                    try:
+                        await exchange.cancel_all_orders(symbol)
+                        logger.info(f"🧹 Cleanup orphaned orders for {symbol}")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed cleanup for {symbol}: {e}")
+
+                    await fetch_existing_positions()
                     # Format Pesan
                     emoji = "💰" if pnl > 0 else "🛑"
                     title = "TAKE PROFIT HIT" if pnl > 0 else "STOP LOSS HIT"
                     pnl_str = f"+${pnl:.2f}" if pnl > 0 else f"-${abs(pnl):.2f}"
-                    
+                    # Hitung size yang diclose
+                    qty_closed = float(order_info.get('q', 0))
+                    size_closed_usdt = qty_closed * price
                     msg = (
-                        f"{emoji} <b>{title}</b>\n"
-                        f"✨ <b>{symbol}</b>\n"
-                        f"🏷️ Type: {order_type}\n"
-                        f"💵 Price: {price}\n"
-                        f"💸 PnL: <b>{pnl_str}</b>"
-                    )
+                            f"{emoji} <b>{title}</b>\n"
+                            f"✨ <b>{symbol}</b>\n"
+                            f"🏷️ Type: {order_type}\n"
+                            f"📏 <b>Size:</b> ${size_closed_usdt:.2f}\n" # Menampilkan nilai kontrak yang ditutup
+                            f"💵 Price: {price}\n"
+                            f"💸 PnL: <b>{pnl_str}</b>"
+                        )
                     await kirim_tele(msg)
                     
                     # Update posisi & tracker
@@ -291,9 +301,12 @@ class BinanceWSManager:
                 # Hanya jika PnL 0 (belum ada untung rugi) dan BUKAN reduce only
                 elif order_type == 'LIMIT' and not is_reduce:
                     logger.info(f"⚡ ENTRY FILLED: {symbol} | Price: {price}")
+                    
+                    # Ambil qty dari order_info dan hitung size yang terisi
+                    qty_filled = float(order_info.get('q', 0))
+                    size_filled_usdt = qty_filled * price
 
                     async with data_lock:
-                        # Update tracker jadi PENDING agar safety monitor pasang SL/TP
                         safety_orders_tracker[symbol] = {
                             'status': 'PENDING', 
                             'last_check': time.time(),
@@ -301,9 +314,14 @@ class BinanceWSManager:
                         }
                         save_tracker()
                     
-                    safety_event.set() # Bangunkan Monitor
+                    safety_event.set()
 
-                    msg = (f"⚡ <b>ENTRY FILLED</b>\n🚀 <b>{symbol}</b> Entered @ {price}\n<i>Signal sent to Safety Monitor...</i>")
+                    msg = (
+                        f"⚡ <b>ENTRY FILLED</b>\n"
+                        f"🚀 <b>{symbol}</b> Entered @ {price}\n"
+                        f"📏 <b>Filled Size:</b> ${size_filled_usdt:.2f}\n"
+                        f"<i>Signal sent to Safety Monitor...</i>"
+                    )
                     await kirim_tele(msg)
 
             elif status == 'CANCELED':
@@ -610,6 +628,8 @@ async def execute_order(symbol, side, params, strategy, coin_cfg):
 
         leverage = coin_cfg.get('leverage', config.DEFAULT_LEVERAGE)
         amount = coin_cfg.get('amount', config.DEFAULT_AMOUNT_USDT)
+        margin_digunakan = amount 
+        size_total_usdt = amount * leverage
         margin_type = coin_cfg.get('margin_type', config.DEFAULT_MARGIN_TYPE)
         if margin_type not in ['isolated', 'cross']: margin_type = config.DEFAULT_MARGIN_TYPE
         
@@ -633,7 +653,7 @@ async def execute_order(symbol, side, params, strategy, coin_cfg):
                 "status": "WAITING_ENTRY",
                 "entry_id": str(order['id']),
                 "created_at": time.time(),
-                "expires_at": time.time() + 3600, 
+                "expires_at": time.time() + 147600, 
                 "strategy": strategy
             }
             save_tracker()
@@ -668,6 +688,8 @@ async def execute_order(symbol, side, params, strategy, coin_cfg):
             f"🎯 <b>NEW SETUP ({strategy})</b>\n━━━━━━━━━━━━━━━━━━\n"
             f"🪙 <b>{symbol}</b> | {icon_side}\n"
             f"📊 Type: {params['type'].upper()} ({margin_type} x{leverage})\n"
+            f"💰 <b>Margin:</b> ${margin_digunakan:.2f}\n" 
+            f"📏 <b>Size:</b> ${size_total_usdt:.2f}\n"
             f"💵 Entry: {params['entry_price']}\n"
             f"🛡️ SL: {params['sl']} | 💰 TP: {params['tp1']}\n"
             f"⚖️ R:R: 1:{rr_ratio}\n"
@@ -692,11 +714,12 @@ async def install_safety_orders(symbol, pos_data):
     # 1. Cancel semua order lama di symbol ini sebelum pasang baru
     # Ini mencegah duplikasi jika fungsi terpanggil 2x
     try:
-        await exchange.cancel_all_orders(symbol)
-        logger.info(f"🧹 Cleared existing orders for {symbol} before safety installation.")
-        await asyncio.sleep(1) # Beri jeda sedikit agar exchange memproses cancel
+        # Gunakan fapiPrivate untuk memastikan semua jenis order (termasuk trigger) kena
+        await exchange.fapiPrivateDeleteAllOpenOrders({'symbol': symbol.replace('/', '')})
+        logger.info(f"🧹 Hard Sweep orders for {symbol}")
+        await asyncio.sleep(1.5) # Jeda sedikit lebih lama agar API Binance sinkron
     except Exception as e:
-        logger.warning(f"⚠️ Failed to cancel old orders {symbol}: {e}")
+        logger.warning(f"⚠️ Hard sweep failed: {e}")
     # --- [FIX END] ---
 
     try:
