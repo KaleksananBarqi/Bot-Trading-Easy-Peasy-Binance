@@ -1,4 +1,4 @@
-# 🤖 Easy Peasy Bitcoin Bot: Hybrid Sniper Strategy
+# 🤖 Easy Peasy Trading Bot: Hybrid Sniper Strategy
 
 <img width="1249" height="882" alt="Image" src="https://github.com/user-attachments/assets/9627dc67-76d4-4c80-8904-efe8f8c1d33c" />
 
@@ -9,7 +9,7 @@
 
 ## 📖 Deskripsi Project
 
-**Easy Peasy Bitcoin Bot** adalah bot trading algoritmik otomatis untuk pasar **Binance Futures**. Bot ini dirancang menggunakan Python dengan pendekatan **Hybrid Strategy** yang cerdas: ia mampu beradaptasi pada kondisi pasar yang sedang *Trending* maupun *Sideways* (datar).
+**Easy Peasy Trading Bot** adalah bot trading algoritmik otomatis untuk pasar **Binance Futures**. Bot ini dirancang menggunakan Python dengan pendekatan **Hybrid Strategy** yang cerdas: ia mampu beradaptasi pada kondisi pasar yang sedang *Trending* maupun *Sideways* (datar).
 
 Keunggulan utama bot ini adalah fitur **"Liquidity Hunt" (Sniper Mode)**, di mana bot tidak sekadar masuk pasar secara membabi buta, melainkan mencoba melakukan *front-running* pada area di mana *retail trader* biasanya meletakkan Stop Loss mereka, sehingga mendapatkan harga entry yang jauh lebih presisi dan aman.
 
