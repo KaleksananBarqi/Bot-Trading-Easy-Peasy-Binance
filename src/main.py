@@ -264,10 +264,18 @@ class BinanceWSManager:
                     logger.info(f"🏁 POSITION CLOSED: {symbol} | PnL: ${pnl:.2f}")
                     # Batalkan semua order sisa (TP/SL pasangannya)
                     try:
-                        await exchange.cancel_all_orders(symbol)
-                        logger.info(f"🧹 Cleanup orphaned orders for {symbol}")
+                        # berikan jeda 0.5 - 1 detik agar engine exchange settle dulu
+                        await asyncio.sleep(0.8)
+                        # Pake "hard sweep" (raw api) seperti di install_safety, ini lebih ampuh menghapus order bersyarat daripada cancel order biasa
+                        raw_symbol = symbol.replace('/', '')
+                        await exchange.fapiPrivateDeleteAllOpenOrders({'symbol': raw_symbol})
+
+                        logger.info(f"🧹 Cleanup orphaned orders for {symbol} (Hard Sweep)")
                     except Exception as e:
                         logger.warning(f"⚠️ Failed cleanup for {symbol}: {e}")
+                        # Fallback ke cara biasa kalau cara hard sweep gagal
+                        try: await exchange.cancel_all_orders(symbol)
+                        except: pass
 
                     await fetch_existing_positions()
                     # Format Pesan
@@ -734,7 +742,6 @@ async def install_safety_orders(symbol, pos_data):
     quantity = float(pos_data['contracts'])
     side = pos_data['side']
 
-    # --- [FIX START] ---
     # 1. Cancel semua order lama di symbol ini sebelum pasang baru
     # Ini mencegah duplikasi jika fungsi terpanggil 2x
     try:
@@ -744,8 +751,7 @@ async def install_safety_orders(symbol, pos_data):
         await asyncio.sleep(1.5) # Jeda sedikit lebih lama agar API Binance sinkron
     except Exception as e:
         logger.warning(f"⚠️ Hard sweep failed: {e}")
-    # --- [FIX END] ---
-
+    # 2. Hitung SL & TP berdasarkan ATR
     try:
         async with data_lock:
             bars = market_data_store.get(symbol, {}).get(config.TIMEFRAME_EXEC, [])
@@ -773,6 +779,8 @@ async def install_safety_orders(symbol, pos_data):
     p_tp = exchange.price_to_precision(symbol, tp_price)
     qty_final = exchange.amount_to_precision(symbol, quantity)
 
+    # 3. Attempt place orders
+
     for attempt in range(config.ORDER_SLTP_RETRIES):
         try:
             o_sl = await exchange.create_order(symbol, 'STOP_MARKET', side_api, qty_final, None, {'stopPrice': p_sl, 'workingType': 'MARK_PRICE', 'reduceOnly': True})
@@ -783,6 +791,32 @@ async def install_safety_orders(symbol, pos_data):
             await kirim_tele(msg)
             return [str(o_sl['id']), str(o_tp['id'])]
         except Exception as e:
+            error_msg = str(e)
+            
+            # 4. Deteksi error kalau market gerak terlalu cepat jadi sl dan tp harganya diluar plan/setup
+            if 'immediately trigger' in error_msg or '-2021' in error_msg:
+                logger.warning(f"🚨PASAR TERLALU CEPAT {symbol}: Executing EMERGENCY EXIT...")
+
+                try:
+                    # 5. Tutup posisi market (pakai side_api yang sudah ada)
+                    await exchange.create_order(
+                        symbol, 'MARKET', side_api, qty_final, None,
+                        {'reduceOnly': True}
+                    )
+
+                    logger.info(f"🛑 EMERGENCY CLOSE EXECUTED: {symbol}")
+                    msg = (F"🚨 <b>EMERGENCY EXIT EXECUTED</b>\nCoin: <b>{symbol}</b>\nMarket moved too fast beyond SL/TP, position closed to prevent further loss.")
+                    await kirim_tele(msg)
+                    
+                    # 6. Hapus tracker karena posisi sudah ditutup
+                    if symbol in safety_orders_tracker:
+                        del safety_orders_tracker[symbol]
+                        save_tracker()
+                    return [] # Return kosong supaya loop berhenti
+                except Exception as ex_close:
+                    logger.error(f"❌ EMERGENCY CLOSE FAILED {symbol}: {ex_close}", exc_info=True)
+                    await kirim_tele(f"❌ <b>EMERGENCY EXIT FAILED</b>\n{symbol}: {ex_close}", alert=True)
+                    return []
             logger.warning(f"⚠️ Safety Retry {attempt+1} Failed {symbol}: {e}")
             await asyncio.sleep(config.ORDER_SLTP_RETRY_DELAY)
     
@@ -814,6 +848,11 @@ async def safety_monitor_hybrid():
                 # LOOP CHECK
                 for base_sym, pos_data in current_positions.items():
                     symbol = pos_data['symbol']
+                    # Jika ada posisi di binance, tapi tidak ada tracker, maka paksa bot untuk pasang safety sekarang juga
+                    if symbol not in safety_orders_tracker:
+                        logger.warning(f"⚠️ ORPHAN POSITION FOUND: {symbol}. Injecting to tracker...")
+                        safety_orders_tracker[symbol] = {"status": "PENDING", "last_check": now}
+                        # Tidak perlu continue, biarkan flow lanjut ke bawah untuk diproses "PENDING"-nya
                     tracker = safety_orders_tracker.get(symbol, {})
                     status = tracker.get("status", "NONE")
                     
@@ -873,7 +912,7 @@ async def safety_monitor_hybrid():
 async def main():
     global exchange
     
-    # ... (Bagian inisialisasi exchange & load tracker SAMA SEPERTI SEBELUMNYA) ...
+    # ... (Bagian inisialisasi exchange & load tracker) ...
     exchange = ccxt.binance({
         'apiKey': config.API_KEY_DEMO if config.PAKAI_DEMO else config.API_KEY_LIVE,
         'secret': config.SECRET_KEY_DEMO if config.PAKAI_DEMO else config.SECRET_KEY_LIVE,

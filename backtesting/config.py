@@ -91,20 +91,20 @@ SIDEWAYS_ADX_MAX = 20
 # --- 7. DAFTAR KOIN (HANYA KOIN LIKUID UNTUK WINRATE TINGGI) ---
 DAFTAR_KOIN = [
     # --- Major Coins (Cross Margin) ---
-    {"symbol": "BTC/USDT", "leverage": 20, "margin_type": "cross", "amount": 50},
-    {"symbol": "ETH/USDT", "leverage": 20, "margin_type": "cross", "amount": 40},
+    {"symbol": "BTC/USDT", "leverage": 20, "margin_type": "cross", "amount": 10},
+    {"symbol": "ETH/USDT", "leverage": 20, "margin_type": "cross", "amount": 10},
 
     # --- Strong Alts (Isolated, Mid Leverage) ---
-    {"symbol": "SOL/USDT", "leverage": 15, "margin_type": "isolated", "amount": 30},
-    {"symbol": "BNB/USDT", "leverage": 15, "margin_type": "isolated", "amount": 30},
-    {"symbol": "XRP/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "ADA/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "DOGE/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "TRX/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "LTC/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "AVAX/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "LINK/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "ZEC/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    {"symbol": "SOL/USDT", "leverage": 15, "margin_type": "isolated", "amount": 10},
+    {"symbol": "BNB/USDT", "leverage": 15, "margin_type": "isolated", "amount": 10},
+    {"symbol": "XRP/USDT", "leverage": 10, "margin_type": "isolated", "amount": 10},
+    {"symbol": "ADA/USDT", "leverage": 10, "margin_type": "isolated", "amount": 10},
+    {"symbol": "DOGE/USDT", "leverage": 10, "margin_type": "isolated", "amount": 10},
+    {"symbol": "TRX/USDT", "leverage": 10, "margin_type": "isolated", "amount": 10},
+    {"symbol": "LTC/USDT", "leverage": 10, "margin_type": "isolated", "amount": 10},
+    {"symbol": "AVAX/USDT", "leverage": 10, "margin_type": "isolated", "amount": 10},
+    {"symbol": "LINK/USDT", "leverage": 10, "margin_type": "isolated", "amount": 10},
+    {"symbol": "ZEC/USDT", "leverage": 10, "margin_type": "isolated", "amount": 10},
     
     # HAPUS KOIN GORENGAN (Top Pump/New Futures) AGAR TIDAK HANCURKAN WINRATE
 ]
