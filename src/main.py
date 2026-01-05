@@ -557,8 +557,9 @@ async def analisa_market_hybrid(coin_config):
         df['VOL_MA'] = df['volume'].rolling(window=config.VOL_MA_PERIOD).mean()
         
         bb = df.ta.bbands(length=config.BB_LENGTH, std=config.BB_STD)
-        df['BBL'] = bb[f'BBL_{config.BB_LENGTH}_{config.BB_STD}']
-        df['BBU'] = bb[f'BBU_{config.BB_LENGTH}_{config.BB_STD}']
+        if bb is not None:
+            df['BBL'] = bb.iloc[:, 0]
+            df['BBU'] = bb.iloc[:, 2]
         
         stoch = df.ta.stochrsi(length=config.STOCHRSI_LEN, rsi_length=config.STOCHRSI_LEN, k=config.STOCHRSI_K, d=config.STOCHRSI_D)
         df['STOCH_K'] = stoch.iloc[:, 0] 
