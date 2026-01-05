@@ -1,6 +1,6 @@
 # 🤖 Easy Peasy Trading Bot: Hybrid Sniper Strategy
 
-<img width="1249" height="882" alt="Image" src="https://github.com/user-attachments/assets/9627dc67-76d4-4c80-8904-efe8f8c1d33c" />
+<img width="1177" height="905" alt="Image" src="https://github.com/user-attachments/assets/b55b4aea-b6bc-4316-896d-dc4839645536" />
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)
 ![Binance](https://img.shields.io/badge/Binance-Futures-yellow?style=for-the-badge&logo=binance)
