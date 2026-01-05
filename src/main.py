@@ -778,44 +778,46 @@ async def install_safety_orders(symbol, pos_data):
     p_sl = exchange.price_to_precision(symbol, sl_price)
     p_tp = exchange.price_to_precision(symbol, tp_price)
     qty_final = exchange.amount_to_precision(symbol, quantity)
-
+# loop retry
+    max_retries = 3
+    for attempt in range(max_retries):
 # 3. PASANG ORDER (MODE: CLOSE POSITION + CUSTOM TRIGGER)
-    try:
-        # A. STOP LOSS (STOP_MARKET)
-        # Trigger: MARK PRICE (Sesuai Request)
-        o_sl = await exchange.create_order(
-            symbol, 
-            'STOP_MARKET', 
-            side_api, 
-            None,   # Quantity None (Close Position)
-            None,   
-            {
-                'stopPrice': p_sl, 
-                'closePosition': True,
-                'workingType': 'MARK_PRICE'   # <-- SL = Mark Price
-            }
-        )
+        try:
+            # A. STOP LOSS (STOP_MARKET)
+            # Trigger: MARK PRICE (Sesuai Request)
+            o_sl = await exchange.create_order(
+                symbol, 
+                'STOP_MARKET', 
+                side_api, 
+                None,   # Quantity None (Close Position)
+                None,   
+                {
+                    'stopPrice': p_sl, 
+                    'closePosition': True,
+                    'workingType': 'MARK_PRICE'   # <-- SL = Mark Price
+                }
+            )
 
-        # B. TAKE PROFIT (TAKE_PROFIT_MARKET)
-        # Trigger: CONTRACT_PRICE a.k.a LAST PRICE (Sesuai Request)
-        o_tp = await exchange.create_order(
-            symbol, 
-            'TAKE_PROFIT_MARKET', 
-            side_api, 
-            None,   # Quantity None (Close Position)
-            None,   
-            {
-                'stopPrice': p_tp, 
-                'closePosition': True,
-                'workingType': 'CONTRACT_PRICE' # <-- TP = Last Price
-            }
-        )
-        
-        logger.info(f"✅ SAFETY ORDERS (CLOSE POS MODE): {symbol}")
-        msg = (f"🛡️ <b>SAFETY SECURED</b>\nCoin: <b>{symbol}</b>\n✅ SL: {p_sl} (Mark)\n✅ TP: {p_tp} (Last)\n(Mode: Close Position)")
-        await kirim_tele(msg)
-        return [str(o_sl['id']), str(o_tp['id'])]
-    except Exception as e:
+            # B. TAKE PROFIT (TAKE_PROFIT_MARKET)
+            # Trigger: CONTRACT_PRICE a.k.a LAST PRICE (Sesuai Request)
+            o_tp = await exchange.create_order(
+                symbol, 
+                'TAKE_PROFIT_MARKET', 
+                side_api, 
+                None,   # Quantity None (Close Position)
+                None,   
+                {
+                    'stopPrice': p_tp, 
+                    'closePosition': True,
+                    'workingType': 'CONTRACT_PRICE' # <-- TP = Last Price
+                }
+            )
+            
+            logger.info(f"✅ SAFETY ORDERS (CLOSE POS MODE): {symbol}")
+            msg = (f"🛡️ <b>SAFETY SECURED</b>\nCoin: <b>{symbol}</b>\n✅ SL: {p_sl} (Mark)\n✅ TP: {p_tp} (Last)\n(Mode: Close Position)")
+            await kirim_tele(msg)
+            return [str(o_sl['id']), str(o_tp['id'])]
+        except Exception as e:
             error_msg = str(e)
             
             # 4. Deteksi error kalau market gerak terlalu cepat jadi sl dan tp harganya diluar plan/setup
@@ -842,10 +844,12 @@ async def install_safety_orders(symbol, pos_data):
                     logger.error(f"❌ EMERGENCY CLOSE FAILED {symbol}: {ex_close}", exc_info=True)
                     await kirim_tele(f"❌ <b>EMERGENCY EXIT FAILED</b>\n{symbol}: {ex_close}", alert=True)
                     return []
-            logger.warning(f"⚠️ Safety Retry {attempt+1} Failed {symbol}: {e}")
-            await asyncio.sleep(config.ORDER_SLTP_RETRY_DELAY)
-    
-    logger.error(f"❌ SAFETY FAILED {symbol} after retries!", exc_info=True)
+            logger.warning(f"⚠️ Safety Retry {attempt+1}/{max_retries} Failed {symbol}: {e}")
+            # Jangan sleep kalau ini percobaan terakhir
+            if attempt < max_retries - 1:
+                await asyncio.sleep(config.ORDER_SLTP_RETRY_DELAY)
+    # Jika loop selesai tapi masih gagal
+    logger.error(f"❌ SAFETY FAILED {symbol} after {max_retries} retries!", exc_info=True)
     return []
 
 async def safety_monitor_hybrid():
