@@ -28,7 +28,10 @@ DEFAULT_AMOUNT_USDT = 10      # Cadangan jika dynamic false / error
 # --- SETTING DYNAMIC SIZING (COMPOUNDING) ---
 USE_DYNAMIC_SIZE = True       # Set True untuk aktifkan compounding
 RISK_PERCENT_PER_TRADE = 5.0  # Bot akan pakai 5% dari saldo USDT Available per trade
-
+# Setingan buat pair correlation
+MAX_POSITIONS_PER_CATEGORY = 1   # Maksimal 1 posisi per "Sektor"
+CORRELATION_THRESHOLD_BTC = 0.5  # Jika korelasi < 0.5, anggap "Jalan Sendiri" (Abaikan BTC Trend)
+CORRELATION_PERIOD = 30 # Jumlah candle H1 untuk cek kemiripan dengan BTC
 # --- 3. FILTER BTC (GLOBAL TREND) ---
 BTC_SYMBOL = 'BTC/USDT'
 BTC_TIMEFRAME = '1h'    # Timeframe khusus untuk menentukan trend BTC
@@ -89,23 +92,24 @@ SIDEWAYS_ADX_MAX = 20
 # --- 7. DAFTAR KOIN ---
 # Jika leverage/amount tidak diisi, akan memakai DEFAULT dari Section 2
 DAFTAR_KOIN = [
-    # --- Major Coins (Cross Margin) ---
-    {"symbol": "BTC/USDT", "leverage": 30, "margin_type": "cross", "amount": 50},
-    #{"symbol": "ETH/USDT", "leverage": 20, "margin_type": "cross", "amount": 40},
+    # Kategori: KING
+    {"symbol": "BTC/USDT", "category": "KING", "leverage": 30, "margin_type": "cross", "amount": 50},
+    
+    # Kategori: L1 (Smart Contract)
+    {"symbol": "SOL/USDT", "category": "L1", "leverage": 30, "margin_type": "isolated", "amount": 30},
+    {"symbol": "ETH/USDT", "category": "L1", "leverage": 20, "margin_type": "cross", "amount": 40},
+    {"symbol": "BNB/USDT", "category": "L1", "leverage": 15, "margin_type": "isolated", "amount": 30},
+    {"symbol": "AVAX/USDT", "category": "L1", "leverage": 20, "margin_type": "isolated", "amount": 15},
+    {"symbol": "ADA/USDT", "category": "L1", "leverage": 10, "margin_type": "isolated", "amount": 15},
 
-    # --- Strong Alts (Isolated, Mid Leverage) ---
-    {"symbol": "SOL/USDT", "leverage": 30, "margin_type": "isolated", "amount": 30},
-    #{"symbol": "BNB/USDT", "leverage": 15, "margin_type": "isolated", "amount": 30},
+    # Kategori: PAYMENT / OLD GEN
+    {"symbol": "XRP/USDT", "category": "PAYMENT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    {"symbol": "LTC/USDT", "category": "PAYMENT", "leverage": 10, "margin_type": "isolated", "amount": 15},
     
-    # --- Standard Alts (Sesuai Backtest) ---
-    {"symbol": "XRP/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "ADA/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "DOGE/USDT", "leverage": 30, "margin_type": "isolated", "amount": 15},
-    {"symbol": "TRX/USDT", "leverage": 20, "margin_type": "isolated", "amount": 15},
-    {"symbol": "LTC/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "AVAX/USDT", "leverage": 20, "margin_type": "isolated", "amount": 15},
-    #{"symbol": "LINK/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    # Kategori: MEME
+    {"symbol": "DOGE/USDT", "category": "MEME", "leverage": 30, "margin_type": "isolated", "amount": 15},
     
-    # --- THE CHAMPION (WAJIB ADA) ---
-    #{"symbol": "ZEC/USDT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    # Kategori: DEFI / PRIVACY / OTHERS
+    {"symbol": "TRX/USDT", "category": "L1", "leverage": 20, "margin_type": "isolated", "amount": 15},
+    {"symbol": "ZEC/USDT", "category": "PRIVACY", "leverage": 10, "margin_type": "isolated", "amount": 15},
 ]

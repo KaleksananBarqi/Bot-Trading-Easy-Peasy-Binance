@@ -96,7 +96,29 @@ def kirim_tele_sync(pesan):
         print("✅ Notifikasi Telegram terkirim (Sync).")
     except Exception as e:
         print(f"❌ Gagal kirim notif exit: {e}")
+# fungsi buat ambil kategori di config.py
+def get_coin_category(symbol):
+    for coin in config.DAFTAR_KOIN:
+        if coin['symbol'] == symbol:
+            return coin.get('category', 'UNKNOWN')
+    return 'UNKNOWN'
+# fungsi buat hitung korelasi antara altcoin dan btc
+def calculate_correlation(df_coin, df_btc, period=50):
+    try:
+        # pastiin data cukup buat ngitung korelasi btc
+        if len(df_coin) < period or len(df_btc) < period:
+            return 1.0 # 1 dianggap default berkorelasi agar aman
+        # ambil kolom close saja
+        s_close = df_coin['close'].tail(period)
+        b_close = df_btc['close'].tail(period)
+        # reset index agar alignment pas ketika perhitungan korelasi
+        s_close = s_close.reset_index(drop=True)
+        b_close = b_close.reset_index(drop=True)
 
+        return s_close.corr(b_close)
+    except Exception as e:
+        print(f"⚠️ Gagal hitung korelasi: {e}")
+        return 1.0 # kalau gagal hitung dianggap berkorelasi dengan btc
 # ==========================================
 # WEBSOCKET MANAGER
 # ==========================================
@@ -505,6 +527,7 @@ def calculate_trade_parameters(signal, df, symbol=None, strategy_type="TREND_TRA
 
 async def analisa_market_hybrid(coin_config):
     symbol = coin_config['symbol']
+    category = coin_config.get('category', 'UNKNOWN') # ambil kategori di config
     now = time.time()
     
     if symbol in SYMBOL_COOLDOWN and now < SYMBOL_COOLDOWN[symbol]: return
@@ -526,6 +549,23 @@ async def analisa_market_hybrid(coin_config):
 
     if is_busy: return 
     # --- [FIX END] ---
+    # Sektor Limit disini ygy
+    if category != "KING": # BTC tidak kena limit kategori kan dia KING
+        active_in_category = 0
+        async with data_lock:
+            # Cek posisi aktif di Futures
+            for base_sym, pos in position_cache_ws.items():
+                pos_sym = pos['symbol']
+                if get_coin_category(pos_sym) == category:
+                    active_in_category += 1
+            # Cek juga order yang sedang pending (Limit Order Sniper)
+            for s_sym, tracker in safety_orders_tracker.items():
+                if tracker.get('status') == "WAITING_ENTRY":
+                    if get_coin_category(s_sym) == category:
+                        active_in_category += 1
+        if active_in_category >= config.MAX_POSITIONS_PER_CATEGORY:
+            #print(f"🚦 Skip {symbol}: Category {category} full ({active_in_category})")
+            return
 
     # --- 1. SIAPKAN DATA ---
     try:
@@ -570,14 +610,39 @@ async def analisa_market_hybrid(coin_config):
         ema_fast_m5 = confirm['EMA_FAST'] 
         
         # [FIX 4]: Debug Prints (Supaya tahu botnya jalan)
-        # print(f"🔍 {symbol} | Price: {price_now} | ADX: {confirm['ADX']:.1f} | RSI: {confirm['RSI']:.1f}")
+        #print(f"🔍 {symbol} | Price: {price_now} | ADX: {confirm['ADX']:.1f} | RSI: {confirm['RSI']:.1f}")
 
+        # SMART KING BTC & CORRELATION
+        is_decoupled = False
+        corr_val = 1.0 # Default dianggap nempel BTC
+        # Hanya hitung korelasi jika bukan BTC
+        if symbol != config.BTC_SYMBOL:
+            async with data_lock:
+                # Ambil data BTC H1 dari memori
+                bars_btc_h1 = list(market_data_store[config.BTC_SYMBOL].get(config.BTC_TIMEFRAME, []))
+            if len(bars_btc_h1) > 0:
+                df_btc_temp = pd.DataFrame(bars_btc_h1, columns=['timestamp','open','high','low','close','volume'])
+                # Gunakan period dari config (atau 30 jika belum set)
+                p_corr = getattr(config, 'CORRELATION_PERIOD', 30)
+                corr_val = calculate_correlation(df_h1, df_btc_temp, period=p_corr)
+                # Jika korelasi lemah (< threshold), aktifkan Mode Decouple
+                if abs(corr_val) < config.CORRELATION_THRESHOLD_BTC:
+                    is_decoupled = True # <--- ubah false kalau mau di matiin
+                    msg_log = f"🔗 {symbol} DECOUPLED (Corr: {corr_val:.2f}) -> Ignore BTC Trend"
+                    #logger.info(msg_log) # jangan dinyalain tar kena spam awokw
+        # logic permission signal
         signal = None
         strategy_type = "NONE"
         allowed_signal = "BOTH"
+
         if symbol != config.BTC_SYMBOL:
-            if btc_trend_direction == "BULLISH": allowed_signal = "LONG_ONLY"
-            elif btc_trend_direction == "BEARISH": allowed_signal = "SHORT_ONLY"
+            if is_decoupled:
+                # Jika Decoupled, BEBAS (Abaikan BTC Trend)
+                allowed_signal = "BOTH"
+            else:
+                # Jika Berkorelasi, WAJIB IKUT BTC (King Filter)
+                if btc_trend_direction == "BULLISH": allowed_signal = "LONG_ONLY"
+                elif btc_trend_direction == "BEARISH": allowed_signal = "SHORT_ONLY"        
 
         # --- STRATEGI A: TREND TRAP (PULLBACK) ---
         if config.USE_TREND_TRAP_STRATEGY and confirm['ADX'] > config.TREND_TRAP_ADX_MIN:
@@ -610,6 +675,12 @@ async def analisa_market_hybrid(coin_config):
                     strategy_type = "BB_BOUNCE_TOP"
 
         if signal:
+            if symbol != config.BTC_SYMBOL:
+                if is_decoupled:
+                    logger.info(f"🔗 FILTER INFO: {symbol} is DECOUPLED (Corr: {corr_val:.2f}). Taking {signal} despite BTC Trend.")
+                else:
+                    logger.info(f"🔗 FILTER INFO: {symbol} is CORRELATED (Corr: {corr_val:.2f}). Following BTC {btc_trend_direction}.")
+
             print(f"💎 SIGNAL (MATCHED): {symbol} {signal} | Str: {strategy_type}")
             
             tech_info = {
@@ -619,7 +690,9 @@ async def analisa_market_hybrid(coin_config):
                 "vol_valid": confirm['volume'] > confirm['VOL_MA'],
                 "btc_trend": btc_trend_direction,
                 "strategy": strategy_type,
-                "price_vs_ema": "Above" if price_now > confirm['EMA_FAST'] else "Below"
+                "price_vs_ema": "Above" if price_now > confirm['EMA_FAST'] else "Below",
+                "correlation": corr_val,
+                "is_decoupled": is_decoupled
             }
             
             params = calculate_trade_parameters(signal, df, symbol, strategy_type, tech_info) 
@@ -707,9 +780,14 @@ async def execute_order(symbol, side, params, strategy, coin_cfg):
         btc_icon = "🟢" if btc_t == "BULLISH" else ("🔴" if btc_t == "BEARISH" else "⚪")
         ema_pos = ti.get('price_vs_ema', '-')
         ema_icon = "📈" if ema_pos == "Above" else "📉"
+        corr_val = ti.get('correlation', 1.0)
+        is_decoupled = ti.get('is_decoupled', False)
+        corr_icon = "🔓" if is_decoupled else "🔗"
+        corr_text = f"{corr_val:.2f}"
 
         tech_detail = (
             f"• <b>BTC Trend:</b> {btc_icon} {btc_t}\n"
+            f"• <b>BTC Correlation:</b> {corr_icon} {corr_text}\n"
             f"• <b>Price vs EMA:</b> {ema_icon} {ema_pos}\n"
             f"• <b>ADX:</b> {ti.get('adx', 0):.1f} | <b>RSI:</b> {ti.get('rsi', 0):.1f}\n"
             f"• <b>Stoch K:</b> {ti.get('stoch_k', 0):.1f}\n"
