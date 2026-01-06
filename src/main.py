@@ -157,12 +157,18 @@ class BinanceWSManager:
                 continue
 
             streams = []
-            # PERBAIKAN di BinanceWSManager -> start_stream
+            # 1. Stream Koin Trading
             for coin in config.DAFTAR_KOIN:
                 sym_clean = coin['symbol'].replace('/', '').lower()
                 streams.append(f"{sym_clean}@kline_{config.TIMEFRAME_EXEC}") # 5m
                 streams.append(f"{sym_clean}@kline_{config.BTC_TIMEFRAME}") # 1h (UNTUK SEMUA KOIN)
             
+            # 2. Stream KHUSUS BTC (Wajib Add Manual jika tidak ditradingkan)
+            btc_clean = config.BTC_SYMBOL.replace('/', '').lower()
+            btc_stream_trend = f"{btc_clean}@kline_{config.BTC_TIMEFRAME}"
+            if btc_stream_trend not in streams:
+                streams.append(btc_stream_trend)
+                
             streams.append(self.listen_key) 
             url = self.base_url + "/".join(streams)
             print(f"📡 Connecting to WebSocket... ({len(streams)} streams)")
@@ -457,27 +463,35 @@ async def initialize_market_data():
                 config.TIMEFRAME_EXEC: [],
                 config.BTC_TIMEFRAME: []
             }
+        # Init KHUSUS BTC (Wajib ada buat King Filter/Correlation)
+        if config.BTC_SYMBOL not in market_data_store:
+            market_data_store[config.BTC_SYMBOL] = {
+                config.TIMEFRAME_EXEC: [],
+                config.BTC_TIMEFRAME: []
+            }
 
     tasks = []
     
-    async def fetch_pair(coin):
-        symbol = coin['symbol']
+    async def fetch_pair(symbol, timeframe_exec, timeframe_trend):
         try:
-            # Ambil data sedikit lebih banyak untuk aman
-            bars_5m = await exchange.fetch_ohlcv(symbol, config.TIMEFRAME_EXEC, limit=config.LIMIT_EXEC)
-            bars_btc = await exchange.fetch_ohlcv(symbol, config.BTC_TIMEFRAME, limit=config.LIMIT_TREND)
+            bars_exec = await exchange.fetch_ohlcv(symbol, timeframe_exec, limit=config.LIMIT_EXEC)
+            bars_trend = await exchange.fetch_ohlcv(symbol, timeframe_trend, limit=config.LIMIT_TREND)
             async with data_lock:
-                # Pastikan key ada sebelum assign (double safety)
                 if symbol in market_data_store:
-                    market_data_store[symbol][config.TIMEFRAME_EXEC] = bars_5m
-                    market_data_store[symbol][config.BTC_TIMEFRAME] = bars_btc
+                    market_data_store[symbol][timeframe_exec] = bars_exec
+                    market_data_store[symbol][timeframe_trend] = bars_trend
             print(f"   ✅ Loaded: {symbol}")
         except Exception as e:
             print(f"   ❌ Failed Load {symbol}: {e}")
-
-    for koin in config.DAFTAR_KOIN: tasks.append(fetch_pair(koin))
+    # 1. Fetch Koin Trading
+    for koin in config.DAFTAR_KOIN:
+        tasks.append(fetch_pair(koin['symbol'], config.TIMEFRAME_EXEC, config.BTC_TIMEFRAME))
+    # 2. Fetch BTC Manual (Jika tidak ada di daftar koin)
+    is_btc_in_list = any(k['symbol'] == config.BTC_SYMBOL for k in config.DAFTAR_KOIN)
+    if not is_btc_in_list:
+        print(f"   📥 Fetching {config.BTC_SYMBOL} for Trend Filter...")
+        tasks.append(fetch_pair(config.BTC_SYMBOL, config.TIMEFRAME_EXEC, config.BTC_TIMEFRAME))
     await asyncio.gather(*tasks)
-    
     # Initialize BTC Trend
     if config.BTC_SYMBOL in market_data_store:
         bars = market_data_store[config.BTC_SYMBOL][config.BTC_TIMEFRAME]

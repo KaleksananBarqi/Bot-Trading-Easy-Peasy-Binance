@@ -94,7 +94,7 @@ SIDEWAYS_ADX_MAX = 20
 # Jika leverage/amount tidak diisi, akan memakai DEFAULT dari Section 2
 DAFTAR_KOIN = [
     # Kategori: KING
-    {"symbol": "BTC/USDT", "category": "KING", "leverage": 30, "margin_type": "cross", "amount": 50},
+    #{"symbol": "BTC/USDT", "category": "KING", "leverage": 30, "margin_type": "cross", "amount": 50},
     
     # Kategori: L1 (Smart Contract)
     {"symbol": "SOL/USDT", "category": "L1", "leverage": 30, "margin_type": "isolated", "amount": 30},
