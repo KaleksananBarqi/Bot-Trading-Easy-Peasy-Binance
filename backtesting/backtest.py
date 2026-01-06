@@ -127,7 +127,7 @@ class BacktestEngine:
         
         # Filter cooldown (dalam bar)
         if hasattr(self, 'last_entry_bar'):
-            if current_idx - self.last_entry_bar < 60:  # 60 bar 5m = 5 jam
+            if current_idx - self.last_entry_bar < 24:  # 12 Bar = 1 jam
                 return None
         
         # Filter trend BTC

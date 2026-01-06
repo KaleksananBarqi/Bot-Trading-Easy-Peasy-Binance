@@ -356,6 +356,14 @@ class BinanceWSManager:
 
             elif status == 'CANCELED':
                 logger.warning(f"🚫 ORDER CANCELED: {symbol}")
+                # hapus di tracker supaya bot bisa buat entry yg lain
+                async with data_lock:
+                    # cek apakah ada simbol di tracker
+                    if symbol in safety_orders_tracker:
+                        del safety_orders_tracker[symbol]
+                        save_tracker()
+                        logger.info(f"🧹Tracker cleaned for CANCELED order")
+                        await kirim_tele(f"⚠️<b>ORDER CANCELED</b>\nTracker cleaned for <b>{symbol}</b>. Bot ready to scan again 🚀")
 
         except Exception as e:
             logger.error(f"⚠️ Order Update Error: {e}", exc_info=True)
