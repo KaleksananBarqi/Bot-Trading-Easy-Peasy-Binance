@@ -284,6 +284,21 @@ class BinanceWSManager:
                 # Jika PnL tidak 0, atau tipe order khusus close, atau reduce only
                 if pnl != 0 or order_type in ['TAKE_PROFIT_MARKET', 'STOP_MARKET'] or is_reduce:
                     logger.info(f"🏁 POSITION CLOSED: {symbol} | PnL: ${pnl:.2f}")
+                    # cooldown dinamis sesuai config
+                    cd_duration = 0
+                    cd_reason = ""
+                    
+                    if pnl > 0:
+                        # KASUS PROFIT: Istirahat Sebentar (Ride The Trend)
+                        cd_duration = config.COOLDOWN_IF_PROFIT
+                        cd_reason = "PROFIT (Ride Trend)"
+                    else:
+                        # KASUS LOSS / BREAKEVEN: Istirahat Lama (Safety)
+                        cd_duration = config.COOLDOWN_IF_LOSS
+                        cd_reason = "LOSS/BEP (Cooling Down)"
+                    # Set Cooldown Global
+                    SYMBOL_COOLDOWN[symbol] = time.time() + cd_duration
+                    logger.info(f"🧊 COOLDOWN SET: {symbol} for {cd_duration}s | Reason: {cd_reason}")
                     # Batalkan semua order sisa (TP/SL pasangannya)
                     try:
                         # berikan jeda 0.5 - 1 detik agar engine exchange settle dulu
@@ -380,7 +395,9 @@ async def fetch_existing_positions():
             for pos in balance:
                 amt = float(pos['contracts'])
                 if amt > 0:
-                    sym = pos['symbol'] 
+                    sym = pos['symbol']
+                    raw_sym = pos['symbol']
+                    sym = raw_sym.split(':')[0]
                     base_sym = sym.split('/')[0]
                     side = 'LONG' if pos['side'] == 'long' else 'SHORT' 
                     if pos.get('info', {}).get('positionAmt'):
@@ -773,9 +790,6 @@ async def execute_order(symbol, side, params, strategy, coin_cfg):
         else:
             order = await exchange.create_order(symbol, 'market', side, qty)
             logger.info(f"✅ MARKET FILLED: {symbol} | Qty: {qty}")
-        
-        SYMBOL_COOLDOWN[symbol] = time.time() + config.COOLDOWN_PER_SYMBOL_SECONDS
-        
         try:
             rr_ratio = round(abs(params['tp1'] - params['entry_price']) / abs(params['entry_price'] - params['sl']), 2)
         except: rr_ratio = 0
@@ -919,7 +933,25 @@ async def install_safety_orders(symbol, pos_data):
                     )
 
                     logger.info(f"🛑 EMERGENCY CLOSE EXECUTED: {symbol}")
-                    msg = (F"🚨 <b>EMERGENCY EXIT EXECUTED</b>\nCoin: <b>{symbol}</b>\nMarket moved too fast beyond SL/TP, position closed to prevent further loss.")
+                    # TAMBAHKAN DYNAMIC COOLDOWN
+                    exit_price = float(closed_order.get('average', 0) or 0)
+                    # Tentukan Profit/Loss manual (karena PnL belum tentu muncul di response order)
+                    is_profit_emergency = False
+                    if exit_price > 0:
+                        if side == "LONG":
+                            is_profit_emergency = exit_price > entry_price
+                        else: # SHORT
+                            is_profit_emergency = exit_price < entry_price
+                    # Set Cooldown
+                    if is_profit_emergency:
+                        cd_duration = config.COOLDOWN_IF_PROFIT
+                        res_str = "PROFIT (Pump/Dump)"
+                    else:
+                        cd_duration = config.COOLDOWN_IF_LOSS
+                        res_str = "LOSS (Safety)"
+                    SYMBOL_COOLDOWN[symbol] = time.time() + cd_duration
+                    logger.info(f"🛑 EMERGENCY CLOSE: {symbol} @ {exit_price} | {res_str}")
+                    msg = (f"🚨 <b>EMERGENCY EXIT MARKET TOO VOLATILE</b>\n{symbol}\n💵 Exit: {exit_price}\n📊 Result: <b>{res_str}</b>\n⏳ Cooldown: {cd_duration}s")
                     await kirim_tele(msg)
                     
                     # 6. Hapus tracker karena posisi sudah ditutup
@@ -963,7 +995,7 @@ async def safety_monitor_hybrid():
                 
                 # LOOP CHECK
                 for base_sym, pos_data in current_positions.items():
-                    symbol = pos_data['symbol']
+                    symbol = pos_data['symbol'].split(':')[0]
                     # Jika ada posisi di binance, tapi tidak ada tracker, maka paksa bot untuk pasang safety sekarang juga
                     if symbol not in safety_orders_tracker:
                         logger.warning(f"⚠️ ORPHAN POSITION FOUND: {symbol}. Injecting to tracker...")
