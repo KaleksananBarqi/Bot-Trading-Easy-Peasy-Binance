@@ -728,6 +728,11 @@ async def analisa_market_hybrid(coin_config):
         logger.error(f"Error Analisa Hybrid {symbol}: {e}") 
 
 async def execute_order(symbol, side, params, strategy, coin_cfg):
+    # cek lagi apakah koin sedang cooldown sebelum benar-benar eksekusi untuk mencegah "race condition"
+    # di mana analisa lolos tapi cooldown baru saja aktif
+    if symbol in SYMBOL_COOLDOWN and time.time() < SYMBOL_COOLDOWN[symbol]:
+        logger.warning(f"🛑 EXECUTE ABORTED: {symbol} is in Cooldown via Double Check.")
+        return
     try:
         try:
             await exchange.cancel_all_orders(symbol)
