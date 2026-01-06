@@ -82,8 +82,8 @@ TRAP_SAFETY_SL = 1.0
 USE_TREND_TRAP_STRATEGY = True  
 TREND_TRAP_ADX_MIN = 25         
 TREND_TRAP_RSI_LONG_MIN = 40    
-TREND_TRAP_RSI_LONG_MAX = 60    
-TREND_TRAP_RSI_SHORT_MIN = 40   
+TREND_TRAP_RSI_LONG_MAX = 60    # <--- Ubah ini jika ingin lebih agresif di Bull Market  
+TREND_TRAP_RSI_SHORT_MIN = 40   # <--- Ubah ini jika ingin lebih agresif di Bear Market
 TREND_TRAP_RSI_SHORT_MAX = 60   
 
 # C. Sideways Scalp
