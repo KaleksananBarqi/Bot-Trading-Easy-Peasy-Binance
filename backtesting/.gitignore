@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.log
+.\backtesting
+/Projek/Bot Trading/Bot-Trading-Easy-Peasy/backtesting/
