@@ -27,7 +27,7 @@ DEFAULT_AMOUNT_USDT = 10      # Cadangan jika dynamic false / error
   
 # --- SETTING DYNAMIC SIZING (COMPOUNDING) ---
 USE_DYNAMIC_SIZE = True       # Set True untuk aktifkan compounding
-RISK_PERCENT_PER_TRADE = 5.0  # Bot akan pakai 5% dari saldo USDT Available per trade
+RISK_PERCENT_PER_TRADE = 10  # Bot akan pakai 5% dari saldo USDT Available per trade
 # Setingan buat pair correlation
 MAX_POSITIONS_PER_CATEGORY = 1   # Maksimal 1 posisi per "Sektor"
 CORRELATION_THRESHOLD_BTC = 0.5  # Jika korelasi < 0.5, anggap "Jalan Sendiri" (Abaikan BTC Trend)
@@ -94,10 +94,10 @@ SIDEWAYS_ADX_MAX = 20
 # Jika leverage/amount tidak diisi, akan memakai DEFAULT dari Section 2
 DAFTAR_KOIN = [
     # Kategori: KING
-    #{"symbol": "BTC/USDT", "category": "KING", "leverage": 30, "margin_type": "cross", "amount": 50},
+    {"symbol": "BTC/USDT", "category": "KING", "leverage": 30, "margin_type": "cross", "amount": 50},
     
     # Kategori: L1 (Smart Contract)
-    {"symbol": "SOL/USDT", "category": "L1", "leverage": 30, "margin_type": "isolated", "amount": 30},
+    {"symbol": "SOL/USDT", "category": "L1", "leverage": 30, "margin_type": "isolated", "amount": 15},
     {"symbol": "ETH/USDT", "category": "L1", "leverage": 20, "margin_type": "cross", "amount": 40},
     {"symbol": "BNB/USDT", "category": "L1", "leverage": 15, "margin_type": "isolated", "amount": 30},
     {"symbol": "AVAX/USDT", "category": "L1", "leverage": 20, "margin_type": "isolated", "amount": 15},
@@ -105,10 +105,10 @@ DAFTAR_KOIN = [
 
     # Kategori: PAYMENT / OLD GEN
     {"symbol": "XRP/USDT", "category": "PAYMENT", "leverage": 10, "margin_type": "isolated", "amount": 15},
-    {"symbol": "LTC/USDT", "category": "PAYMENT", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    {"symbol": "LTC/USDT", "category": "PAYMENT", "leverage": 10, "margin_type": "isolated", "amount": 5},
     
     # Kategori: MEME
-    {"symbol": "DOGE/USDT", "category": "MEME", "leverage": 30, "margin_type": "isolated", "amount": 15},
+    {"symbol": "DOGE/USDT", "category": "MEME", "leverage": 30, "margin_type": "isolated", "amount": 5},
     
     # Kategori: DEFI / PRIVACY / OTHERS
     {"symbol": "TRX/USDT", "category": "L1", "leverage": 20, "margin_type": "isolated", "amount": 15},
