@@ -118,12 +118,33 @@ async def main():
             if rp != 0:
                 if rp > 0:
                     executor.set_cooldown(sym, config.COOLDOWN_IF_PROFIT)
-                    msg_res = "✅ PROFIT"
                 else:
                     executor.set_cooldown(sym, config.COOLDOWN_IF_LOSS)
-                    msg_res = "❌ LOSS"
                 
-                await kirim_tele(f"{msg_res} Trade Closed: {sym}\nRP: ${rp:.2f}\nCooldown activated.")
+                # Format Pesan
+                pnl = rp
+                order_info = o
+                symbol = sym
+                price = float(o.get('ap', 0))
+                order_type = o.get('o', 'UNKNOWN')
+                
+                emoji = "💰" if pnl > 0 else "🛑"
+                title = "TAKE PROFIT HIT" if pnl > 0 else "STOP LOSS HIT"
+                pnl_str = f"+${pnl:.2f}" if pnl > 0 else f"-${abs(pnl):.2f}"
+                
+                # Hitung size yang diclose
+                qty_closed = float(order_info.get('q', 0))
+                size_closed_usdt = qty_closed * price
+                
+                msg = (
+                        f"{emoji} <b>{title}</b>\n"
+                        f"✨ <b>{symbol}</b>\n"
+                        f"🏷️ Type: {order_type}\n"
+                        f"📏 <b>Size:</b> ${size_closed_usdt:.2f}\n" 
+                        f"💵 Price: {price}\n"
+                        f"💸 PnL: <b>{pnl_str}</b>"
+                    )
+                await kirim_tele(msg)
 
             # Trigger safety check immediately
             await executor.sync_positions()
