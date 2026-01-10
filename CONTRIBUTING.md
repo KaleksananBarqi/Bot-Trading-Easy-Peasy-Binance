@@ -14,14 +14,15 @@ Jika Anda menemukan *bug* atau *error* saat menjalankan bot:
 
 1.  **Cek Issues:** Pastikan *bug* tersebut belum pernah dilaporkan sebelumnya di halaman [Issues](../../issues).
 2.  **Buat Issue Baru:** Jika belum ada, buat laporan baru dengan format:
-    * **Judul:** Deskripsi singkat masalah.
-    * **Deskripsi:** Jelaskan apa yang terjadi.
-    * **Langkah Reproduksi:** Bagaimana cara memunculkan *error* tersebut?
-    * **Environment:** OS (Windows/Linux/Mac), versi Python, dan log error jika ada.
+    *   **Judul:** Deskripsi singkat masalah.
+    *   **Deskripsi:** Jelaskan apa yang terjadi.
+    *   **Langkah Reproduksi:** Bagaimana cara memunculkan *error* tersebut?
+    *   **Environment:** OS (Windows/Linux/Mac), versi Python, dan log error jika ada.
 
 ## 💡 Menyarankan Fitur Baru
 
 Punya ide strategi trading baru atau integrasi AI yang lebih canggih?
+
 1.  Buka [Issues](../../issues) dan gunakan label `enhancement` atau `feature request`.
 2.  Jelaskan secara detail bagaimana fitur tersebut bekerja dan mengapa itu berguna bagi pengguna bot ini.
 
@@ -30,66 +31,80 @@ Punya ide strategi trading baru atau integrasi AI yang lebih canggih?
 Jika Anda ingin mengubah kode, ikuti langkah-langkah berikut untuk mengatur lingkungan kerja lokal Anda agar sesuai dengan standar proyek ini.
 
 ### 1. Fork & Clone
+
 Fork repositori ini ke akun GitHub Anda, lalu *clone* ke komputer lokal:
+
 ```bash
-git clone [https://github.com/USERNAME-ANDA/Bot-Trading-Easy-Peasy-Binance.git](https://github.com/USERNAME-ANDA/Bot-Trading-Easy-Peasy-Binance.git)
+git clone https://github.com/USERNAME-ANDA/Bot-Trading-Easy-Peasy-Binance.git
 cd Bot-Trading-Easy-Peasy-Binance
-2. Siapkan Environment
-Proyek ini menggunakan Python 3.10+. Sangat disarankan menggunakan venv agar dependencies tidak berantakan.
+```
 
-Windows:
+### 2. Siapkan Environment
 
-Bash
+Proyek ini menggunakan Python 3.10+. Sangat disarankan menggunakan `venv` agar *dependencies* tidak berantakan.
 
+**Windows:**
+
+```bash
 python -m venv venv
 .\venv\Scripts\activate
-Linux/Mac:
+```
 
-Bash
+**Linux/Mac:**
 
+```bash
 python3 -m venv venv
 source venv/bin/activate
-3. Install Dependencies
-Pastikan Anda menginstal semua paket yang diperlukan seperti ccxt, pandas_ta, openai, dll:
+```
 
-Bash
+### 3. Install Dependencies
 
+Pastikan Anda menginstal semua paket yang diperlukan seperti `ccxt`, `pandas_ta`, `openai`, dll:
+
+```bash
 pip install -r requirements.txt
-4. Konfigurasi Lingkungan (.env)
-Anda memerlukan file .env untuk menjalankan bot secara lokal. Salin contoh format yang ada di README.md dan gunakan API Key testnet atau mock jika memungkinkan untuk pengujian agar tidak mengambil risiko finansial saat debugging.
+```
 
-📝 Alur Kerja Pull Request (PR)
-Buat Branch Baru: Jangan bekerja langsung di branch main. Buat branch baru untuk fitur atau perbaikan Anda.
+### 4. Konfigurasi Lingkungan (.env)
 
-Bash
+Anda memerlukan file `.env` untuk menjalankan bot secara lokal. Salin contoh format yang ada di `README.md` dan gunakan API Key *testnet* atau *mock* jika memungkinkan untuk pengujian agar tidak mengambil risiko finansial saat *debugging*.
 
-git checkout -b fitur/nama-fitur-keren
-# atau
-git checkout -b fix/perbaikan-bug-ini
-Lakukan Perubahan: Tulis kode Anda. Pastikan kode bersih dan mudah dibaca.
+## 📝 Alur Kerja Pull Request (PR)
 
-Tes Kode: Jalankan bot secara lokal dan pastikan tidak ada error saat inisialisasi (python main.py).
+1.  **Buat Branch Baru:** Jangan bekerja langsung di branch `main`. Buat branch baru untuk fitur atau perbaikan Anda.
 
-Commit Perubahan: Gunakan pesan commit yang jelas dan deskriptif.
+    ```bash
+    git checkout -b fitur/nama-fitur-keren
+    # atau
+    git checkout -b fix/perbaikan-bug-ini
+    ```
 
-Bash
+2.  **Lakukan Perubahan:** Tulis kode Anda. Pastikan kode bersih dan mudah dibaca.
 
-git commit -m "Menambahkan fitur deteksi Whale baru via WebSocket"
-Push ke GitHub:
+3.  **Tes Kode:** Jalankan bot secara lokal dan pastikan tidak ada error saat inisialisasi (`python main.py`).
 
-Bash
+4.  **Commit Perubahan:** Gunakan pesan commit yang jelas dan deskriptif.
 
-git push origin fitur/nama-fitur-keren
-Buat Pull Request: Buka repositori asli dan buat Pull Request dari branch Anda. Jelaskan perubahan apa yang Anda lakukan.
+    ```bash
+    git commit -m "Menambahkan fitur deteksi Whale baru via WebSocket"
+    ```
 
-🎨 Standar Kode (Style Guide)
-Python: Ikuti panduan gaya PEP 8.
+5.  **Push ke GitHub:**
 
-Komentar: Berikan komentar pada bagian logika yang rumit, terutama pada bagian strategi (strategies/) atau logika AI (src/modules/ai_brain.py).
+    ```bash
+    git push origin fitur/nama-fitur-keren
+    ```
 
-Tipe Data: Gunakan Type Hinting jika memungkinkan untuk memudahkan pembacaan kode.
+6.  **Buat Pull Request:** Buka repositori asli dan buat Pull Request dari branch Anda. Jelaskan perubahan apa yang Anda lakukan.
 
-⚠️ Disclaimer Tambahan
-Ingatlah bahwa ini adalah bot trading finansial. Setiap kontribusi kode yang berkaitan dengan eksekusi order (executor.py) harus diuji dengan sangat hati-hati. Jangan pernah meng-hardcode API Key atau kredensial pribadi dalam kode yang Anda commit.
+## 🎨 Standar Kode (Style Guide)
 
-Terima kasih telah membantu membuat Easy Peasy Trading Bot menjadi lebih cerdas dan profitable! 🚀
+*   **Python:** Ikuti panduan gaya PEP 8.
+*   **Komentar:** Berikan komentar pada bagian logika yang rumit, terutama pada bagian strategi (`strategies/`) atau logika AI (`src/modules/ai_brain.py`).
+*   **Tipe Data:** Gunakan *Type Hinting* jika memungkinkan untuk memudahkan pembacaan kode.
+
+## ⚠️ Disclaimer Tambahan
+
+Ingatlah bahwa ini adalah bot trading finansial. Setiap kontribusi kode yang berkaitan dengan eksekusi order (`executor.py`) harus diuji dengan sangat hati-hati. Jangan pernah meng-*hardcode* API Key atau kredensial pribadi dalam kode yang Anda *commit*.
+
+Terima kasih telah membantu membuat **Easy Peasy Trading Bot** menjadi lebih cerdas dan *profitable*! 🚀
