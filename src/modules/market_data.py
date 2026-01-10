@@ -99,7 +99,7 @@ class MarketDataManager:
             logger.error(f"❌ Gagal ListenKey: {e}")
             return None
 
-    async def start_stream(self, callback_account_update=None, callback_order_update=None):
+    async def start_stream(self, callback_account_update=None, callback_order_update=None, callback_whale=None):
         """Main WebSocket Loop"""
         while True:
             await self.get_listen_key()
@@ -113,6 +113,7 @@ class MarketDataManager:
                 s_clean = coin['symbol'].replace('/', '').lower()
                 streams.append(f"{s_clean}@kline_{config.TIMEFRAME_EXEC}")
                 streams.append(f"{s_clean}@kline_{config.BTC_TIMEFRAME}")
+                streams.append(f"{s_clean}@aggTrade") # Whale Detector Stream
             
             # Add BTC Stream manual if not exists
             btc_clean = config.BTC_SYMBOL.replace('/', '').lower()
@@ -146,6 +147,15 @@ class MarketDataManager:
                                 await callback_account_update(payload)
                             elif evt == 'ORDER_TRADE_UPDATE' and callback_order_update:
                                 await callback_order_update(payload)
+                            elif evt == 'aggTrade' and callback_whale:
+                                # "s": "BTCUSDT", "p": "0.001", "q": "100", "m": true
+                                symbol = payload['s'].replace('USDT', '/USDT')
+                                price = float(payload['p'])
+                                qty = float(payload['q'])
+                                amount_usdt = price * qty
+                                side = "SELL" if payload['m'] else "BUY" # m=True means Maker (Sell side initiatior usually? No, m=True means maker... wait. AggTrade: m=True means the buyer was the maker. So it was a SELL.)
+                                if amount_usdt >= config.WHALE_THRESHOLD_USDT:
+                                    callback_whale(symbol, amount_usdt, side)
                                 
             except Exception as e:
                 logger.warning(f"⚠️ WS Disconnected: {e}. Reconnecting...")

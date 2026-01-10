@@ -1,4 +1,5 @@
 
+import requests
 import config
 from src.utils.helper import logger
 
@@ -19,16 +20,53 @@ class OnChainAnalyzer:
             if len(self.whale_transactions) > 10:
                self.whale_transactions.pop(0)
             
-            logger.info(f"Detect Whale: {msg}")
+            # logger.info(f"Detect Whale: {msg}")
 
     def fetch_stablecoin_inflows(self):
         """
         Placeholder: Fetch data from DefiLlama (requires separate implementation/key).
         For now, we simulate or keep it Neutral to avoid dependencies blocking execution.
         """
-        # TODO: Implement DefiLlama API request
-        # Endpoint: https://api.llama.fi/charts/stablecoin
-        self.stablecoin_inflow = "Neutral"
+        try:
+            url = "https://stablecoins.llama.fi/stablecoincharts/all"
+            resp = requests.get(url, timeout=10)
+            data = resp.json()
+            
+            if data and len(data) > 2:
+                # Structure: [{'date': 1600..., 'totalCirculating': {'peggedUSD': 100...}}, ...]
+                # Note: "totalCirculatingUSD" key represents aggregated mcap
+                
+                # Get last two records
+                curr = data[-1]
+                prev = data[-2]
+                
+                # Check for 'totalCirculatingUSD' key directly
+                # It is a dict: {'peggedUSD': ..., 'peggedEUR': ...}
+                curr_dict = curr.get('totalCirculatingUSD', {})
+                prev_dict = prev.get('totalCirculatingUSD', {})
+                
+                curr_val = curr_dict.get('peggedUSD', 0)
+                prev_val = prev_dict.get('peggedUSD', 0)
+                
+                if curr_val and prev_val:
+                    change_pct = ((curr_val - prev_val) / prev_val) * 100
+                    
+                    if change_pct > 0.05:
+                        self.stablecoin_inflow = "Positive"
+                    elif change_pct < -0.05:
+                        self.stablecoin_inflow = "Negative"
+                    else:
+                        self.stablecoin_inflow = "Neutral"
+                        
+                    logger.info(f"🪙 Stablecoin Inflow: {self.stablecoin_inflow} ({change_pct:.2f}%)")
+                else:
+                    self.stablecoin_inflow = "Neutral"
+            else:
+                 logger.warning("CoinLlama Data Insufficient")
+                 
+        except Exception as e:
+            logger.error(f"❌ Failed fetch Stablecoin Inflow: {e}")
+            self.stablecoin_inflow = "Neutral" # Fallback
 
     def get_latest(self):
         return {

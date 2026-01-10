@@ -69,6 +69,8 @@ async def main():
     # Track AI Query Timestamp
     last_ai_query = {}
     timeframe_exec_seconds = parse_timeframe_to_seconds(config.TIMEFRAME_EXEC)
+    timeframe_trend_seconds = parse_timeframe_to_seconds(config.TIMEFRAME_TREND)
+    last_sentiment_update_time = time.time()
 
     # 1. INITIALIZATION
     exchange = ccxt.binance({
@@ -126,7 +128,11 @@ async def main():
             # Trigger safety check immediately
             await executor.sync_positions()
 
-    asyncio.create_task(market_data.start_stream(account_update_cb, order_update_cb))
+    def whale_handler(symbol, amount, side):
+        # Callback from Market Data (AggTrade)
+        onchain.detect_whale(symbol, amount, side)
+
+    asyncio.create_task(market_data.start_stream(account_update_cb, order_update_cb, whale_handler))
     asyncio.create_task(safety_monitor_loop())
 
     logger.info("🚀 MAIN LOOP RUNNING...")
@@ -136,6 +142,19 @@ async def main():
     while True:
         try:
             # Round Robin Scan (One coin per loop to save API/AI limit)
+            
+            # --- STEP 0: PERIODIC SENTIMENT REFRESH ---
+             # Cek apakah sudah waktunya update berita & F&G (misal setiap 1 jam)
+            if time.time() - last_sentiment_update_time >= timeframe_trend_seconds:
+                logger.info("🔄 Refreshing Sentiment Data (News & F&G)...")
+                try:
+                    # Jalankan di background task agar tidak memblokir main loop (Fire & Forget)
+                    asyncio.create_task(asyncio.to_thread(sentiment.update_all))
+                    last_sentiment_update_time = time.time()
+                    logger.info("✅ Sentiment Data Refreshed.")
+                except Exception as e:
+                    logger.error(f"❌ Failed to refresh sentiment: {e}")
+
             coin_cfg = config.DAFTAR_KOIN[ticker_idx]
             symbol = coin_cfg['symbol']
             
@@ -221,7 +240,7 @@ async def main():
             # ... (Existing filter logic modified to respect strategy) ...
             
             # (Untuk simplifikasi, kita gabung ke existing logic tapi tambah logging)
-            logger.info(f"📊 Strategy Mode: {strategy_mode} (ADX: {adx_val:.2f})")
+            #logger.info(f"📊 Strategy Mode: {strategy_mode} (ADX: {adx_val:.2f})")
 
             # --- STEP D: AI ANALYSIS ---
             # [NEW] Frequency Check

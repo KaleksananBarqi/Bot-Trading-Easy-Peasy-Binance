@@ -13,7 +13,7 @@ SECRET_KEY_LIVE = os.getenv("BINANCE_SECRET_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 AI_API_KEY = os.getenv("AI_API_KEY")
-CRYPTOPANIC_API_KEY = os.getenv("CRYPTOPANIC_API_KEY")
+CMC_API_KEY = os.getenv("CMC_API_KEY")
 
 # --- 1.B AI & DATA SOURCE CONFIG ---
 AI_MODEL_NAME = 'xiaomi/mimo-v2-flash:free' # atau model lain jika tersedia

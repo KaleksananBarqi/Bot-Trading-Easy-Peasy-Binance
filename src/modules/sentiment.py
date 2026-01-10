@@ -6,22 +6,47 @@ from src.utils.helper import logger
 
 class SentimentAnalyzer:
     def __init__(self):
-        self.fng_url = "https://api.alternative.me/fng/"
+        self.fng_url = "https://pro-api.coinmarketcap.com/v3/fear-and-greed/latest"
         self.last_fng = {"value": 50, "classification": "Neutral"}
         self.last_news = []
 
     def fetch_fng(self):
-        """Fetch Fear & Greed Index"""
+        """Fetch Fear & Greed Index from CoinMarketCap"""
         try:
-            resp = requests.get(self.fng_url, timeout=10)
+            headers = {
+                'X-CMC_PRO_API_KEY': config.CMC_API_KEY,
+                'Accept': 'application/json'
+            }
+            # Endpoint /latest tidak butuh limit
+            params = {}
+            
+            if not config.CMC_API_KEY:
+                logger.warning("⚠️ CMC_API_KEY not found. Using default neutral sentiment.")
+                return
+
+            resp = requests.get(self.fng_url, headers=headers, params=params, timeout=10)
             data = resp.json()
-            if data['data']:
-                item = data['data'][0]
+            
+            # Error code bisa integer 0 atau string "0"
+            if 'status' in data and int(data['status']['error_code']) == 0 and 'data' in data:
+                # Handle response format (bisa dict atau list tergantung endpoint)
+                if isinstance(data['data'], list) and len(data['data']) > 0:
+                    item = data['data'][0]
+                elif isinstance(data['data'], dict):
+                    item = data['data']
+                else:
+                    logger.warning(f"⚠️ CMC API Unexpected Data Format: {data['data']}")
+                    return
+
                 self.last_fng = {
                     "value": int(item['value']),
                     "classification": item['value_classification']
                 }
-                logger.info(f"🧠 Sentiment F&G: {self.last_fng['value']} ({self.last_fng['classification']})")
+                logger.info(f"🧠 Sentiment F&G (CMC): {self.last_fng['value']} ({self.last_fng['classification']})")
+            else:
+                error_msg = data.get('status', {}).get('error_message')
+                logger.warning(f"⚠️ CMC API Error: {error_msg if error_msg else data}")
+
         except Exception as e:
             logger.warning(f"⚠️ Failed to fetch F&G: {e}")
 
