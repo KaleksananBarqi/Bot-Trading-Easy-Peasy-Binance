@@ -99,6 +99,7 @@ INSTRUCTIONS:
 3. Look for "Confluence" (e.g., RSI Oversold + Fear Market + Whale Buying).
 4. If signals are mixed, prioritize Capital Preservation (WAIT).
 5. Provide a Confidence Score (0-100%).
+6. Explain your reason in INDONESIAN LANGUAGE.
 
 OUTPUT FORMAT (JSON ONLY):
 {{

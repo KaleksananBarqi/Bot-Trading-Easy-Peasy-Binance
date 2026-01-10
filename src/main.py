@@ -146,14 +146,16 @@ async def main():
             # --- STEP 0: PERIODIC SENTIMENT REFRESH ---
              # Cek apakah sudah waktunya update berita & F&G (misal setiap 1 jam)
             if time.time() - last_sentiment_update_time >= timeframe_trend_seconds:
-                logger.info("🔄 Refreshing Sentiment Data (News & F&G)...")
+                logger.info("🔄 Refreshing Sentiment & On-Chain Data...")
                 try:
                     # Jalankan di background task agar tidak memblokir main loop (Fire & Forget)
                     asyncio.create_task(asyncio.to_thread(sentiment.update_all))
+                    asyncio.create_task(asyncio.to_thread(onchain.fetch_stablecoin_inflows))
+                    
                     last_sentiment_update_time = time.time()
-                    logger.info("✅ Sentiment Data Refreshed.")
+                    logger.info("✅ Sentiment & On-Chain Data Refreshed.")
                 except Exception as e:
-                    logger.error(f"❌ Failed to refresh sentiment: {e}")
+                    logger.error(f"❌ Failed to refresh data: {e}")
 
             coin_cfg = config.DAFTAR_KOIN[ticker_idx]
             symbol = coin_cfg['symbol']
@@ -283,29 +285,68 @@ async def main():
                     else:
                         amt = coin_cfg.get('amount', config.DEFAULT_AMOUNT_USDT)
                     
-                    msg = (f"🧠 <b>AI SIGNAL MATCHED</b>\n"
-                           f"Coin: {symbol}\nDec: {decision} ({confidence}%)\n"
-                           f"Mode: {strategy_mode}\n"
-                           f"Reason: {reason}")
-                    await kirim_tele(msg)
-                    
-                    # [NEW] LIQUIDITY HUNT CALCULATION
+                    # --- CALCULATION & PREPARATION ---
                     order_type = 'market'
                     entry_price = tech_data['price']
+                    atr_val = tech_data.get('atr', 0)
                     
-                    if config.USE_LIQUIDITY_HUNT:
-                        atr_val = tech_data.get('atr', 0)
-                        if atr_val > 0:
-                            order_type = 'limit'
-                            # Jarak entry = 1.0 * ATRMultiplierSL (Default 1.0 di config)
-                            offset = atr_val * config.ATR_MULTIPLIER_SL
-                            
-                            if side == 'buy':
-                                entry_price = tech_data['price'] - offset
-                            else:
-                                entry_price = tech_data['price'] + offset
-                                
-                            logger.info(f"🔫 Liquidity Hunt Activated. Limit Order @ {entry_price:.4f} (Last: {tech_data['price']}, ATR: {atr_val})")
+                    # Liquidity Hunt Logic
+                    if config.USE_LIQUIDITY_HUNT and atr_val > 0:
+                        order_type = 'limit'
+                        offset = atr_val * config.ATR_MULTIPLIER_SL
+                        if side == 'buy':
+                            entry_price = tech_data['price'] - offset
+                        else:
+                            entry_price = tech_data['price'] + offset
+                        logger.info(f"🔫 Liquidity Hunt Activated. Limit Order @ {entry_price:.4f} (Last: {tech_data['price']}, ATR: {atr_val})")
+
+                    # Calculate TP/SL for Display
+                    sl_price = 0
+                    tp_price = 0
+                    rr_ratio = 0.0
+
+                    if atr_val > 0:
+                         dist_sl = atr_val * config.TRAP_SAFETY_SL
+                         dist_tp = atr_val * config.ATR_MULTIPLIER_TP1
+                         rr_ratio = dist_tp / dist_sl if dist_sl > 0 else 0
+                         
+                         if side == 'buy':
+                             sl_price = entry_price - dist_sl
+                             tp_price = entry_price + dist_tp
+                         else:
+                             sl_price = entry_price + dist_sl
+                             tp_price = entry_price - dist_tp
+                    else:
+                         sl_percent = 0.01; tp_percent = 0.02
+                         rr_ratio = tp_percent / sl_percent
+                         if side == 'buy':
+                            sl_price = entry_price * (1 - sl_percent)
+                            tp_price = entry_price * (1 + tp_percent)
+                         else:
+                            sl_price = entry_price * (1 + sl_percent)
+                            tp_price = entry_price * (1 - tp_percent)
+
+                    margin_usdt = amt
+                    position_size_usdt = amt * lev
+                    direction_icon = "🟢" if side == 'buy' else "🔴"
+                    
+                    msg = (f"🧠 <b>AI SIGNAL MATCHED</b>\n"
+                           f"Coin: {symbol}\n"
+                           f"Signal: {direction_icon} {decision} ({confidence}%)\n"
+                           f"Mode: {strategy_mode}\n\n"
+                           f"🛒 <b>Order Details:</b>\n"
+                           f"• Type: {order_type.upper()}\n"
+                           f"• Entry: {entry_price:.4f}\n"
+                           f"• TP: {tp_price:.4f}\n"
+                           f"• SL: {sl_price:.4f}\n"
+                           f"• R:R: {rr_ratio:.2f}\n\n"
+                           f"💰 <b>Size & Risk:</b>\n"
+                           f"• Margin: ${margin_usdt:.2f}\n"
+                           f"• Size: ${position_size_usdt:.2f} (x{lev})\n\n"
+                           f"📝 <b>Reason:</b>\n"
+                           f"{reason}")
+                    
+                    await kirim_tele(msg)
                     
                     await executor.execute_entry(
                         symbol=symbol,
@@ -315,7 +356,7 @@ async def main():
                         amount_usdt=amt,
                         leverage=lev,
                         strategy_tag=f"AI_{strategy_mode}",
-                        atr_value=tech_data.get('atr', 0) # Pass ATR for Safety Orders
+                        atr_value=atr_val 
                     )
                 else:
                     logger.info(f"🛑 AI Vote Low Confidence: {confidence}% (Need {config.AI_CONFIDENCE_THRESHOLD}%)")

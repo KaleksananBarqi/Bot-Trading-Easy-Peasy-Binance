@@ -117,8 +117,8 @@ DAFTAR_KOIN = [
     
     # --- Kategori: LAYER 1 (Smart Contract Platform) ---
     # Blockchain utama tempat aplikasi (dApps) dibangun
-    {"symbol": "ETH/USDT", "category": "LAYER_1", "leverage": 20, "margin_type": "cross", "amount": 40},
-    {"symbol": "SOL/USDT", "category": "LAYER_1", "leverage": 30, "margin_type": "isolated", "amount": 15},
+    #{"symbol": "ETH/USDT", "category": "LAYER_1", "leverage": 20, "margin_type": "cross", "amount": 40},
+    #{"symbol": "SOL/USDT", "category": "LAYER_1", "leverage": 30, "margin_type": "isolated", "amount": 15},
     #{"symbol": "BNB/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 30},
     #{"symbol": "AVAX/USDT", "category": "LAYER_1", "leverage": 20, "margin_type": "isolated", "amount": 15},
     #{"symbol": "ADA/USDT", "category": "LAYER_1", "leverage": 10, "margin_type": "isolated", "amount": 15},
@@ -135,7 +135,7 @@ DAFTAR_KOIN = [
 
     # --- Kategori: LEGACY PAYMENT ---
     # Koin generasi lama yang fungsi utamanya transfer value
-    #{"symbol": "XRP/USDT", "category": "PAYMENT_LEGACY", "leverage": 10, "margin_type": "isolated", "amount": 15},
+    {"symbol": "XRP/USDT", "category": "PAYMENT_LEGACY", "leverage": 10, "margin_type": "isolated", "amount": 15},
     #{"symbol": "LTC/USDT", "category": "PAYMENT_LEGACY", "leverage": 10, "margin_type": "isolated", "amount": 5},
     
     # --- Kategori: MEMECOIN ---
