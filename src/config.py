@@ -17,7 +17,7 @@ CMC_API_KEY = os.getenv("CMC_API_KEY")
 
 # --- 1.B AI & DATA SOURCE CONFIG ---
 AI_MODEL_NAME = 'xiaomi/mimo-v2-flash:free' # atau model lain jika tersedia
-AI_CONFIDENCE_THRESHOLD = 75       # Minimal confidence untuk eksekusi
+AI_CONFIDENCE_THRESHOLD = 80       # Minimal confidence untuk eksekusi
 Sentiment_Provider = 'RSS_Feed'    # Diganti dari CryptoPanic ke RSS
 OnChain_Provider = 'DefiLlama'
 WHALE_THRESHOLD_USDT = 100000      # Transaksi > $100k dianggap Whale

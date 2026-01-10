@@ -278,6 +278,7 @@ async def main():
 
             # ... (Existing Code)
             logger.info(f"🤖 Asking AI: {symbol} (Corr: {btc_corr:.2f}) ...")
+            tech_data['btc_correlation'] = btc_corr
             prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data)
             
             ai_decision = await ai_brain.analyze_market(prompt)
@@ -351,9 +352,14 @@ async def main():
                     position_size_usdt = amt * lev
                     direction_icon = "🟢" if side == 'buy' else "🔴"
                     
+                    btc_trend_icon = "🟢" if tech_data['btc_trend'] == "BULLISH" else "🔴"
+                    btc_corr_icon = "🔒" if btc_corr >= config.CORRELATION_THRESHOLD_BTC else "🔓"
+
                     msg = (f"🧠 <b>AI SIGNAL MATCHED</b>\n"
                            f"Coin: {symbol}\n"
                            f"Signal: {direction_icon} {decision} ({confidence}%)\n"
+                           f"BTC Trend: {btc_trend_icon} {tech_data['btc_trend']}\n"
+                           f"BTC Correlation: {btc_corr_icon} {btc_corr:.2f}\n"
                            f"Mode: {strategy_mode}\n\n"
                            f"🛒 <b>Order Details:</b>\n"
                            f"• Type: {order_type.upper()}\n"

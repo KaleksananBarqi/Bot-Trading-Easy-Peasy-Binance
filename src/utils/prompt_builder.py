@@ -12,6 +12,7 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
     adx = tech_data.get('adx', 0)
     ema_pos = tech_data.get('price_vs_ema', 'UNKNOWN')
     btc_trend = tech_data.get('btc_trend', 'NEUTRAL')
+    btc_corr = tech_data.get('btc_correlation', 0)
     
     # [NEW] Additional Indicators
     ema_slow = tech_data.get('ema_slow', 0)
@@ -70,6 +71,7 @@ DATA CONTEXT:
 A. TECHNICAL INDICATORS ({config.TIMEFRAME_TREND} / {config.TIMEFRAME_EXEC})
 - Price: {price}
 - Trend vs BTC: {btc_trend} (King Filter)
+- BTC Correlation: {btc_corr:.2f}
 - EMA Trend: {ema_pos} (Fast), {trend_major} (Slow/Major)
 - RSI ({config.RSI_PERIOD}): {rsi:.2f}
 - ADX ({config.ADX_PERIOD}): {adx:.2f}
