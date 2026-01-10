@@ -85,7 +85,7 @@ async def main():
     })
     if config.PAKAI_DEMO: exchange.enable_demo_trading(True)
 
-    await kirim_tele("🤖 <b>BOT UPGRADED & STARTED</b>\nAI-Hybrid System Online.", alert=True)
+    await kirim_tele("🤖 <b>BOT TRADING STARTED</b>\nAI-Hybrid System Online.", alert=True)
 
     # 2. SETUP MODULES
     market_data = MarketDataManager(exchange)
@@ -272,7 +272,7 @@ async def main():
             
             if time_elapsed < timeframe_exec_seconds:
                 # Skip AI to save cost/spam
-                # logger.info(f"⏳ {symbol} AI Skip (Wait {int(timeframe_exec_seconds - time_elapsed)}s)")
+                logger.info(f"⏳ {symbol} AI Skip (Wait {int(timeframe_exec_seconds - time_elapsed)}s)")
                 await asyncio.sleep(config.LOOP_SLEEP_DELAY)
                 continue
 
@@ -358,6 +358,7 @@ async def main():
                     msg = (f"🧠 <b>AI SIGNAL MATCHED</b>\n"
                            f"Coin: {symbol}\n"
                            f"Signal: {direction_icon} {decision} ({confidence}%)\n"
+                           f"Timeframe: {config.TIMEFRAME_EXEC}\n"
                            f"BTC Trend: {btc_trend_icon} {tech_data['btc_trend']}\n"
                            f"BTC Correlation: {btc_corr_icon} {btc_corr:.2f}\n"
                            f"Mode: {strategy_mode}\n\n"

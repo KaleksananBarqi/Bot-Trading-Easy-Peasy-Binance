@@ -15,6 +15,7 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
     btc_corr = tech_data.get('btc_correlation', 0)
     
     # [NEW] Additional Indicators
+    ema_fast = tech_data.get('ema_fast', 0)
     ema_slow = tech_data.get('ema_slow', 0)
     trend_major = tech_data.get('trend_major', 'UNKNOWN')
     vol_ma = tech_data.get('vol_ma', 0)
@@ -73,6 +74,7 @@ A. TECHNICAL INDICATORS ({config.TIMEFRAME_TREND} / {config.TIMEFRAME_EXEC})
 - Trend vs BTC: {btc_trend} (King Filter)
 - BTC Correlation: {btc_corr:.2f}
 - EMA Trend: {ema_pos} (Fast), {trend_major} (Slow/Major)
+- EMA Values: Fast={ema_fast:.2f}, Slow={ema_slow:.2f}
 - RSI ({config.RSI_PERIOD}): {rsi:.2f}
 - ADX ({config.ADX_PERIOD}): {adx:.2f}
 - StochRSI ({config.STOCHRSI_K},{config.STOCHRSI_D}): K={stoch_k:.2f}, D={stoch_d:.2f}
