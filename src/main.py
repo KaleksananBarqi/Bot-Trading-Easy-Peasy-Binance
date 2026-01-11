@@ -213,10 +213,9 @@ async def main():
             onchain_data = onchain.get_latest()
 
             # --- STEP B: CHECK EXCLUSION (Cooldown / Existing Position) ---
-            # 1. Active Position Check
-            base_sym = symbol.split('/')[0]
-            if base_sym in executor.position_cache:
-                # logger.info(f"Skipping {symbol} (Active Position)")
+            # 1. Active Position Check (Active OR Pending)
+            if executor.has_active_or_pending_trade(symbol):
+                # logger.info(f"Skipping {symbol} (Active Position or Pending Order)")
                 await asyncio.sleep(config.LOOP_SLEEP_DELAY)
                 continue
             

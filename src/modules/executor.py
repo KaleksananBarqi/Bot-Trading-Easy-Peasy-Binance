@@ -78,6 +78,24 @@ class OrderExecutor:
                 count += 1
         return count
 
+    def has_active_or_pending_trade(self, symbol):
+        """
+        Cek apakah simbol ini 'bersih' atau sedang ada trade (Active / Pending).
+        Return True jika ADA trade (harus di-skip).
+        """
+        # 1. Cek Position Cache (Real Active Data)
+        base = symbol.split('/')[0]
+        if base in self.position_cache:
+            return True
+
+        # 2. Cek Tracker (Pending Orders: WAITING_ENTRY / PENDING)
+        if symbol in self.safety_orders_tracker:
+            status = self.safety_orders_tracker[symbol].get('status', 'NONE')
+            if status in ['WAITING_ENTRY', 'PENDING']:
+                return True
+        
+        return False
+
     def set_cooldown(self, symbol, duration_seconds):
         """Set cooldown for a symbol"""
         end_time = time.time() + duration_seconds
