@@ -13,14 +13,14 @@ Filosofi strategi ini sederhana: **Ikuti Arus Besar, Masuk Saat Diskon.**
 
 Untuk mengaktifkan mode Swing Trade Santai, sesuaikan variabel berikut di dalam file konfigurasi:
 
-| Parameter | Value Lama (Scalping) | **Value Baru (Swing)** | Penjelasan |
-| :--- | :--- | :--- | :--- |
-| `TIMEFRAME_TREND` | `'1h'` | **`'1d'`** | Analisis tren utama (King Filter) wajib menggunakan candle Daily untuk melihat gambaran besar. |
-| `TIMEFRAME_EXEC` | `'5m'` | **`'1h'`** atau **`'4h'`** | Eksekusi entri lebih santai, menunggu konfirmasi candle jam-jaman agar tidak tertipu 'noise'. |
-| `ATR_MULTIPLIER_TP1` | `2.2` | **`3.0`** - **`5.0`** | Swing trade mengincar *profit run* yang jauh lebih panjang (bisa berhari-hari). |
-| `ATR_MULTIPLIER_SL` | `1.0` | **`1.5`** | Stop Loss sedikit diperlebar untuk memberi ruang "nafas" terhadap volatilitas harian. |
-| `COOLDOWN_IF_PROFIT` | `3600` (1 Jam) | **`43200`** (12 Jam) | Jangan *overtrade*. Setelah menang swing besar, istirahat untuk menghindari *giveback profit*. |
-| `AI_SYSTEM_ROLE` | *(Default)* | *(Lihat Bawah)* | Menyesuaikan persona AI agar berpikir jangka panjang. |
+| Parameter | **Value Baru (Swing)** | Penjelasan |
+| :--- | :--- | :--- |
+| `TIMEFRAME_TREND` | **`'1d'`** | Analisis tren utama (King Filter) wajib menggunakan candle Daily untuk melihat gambaran besar. |
+| `TIMEFRAME_EXEC` | **`'1h'`** atau **`'4h'`** | Eksekusi entri lebih santai, menunggu konfirmasi candle jam-jaman agar tidak tertipu 'noise'. |
+| `ATR_MULTIPLIER_TP1` | **`3.0`** - **`5.0`** | Swing trade mengincar *profit run* yang jauh lebih panjang (bisa berhari-hari). |
+| `ATR_MULTIPLIER_SL` | **`1.5`** | Stop Loss sedikit diperlebar untuk memberi ruang "nafas" terhadap volatilitas harian. |
+| `COOLDOWN_IF_PROFIT` | **`43200`** (12 Jam) | Jangan *overtrade*. Setelah menang swing besar, istirahat untuk menghindari *giveback profit*. |
+| `AI_SYSTEM_ROLE` | *(Lihat Bawah)* | Menyesuaikan persona AI agar berpikir jangka panjang. |
 
 ### Rekomendasi `AI_SYSTEM_ROLE`:
 ```python
