@@ -1,5 +1,7 @@
 # 🤖 Easy Peasy Trading Bot: AI-Powered Hybrid Sniper
 
+<img width="1419" height="2796" alt="Image" src="https://github.com/user-attachments/assets/10627e10-df96-48c1-9a95-b40f0d2ae207" />
+
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)
 ![Binance](https://img.shields.io/badge/Binance-Futures-yellow?style=for-the-badge&logo=binance)
 ![AI](https://img.shields.io/badge/AI-DeepSeek%2FOpenAI-blueviolet?style=for-the-badge)
