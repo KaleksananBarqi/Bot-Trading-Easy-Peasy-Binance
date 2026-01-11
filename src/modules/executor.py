@@ -245,7 +245,7 @@ class OrderExecutor:
             for pos in positions:
                 amt = float(pos['contracts'])
                 if amt > 0:
-                    sym = pos['symbol']
+                    sym = pos['symbol'].replace(':USDT', '')
                     base = sym.split('/')[0]
                     self.position_cache[base] = {
                         'symbol': sym,
