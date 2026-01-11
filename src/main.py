@@ -46,14 +46,18 @@ async def safety_monitor_loop():
                 tracker = executor.safety_orders_tracker.get(symbol, {})
                 status = tracker.get('status', 'NONE')
                 
-                if status in ['NONE', 'PENDING']:
+                if status in ['NONE', 'PENDING', 'WAITING_ENTRY']:
                     logger.info(f"🛡️ Found Unsecured Position: {symbol}. Installing Safety...")
                     success = await executor.install_safety_orders(symbol, pos)
                     if success:
-                        executor.safety_orders_tracker[symbol] = {
+                        # Update status but PRESERVE existing data (like atr_value)
+                        if symbol not in executor.safety_orders_tracker:
+                            executor.safety_orders_tracker[symbol] = {}
+                        
+                        executor.safety_orders_tracker[symbol].update({
                             "status": "SECURED",
                             "last_check": time.time()
-                        }
+                        })
                         executor.save_tracker()
             
             # Sleep 
