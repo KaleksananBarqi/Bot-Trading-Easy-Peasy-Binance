@@ -120,6 +120,12 @@ class MarketDataManager:
             btc_s = f"{btc_clean}@kline_{config.BTC_TIMEFRAME}"
             if btc_s not in streams: streams.append(btc_s)
 
+            # [NEW] Force BTC Whale Stream for Context (Global Whale Data)
+            btc_whale_stream = f"{btc_clean}@aggTrade"
+            if btc_whale_stream not in streams:
+                streams.append(btc_whale_stream)
+                # logger.info("🐋 BTC Whale Stream Subscribed (Context Only)")
+
             url = self.ws_url + "/".join(streams)
             logger.info(f"📡 Connecting WS... ({len(streams)} streams)")
             
