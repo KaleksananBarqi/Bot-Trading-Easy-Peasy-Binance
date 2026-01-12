@@ -430,6 +430,7 @@ async def main():
                            f"📝 <b>Reason:</b>\n"
                            f"{reason}")
                     
+                    logger.info(f"📤 Sending Tele Message:\n{msg}")
                     await kirim_tele(msg)
                     
                     await executor.execute_entry(
