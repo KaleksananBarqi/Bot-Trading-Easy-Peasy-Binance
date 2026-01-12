@@ -53,10 +53,17 @@ logger = setup_logger()
 async def kirim_tele(pesan, alert=False):
     try:
         prefix = "⚠️ <b>SYSTEM ALERT</b>\n" if alert else ""
-        await asyncio.to_thread(requests.post,
-                                f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
-                                data={'chat_id': config.TELEGRAM_CHAT_ID, 'text': f"{prefix}{pesan}", 'parse_mode': 'HTML'})
-    except: pass
+        def send_request():
+            return requests.post(
+                f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
+                data={'chat_id': config.TELEGRAM_CHAT_ID, 'text': f"{prefix}{pesan}", 'parse_mode': 'HTML'}
+            )
+        
+        response = await asyncio.to_thread(send_request)
+        if response.status_code != 200:
+            logger.error(f"❌ Telegram Send Failed (Status {response.status_code}): {response.text}")
+    except Exception as e:
+        logger.error(f"❌ Telegram Exception: {e}")
 
 def kirim_tele_sync(pesan):
     """

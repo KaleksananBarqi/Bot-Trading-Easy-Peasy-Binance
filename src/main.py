@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import asyncio
 
 import time
+import html
 import ccxt.async_support as ccxt
 import config
 from src.utils.helper import logger, kirim_tele, kirim_tele_sync, parse_timeframe_to_seconds
@@ -343,7 +344,7 @@ async def main():
             
             decision = ai_decision.get('decision', 'WAIT').upper()
             confidence = ai_decision.get('confidence', 0)
-            reason = ai_decision.get('reason', '')
+            reason = html.escape(str(ai_decision.get('reason', '')))
 
             # --- STEP E: EXECUTION ---
             if decision in ['BUY', 'SELL', 'LONG', 'SHORT']:
