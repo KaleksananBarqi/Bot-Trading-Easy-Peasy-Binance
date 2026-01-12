@@ -266,6 +266,9 @@ class MarketDataManager:
             ema_pos = "Above" if cur['close'] > cur['EMA_FAST'] else "Below"
             trend_major = "Bullish" if cur['close'] > cur['EMA_SLOW'] else "Bearish"
             
+            # 7. Pivot Points (Support/Resistance) from Trend Timeframe (1H)
+            pivots = self._calculate_pivot_points(symbol)
+            
             return {
                 "price": cur['close'],
                 "rsi": cur['RSI'],
@@ -283,8 +286,42 @@ class MarketDataManager:
                 "trend_major": trend_major,
                 "btc_trend": self.btc_trend,
                 "funding_rate": self.funding_rates.get(symbol, 0),
-                "open_interest": "N/A"
+                "open_interest": "N/A",
+                "pivots": pivots
             }
         except Exception as e:
             logger.error(f"Get Tech Data Error {symbol}: {e}")
+            return None
+
+    def _calculate_pivot_points(self, symbol):
+        """Calculate Classic Pivot Points based on TAS Timeframe (Trend Timeframe - 1H)"""
+        try:
+            # Ambil data H1
+            bars = self.market_store.get(symbol, {}).get(config.BTC_TIMEFRAME, [])
+            if len(bars) < 2: return None
+            
+            # Gunakan candle terakhir yang COMPLETE (Completed Period)
+            # [-1] adalah candle berjalan (unconfirmed), [-2] adalah candle terakhir yang close
+            prev_candle = bars[-2]
+            # Format: [timestamp, open, high, low, close, volume]
+            high = prev_candle[2]
+            low = prev_candle[3]
+            close = prev_candle[4]
+            
+            # Classic Pivot Formula
+            pivot = (high + low + close) / 3
+            r1 = (2 * pivot) - low
+            s1 = (2 * pivot) - high
+            r2 = pivot + (high - low)
+            s2 = pivot - (high - low)
+            
+            return {
+                "P": pivot,
+                "R1": r1,
+                "S1": s1,
+                "R2": r2,
+                "S2": s2
+            }
+        except Exception as e:
+            logger.error(f"Pivot calc error {symbol}: {e}")
             return None

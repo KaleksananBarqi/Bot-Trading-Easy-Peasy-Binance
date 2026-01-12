@@ -133,6 +133,13 @@ TREND_TRAP_ADX_MIN = 25
 USE_SIDEWAYS_SCALP = True       
 SIDEWAYS_ADX_MAX = 20           
 
+# [NEW] Strategy Descriptions for AI Prompt
+STRATEGY_DESCRIPTIONS = {
+    'TREND_PULLBACK': "🔥 PRIMARY STRATEGY: TREND TRAP / PULLBACK. Trend is STRONG. Look for retests of EMA or Support levels (Pivot S1/S2). Condition: StochRSI Oversold in Bull Trend.",
+    'BB_BOUNCE': "🔥 PRIMARY STRATEGY: BB BOUNCE / SCALP. Market is SIDEWAYS. Condition: Buy at BB Lower, Sell at BB Upper. Avoid breakout setups.",
+    'STANDARD': "STANDARD MODE: Follow Trend if aligned with BTC, or Reversal if Extremes."
+}
+
 # --- 7. DAFTAR KOIN ---
 # Jika leverage/amount tidak diisi, akan memakai DEFAULT dari Section 2
 DAFTAR_KOIN = [

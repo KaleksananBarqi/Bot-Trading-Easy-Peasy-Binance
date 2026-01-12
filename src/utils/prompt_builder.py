@@ -6,6 +6,10 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
     Menyusun prompt untuk AI berdasarkan data teknikal, sentimen, dan on-chain.
     """
     
+    # 0. VALIDATION: Critical Data Check
+    if not tech_data or tech_data.get('price', 0) == 0:
+        return None # Abort signal generation if data is invalid
+    
     # 1. Parsing Data Teknikal
     price = tech_data.get('price', 0)
     rsi = tech_data.get('rsi', 50)
@@ -14,7 +18,7 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
     btc_trend = tech_data.get('btc_trend', 'NEUTRAL')
     btc_corr = tech_data.get('btc_correlation', 0)
     
-    # [NEW] Additional Indicators
+    # Additional Indicators
     ema_fast = tech_data.get('ema_fast', 0)
     ema_slow = tech_data.get('ema_slow', 0)
     trend_major = tech_data.get('trend_major', 'UNKNOWN')
@@ -25,6 +29,12 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
     bb_upper = tech_data.get('bb_upper', 0)
     bb_lower = tech_data.get('bb_lower', 0)
     atr = tech_data.get('atr', 0)
+    
+    # Pivot Points Support/Resistance
+    pivots = tech_data.get('pivots')
+    pivot_str = "N/A"
+    if pivots:
+        pivot_str = f"P={pivots['P']:.2f}, S1={pivots['S1']:.2f}, S2={pivots['S2']:.2f}, R1={pivots['R1']:.2f}, R2={pivots['R2']:.2f}"
     
     # Strategy Mode from Main
     strategy_mode = tech_data.get('strategy_mode', 'STANDARD')
@@ -37,7 +47,6 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
 
     # 3. Parsing On-Chain
     funding_rate = tech_data.get('funding_rate', 0) 
-    open_interest = tech_data.get('open_interest', 0)
     whale_activity = onchain_data.get('whale_activity', [])
     whale_str = "\n".join([f"- {w}" for w in whale_activity]) if whale_activity else "No significant whale activity detected."
     inflow_status = onchain_data.get('stablecoin_inflow', 'Neutral')
@@ -45,15 +54,9 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
     # 3.5 Strategy Context
     strategies = []
     
-    # Priority Strategy based on Mode
-    if strategy_mode == 'TREND_PULLBACK':
-        strategies.append(f"🔥 PRIMARY STRATEGY: TREND TRAP / PULLBACK. Trend is STRONG (ADX {adx:.1f}). Look for retests of EMA or Support levels.")
-        strategies.append(f"   Condition: StochRSI Oversold in Bull Trend, or Overbought in Bear Trend.")
-    elif strategy_mode == 'BB_BOUNCE':
-        strategies.append(f"🔥 PRIMARY STRATEGY: BB BOUNCE / SCALP. Market is SIDEWAYS (ADX {adx:.1f}).")
-        strategies.append(f"   Condition: Buy at BB Lower, Sell at BB Upper. Avoid breakout setups.")
-    else:
-        strategies.append("STANDARD MODE: Follow Trend if aligned with BTC, or Reversal if Extremes.")
+    # Use Strategy Description from Config
+    strat_desc = config.STRATEGY_DESCRIPTIONS.get(strategy_mode, config.STRATEGY_DESCRIPTIONS['STANDARD'])
+    strategies.append(strat_desc)
 
     if config.USE_LIQUIDITY_HUNT:
         strategies.append(f"🔫 LIQUIDITY HUNT ACTIVE: Entry will be via LIMIT ORDER at Price +/- {config.ATR_MULTIPLIER_SL} ATR.")
@@ -74,11 +77,11 @@ A. TECHNICAL INDICATORS ({config.TIMEFRAME_TREND} / {config.TIMEFRAME_EXEC})
 - Trend vs BTC: {btc_trend} (King Filter)
 - BTC Correlation: {btc_corr:.2f}
 - EMA Trend: {ema_pos} (Fast), {trend_major} (Slow/Major)
-- EMA Values: Fast={ema_fast:.2f}, Slow={ema_slow:.2f}
 - RSI ({config.RSI_PERIOD}): {rsi:.2f}
 - ADX ({config.ADX_PERIOD}): {adx:.2f}
 - StochRSI ({config.STOCHRSI_K},{config.STOCHRSI_D}): K={stoch_k:.2f}, D={stoch_d:.2f}
 - Bollinger Bands: Up={bb_upper:.2f}, Low={bb_lower:.2f}
+- Pivot Points (H1): {pivot_str}
 - Volume: {volume} (Avg: {vol_ma})
 - ATR: {atr:.4f}
 - Funding Rate: {funding_rate:.6f}% 
@@ -98,18 +101,21 @@ D. ACTIVE STRATEGIES (PRIORITIZE THESE SETUPS)
 ----------------------------------------
 
 INSTRUCTIONS:
-1. Analyze the correlation between Technicals and Sentiment.
-2. CHECK if any "ACTIVE STRATEGY" criteria are met. If yes, confidence should be higher.
-3. Look for "Confluence" (e.g., RSI Oversold + Fear Market + Whale Buying).
-4. If signals are mixed, prioritize Capital Preservation (WAIT).
-5. Provide a Confidence Score (0-100%).
-6. Explain your reason in INDONESIAN LANGUAGE.
+1. MARKET STRUCTURE: Analyze Trend Strength (ADX) & Direction (EMA/BTC).
+2. KEY LEVELS: Check if Price is near Support (Pivot S1/S2, BB Lower) or Resistance.
+3. CONFLUENCE: Look for Technical + Sentiment alignment (e.g., RSI Oversold + Fear).
+4. REASONING: Think Step-by-Step (Chain of Thought). List Bullish & Bearish factors.
+5. DECISION: If signals mixed or low confidence, choose WAIT.
 
 OUTPUT FORMAT (JSON ONLY):
 {{
+  "analysis": {{
+    "bullish_factors": ["factor 1", "factor 2"],
+    "bearish_factors": ["factor 1", "factor 2"]
+  }},
   "decision": "BUY" | "SELL" | "WAIT",
-  "reason": "Short explanation (Mention if Strategy Condition is met)...",
-  "confidence": 75,
+  "reason": "Synthesis of analysis in INDONESIAN LANGUAGE...",
+  "confidence": 0-100,
   "risk_level": "LOW" | "MEDIUM" | "HIGH"
 }}
 """
