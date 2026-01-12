@@ -249,25 +249,34 @@ class OrderExecutor:
             logger.error(f"❌ Install Safety Failed {symbol}: {e}")
             return False
 
+    def remove_from_tracker(self, symbol):
+        """Remove symbol from safety tracker and save."""
+        if symbol in self.safety_orders_tracker:
+            del self.safety_orders_tracker[symbol]
+            self.save_tracker()
+            logger.info(f"🗑️ Tracker cleaned for {symbol}")
+
     async def sync_positions(self):
         """Fetch real-time positions from Exchange"""
         try:
             positions = await self.exchange.fetch_positions()
+            # [FIX] Rebuild cache from scratch to remove closed positions
+            new_cache = {}
             count = 0
             for pos in positions:
                 amt = float(pos['contracts'])
                 if amt > 0:
                     sym = pos['symbol'].replace(':USDT', '')
                     base = sym.split('/')[0]
-                    self.position_cache[base] = {
+                    new_cache[base] = {
                         'symbol': sym,
                         'contracts': amt,
                         'side': 'LONG' if pos['side'] == 'long' else 'SHORT',
                         'entryPrice': float(pos['entryPrice'])
                     }
                     count += 1
-            # Clean cache for closed positions
-            # (Simplifikasi: di versi full kita bandingkan keys)
+            
+            self.position_cache = new_cache
             return count
         except Exception as e:
             logger.error(f"Sync Pos Error: {e}")

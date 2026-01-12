@@ -149,6 +149,9 @@ async def main():
                         f"💸 PnL: <b>{pnl_str}</b>"
                     )
                 await kirim_tele(msg)
+                
+                # [FIX] Clean up tracker immediately
+                executor.remove_from_tracker(symbol)
             
             else:
                 # ENTRY FILL (RP = 0)
