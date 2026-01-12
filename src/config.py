@@ -17,6 +17,7 @@ CMC_API_KEY = os.getenv("CMC_API_KEY")
 
 # --- 1.B AI & DATA SOURCE CONFIG ---
 AI_MODEL_NAME = 'xiaomi/mimo-v2-flash:free' # atau model lain jika tersedia
+AI_TEMPERATURE = 0.0     # [BARU] 0.0 agar AI konsisten & tidak halusinasi
 AI_CONFIDENCE_THRESHOLD = 80       # Minimal confidence untuk eksekusi
 Sentiment_Provider = 'RSS_Feed'    # Diganti dari CryptoPanic ke RSS
 OnChain_Provider = 'DefiLlama'

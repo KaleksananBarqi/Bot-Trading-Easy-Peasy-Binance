@@ -40,7 +40,8 @@ class AIBrain:
                         "role": "user",
                         "content": prompt_text
                     }
-                ]
+                ],
+                temperature=config.AI_TEMPERATURE
             )
             
             # Text Cleaning (Robust Regex)
