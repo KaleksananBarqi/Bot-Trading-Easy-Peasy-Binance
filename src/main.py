@@ -337,6 +337,9 @@ async def main():
             tech_data['btc_correlation'] = btc_corr
             prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data)
             
+            # [LOGGING] Print Prompt for Debugging
+            logger.info(f"📝 AI PROMPT INPUT for {symbol}:\n{prompt}")
+
             ai_decision = await ai_brain.analyze_market(prompt)
             
             # Update Timestamp only if analyzed
