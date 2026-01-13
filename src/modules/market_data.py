@@ -287,7 +287,9 @@ class MarketDataManager:
                 "btc_trend": self.btc_trend,
                 "funding_rate": self.funding_rates.get(symbol, 0),
                 "open_interest": "N/A",
-                "pivots": pivots
+                "pivots": pivots,
+                # [NEW] Candle Timestamp for Smart Throttling
+                "candle_timestamp": int(cur['timestamp'])
             }
         except Exception as e:
             logger.error(f"Get Tech Data Error {symbol}: {e}")

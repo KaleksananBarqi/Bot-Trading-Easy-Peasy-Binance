@@ -71,8 +71,8 @@ async def safety_monitor_loop():
 async def main():
     global market_data, sentiment, onchain, ai_brain, executor
     
-    # Track AI Query Timestamp
-    last_ai_query = {}
+    # Track AI Query Timestamp (Candle ID)
+    analyzed_candle_ts = {}
     timeframe_exec_seconds = parse_timeframe_to_seconds(config.TIMEFRAME_EXEC)
     timeframe_trend_seconds = parse_timeframe_to_seconds(config.TIMEFRAME_TREND)
     last_sentiment_update_time = time.time()
@@ -322,18 +322,22 @@ async def main():
             #logger.info(f"📊 Strategy Mode: {strategy_mode} (ADX: {adx_val:.2f})")
 
             # --- STEP D: AI ANALYSIS ---
-            # [NEW] Frequency Check
-            last_query_time = last_ai_query.get(symbol, 0)
-            time_elapsed = time.time() - last_query_time
+            # --- STEP D: AI ANALYSIS ---
+            # [NEW] Candle-Based Throttling (Smart Execution)
+            # Logic: Hanya tanya AI jika candle Exec Timeframe (misal 1H) sudah close & berganti baru.
+            # Kita bandingkan timestamp candle terakhir yang datanya kita ambil vs yang terakhir kita analisa.
             
-            if time_elapsed < timeframe_exec_seconds:
-                # Skip AI to save cost/spam
-                #logger.info(f"⏳ {symbol} AI Skip (Wait {int(timeframe_exec_seconds - time_elapsed)}s)")
+            current_candle_ts = tech_data.get('candle_timestamp', 0)
+            last_analyzed_ts = analyzed_candle_ts.get(symbol, 0)
+            
+            if current_candle_ts <= last_analyzed_ts:
+                # Candle ID masih sama = Candle belum ganti = Skip Analisa
+                # logger.info(f"⏳ {symbol} Candle {current_candle_ts} already analyzed. Waiting next candle...")
                 await asyncio.sleep(config.LOOP_SLEEP_DELAY)
                 continue
 
             # ... (Existing Code)
-            logger.info(f"🤖 Asking AI: {symbol} (Corr: {btc_corr:.2f}) ...")
+            logger.info(f"🤖 Asking AI: {symbol} (Corr: {btc_corr:.2f}, Candle: {current_candle_ts}) ...")
             tech_data['btc_correlation'] = btc_corr
             prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data)
             
@@ -342,8 +346,8 @@ async def main():
 
             ai_decision = await ai_brain.analyze_market(prompt)
             
-            # Update Timestamp only if analyzed
-            last_ai_query[symbol] = time.time()
+            # Update Timestamp (Candle ID) instead of System Time
+            analyzed_candle_ts[symbol] = current_candle_ts
             
             decision = ai_decision.get('decision', 'WAIT').upper()
             confidence = ai_decision.get('confidence', 0)
