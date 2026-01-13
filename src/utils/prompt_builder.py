@@ -64,6 +64,11 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
     
     strat_str = "\n".join([f"- {s}" for s in strategies])
 
+    # [NEW] Dynamic BTC Instruction
+    btc_instruction = ""
+    if btc_corr >= config.CORRELATION_THRESHOLD_BTC:
+        btc_instruction = f"WARNING: HIGH BTC CORRELATION ({btc_corr:.2f}). DO NOT TRADE AGAINST BTC TREND ({btc_trend})."
+
     # 4. Construct Prompt
     prompt = f"""
 ROLE: {config.AI_SYSTEM_ROLE}
@@ -78,13 +83,14 @@ A. TECHNICAL INDICATORS ({config.TIMEFRAME_TREND} / {config.TIMEFRAME_EXEC})
 - BTC Correlation: {btc_corr:.2f}
 - EMA Trend: {ema_pos} (Fast), {trend_major} (Slow/Major)
 - RSI ({config.RSI_PERIOD}): {rsi:.2f}
-- ADX ({config.ADX_PERIOD}): {adx:.2f}
+- ADX ({config.ADX_PERIOD}): {adx:.2f} [Trend Min: {config.TREND_TRAP_ADX_MIN}, Sideways Max: {config.SIDEWAYS_ADX_MAX}]
 - StochRSI ({config.STOCHRSI_K},{config.STOCHRSI_D}): K={stoch_k:.2f}, D={stoch_d:.2f}
 - Bollinger Bands: Up={bb_upper:.2f}, Low={bb_lower:.2f}
-- Pivot Points (H1): {pivot_str}
+- Pivot Points ({config.TIMEFRAME_TREND}): {pivot_str}
 - Volume: {volume} (Avg: {vol_ma})
 - ATR: {atr:.4f}
 - Funding Rate: {funding_rate:.6f}% 
+- Open Interest: {tech_data.get('open_interest', 'N/A')}
 
 B. MARKET SENTIMENT
 - Fear & Greed Index: {fng_value} ({fng_text})
@@ -102,7 +108,8 @@ D. ACTIVE STRATEGIES (PRIORITIZE THESE SETUPS)
 
 INSTRUCTIONS:
 1. MARKET STRUCTURE: Analyze Trend Strength (ADX) & Direction (EMA/BTC).
-2. KEY LEVELS: Check if Price is near Support (Pivot S1/S2, BB Lower) or Resistance.
+   {btc_instruction}
+2. KEY LEVELS: Check if Price is near Support (Pivot S1/S2, BB Lower) or Resistance. Respect provided Pivot Points.
 3. CONFLUENCE: Look for Technical + Sentiment alignment (e.g., RSI Oversold + Fear).
 4. REASONING: Think Step-by-Step (Chain of Thought). List Bullish & Bearish factors.
 5. DECISION: If signals mixed or low confidence, choose WAIT.

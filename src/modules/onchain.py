@@ -23,10 +23,6 @@ class OnChainAnalyzer:
             # logger.info(f"Detect Whale: {msg}")
 
     def fetch_stablecoin_inflows(self):
-        """
-        Placeholder: Fetch data from DefiLlama (requires separate implementation/key).
-        For now, we simulate or keep it Neutral to avoid dependencies blocking execution.
-        """
         try:
             url = config.DEFILLAMA_STABLECOIN_URL
             resp = requests.get(url, timeout=config.API_REQUEST_TIMEOUT)
