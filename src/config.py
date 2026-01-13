@@ -135,9 +135,12 @@ USE_SIDEWAYS_SCALP = True
 SIDEWAYS_ADX_MAX = 20           
 
 # [NEW] Strategy Descriptions for AI Prompt
+DEFAULT_STRATEGY_DESC = "Analisa pasar secara umum dengan mempertimbangkan tren, momentum, dan level teknikal utama. Fokus pada konfluensi sinyal."
+
 STRATEGY_DESCRIPTIONS = {
-    'GOLDEN SWING TREND STRATEGY': "Analisa tren pada H4. Jika Bullish, abaikan sinyal sell jangka pendek. Fokus cari titik pantul di support dinamis (EMA). Prioritaskan setup yang memiliki Risk:Reward minimal 1:2."
-}
+    'GOLDEN SWING TREND STRATEGY': "Analisa tren pada H4. Jika Bullish, abaikan sinyal sell jangka pendek. Fokus cari titik pantul di support dinamis (EMA). Prioritaskan setup yang memiliki Risk:Reward minimal 1:2.",
+    'STANDARD': DEFAULT_STRATEGY_DESC,
+    }
 
 # --- 7. DAFTAR KOIN ---
 # Jika leverage/amount tidak diisi, akan memakai DEFAULT dari Section 2

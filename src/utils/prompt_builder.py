@@ -55,7 +55,7 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
     strategies = []
     
     # Use Strategy Description from Config
-    strat_desc = config.STRATEGY_DESCRIPTIONS.get(strategy_mode, config.STRATEGY_DESCRIPTIONS['STANDARD'])
+    strat_desc = config.STRATEGY_DESCRIPTIONS.get(strategy_mode, config.DEFAULT_STRATEGY_DESC)
     strategies.append(strat_desc)
 
     if config.USE_LIQUIDITY_HUNT:
