@@ -326,5 +326,11 @@ class OrderExecutor:
                         del self.safety_orders_tracker[symbol]
                         self.save_tracker()
                         
+                        await kirim_tele(
+                            f"🗑️ <b>ORDER SYNC</b>\n"
+                            f"Order for {symbol} was cancelled manually/expired.\n"
+                            f"Tracker cleaned."
+                        )
+                        
             except Exception as e:
                 logger.error(f"⚠️ Sync Pending Error for {symbol}: {e}")
