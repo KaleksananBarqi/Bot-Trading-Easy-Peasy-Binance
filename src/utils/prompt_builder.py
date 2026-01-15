@@ -82,7 +82,7 @@ DATA CONTEXT:
 ----------------------------------------
 A. TECHNICAL INDICATORS ({config.TIMEFRAME_EXEC} / {config.TIMEFRAME_TREND} )
 - Price: {price}
-- Trend vs BTC: {btc_trend}
+- Trend vs BTC: {btc_trend} (EMA {config.BTC_EMA_PERIOD} Timeframe {config.BTC_TIMEFRAME})
 - BTC Correlation: {btc_corr:.2f}
 - EMA Trend: {ema_pos} (Fast {config.EMA_FAST}: {ema_fast:.2f}), {trend_major} (Slow {config.EMA_SLOW}: {ema_slow:.2f})
 - RSI ({config.RSI_PERIOD}): {rsi:.2f}
