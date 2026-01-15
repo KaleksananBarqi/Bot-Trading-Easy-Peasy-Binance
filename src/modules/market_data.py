@@ -16,6 +16,7 @@ class MarketDataManager:
         self.ticker_data = {}  # Live Price / Ticker
         self.funding_rates = {} 
         self.open_interest = {}
+        self.lsr_data = {} # Top Trader Long/Short Ratio
         
         self.btc_trend = "NEUTRAL"
         self.data_lock = asyncio.Lock()
@@ -65,6 +66,19 @@ class MarketDataManager:
                     self.market_store[symbol][config.TIMEFRAME_TREND] = bars_trend
                     self.funding_rates[symbol] = fund_rate.get('fundingRate', 0)
                     self.open_interest[symbol] = oi_val
+                    
+                    # 3. Initial LSR
+                    try:
+                        clean_sym = symbol.replace('/', '')
+                        lsr = await self.exchange.fapiDataGetTopLongShortAccountRatio({
+                            'symbol': clean_sym,
+                            'period': config.TIMEFRAME_EXEC,
+                            'limit': 1
+                        })
+                        if lsr:
+                            self.lsr_data[symbol] = lsr[0] # Ambil yang terbaru
+                    except:
+                        self.lsr_data[symbol] = None
                 
                 logger.info(f"   ✅ Data Loaded: {symbol}")
             except Exception as e:
@@ -197,9 +211,19 @@ class MarketDataManager:
                         # 2. Update Open Interest
                         oi = await self.exchange.fetch_open_interest(symbol) # Return dict
                         
+                        # 3. Update Long/Short Ratio
+                        clean_sym = symbol.replace('/', '')
+                        lsr = await self.exchange.fapiDataGetTopLongShortAccountRatio({
+                            'symbol': clean_sym,
+                            'period': config.TIMEFRAME_EXEC,
+                            'limit': 1
+                        })
+
                         async with self.data_lock:
                             self.funding_rates[symbol] = fr.get('fundingRate', 0)
                             self.open_interest[symbol] = float(oi.get('openInterestAmount', 0))
+                            if lsr:
+                                self.lsr_data[symbol] = lsr[0]
                             
                     except Exception as e:
                         # logger.debug(f"Slow Data Update Failed {symbol}: {e}") # Silent error agar log tidak penuh
@@ -330,6 +354,7 @@ class MarketDataManager:
                 "btc_trend": self.btc_trend,
                 "funding_rate": self.funding_rates.get(symbol, 0),
                 "open_interest": self.open_interest.get(symbol, 0.0),
+                "lsr": self.lsr_data.get(symbol),
                 "pivots": pivots,
                 # [NEW] Candle Timestamp for Smart Throttling
                 "candle_timestamp": int(cur['timestamp'])

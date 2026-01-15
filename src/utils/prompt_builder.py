@@ -94,6 +94,7 @@ A. TECHNICAL INDICATORS ({config.TIMEFRAME_EXEC} / {config.TIMEFRAME_TREND} )
 - ATR: {atr:.4f}
 - Funding Rate: {funding_rate:.6f}% 
 - Open Interest: {tech_data.get('open_interest', 'N/A')}
+- Top Trader L/S Ratio: {tech_data.get('lsr', {}).get('longShortRatio', 'N/A')} (L: {float(tech_data.get('lsr', {}).get('longAccount', 0))*100:.1f}%, S: {float(tech_data.get('lsr', {}).get('shortAccount', 0))*100:.1f}%)
 
 B. MARKET SENTIMENT
 - Fear & Greed Index: {fng_value} ({fng_text})
