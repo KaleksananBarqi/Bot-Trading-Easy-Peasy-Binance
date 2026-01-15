@@ -135,9 +135,8 @@ USE_SIDEWAYS_SCALP = True
 SIDEWAYS_ADX_MAX = 25           
 
 AVAILABLE_STRATEGIES = {
-    'STRATEGY A (SCALP TREND M15)': "Trend Following M15 confirmed by H1 Trend",
+    'STRATEGY A (SCALP TREND M15)': "Trend Following M15 confirmed by H1 Trend. ADX > 20",
     'STRATEGY B (SIDEWAYS SCALP M15)': "BB Bounce Strategy (Winrate King). Valid ADX < 25.",
-    'STRATEGY C (BREAKOUT MOMENTUM)': "Entry saat harga menembus Key Level Resistance dengan Volume tinggi.",
     'STANDARD': "Analisa umum jika tidak ada setup spesifik yang valid. Fokus pada konfluensi teknikal dan sentimen.",
 }
 

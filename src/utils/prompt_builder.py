@@ -76,11 +76,11 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
     prompt = f"""
 ROLE: {config.AI_SYSTEM_ROLE}
 
-TASK: Analyze market data for {symbol}. SELECT THE BEST STRATEGY from the available list that matches current conditions (Trend vs Sideways) and decide if we should OPEN a position or WAIT.
+TASK: Analyze market data for {symbol}. SELECT THE BEST STRATEGY from the available list that matches current conditions and decide if we should OPEN a position or WAIT.
 
 DATA CONTEXT:
 ----------------------------------------
-A. TECHNICAL INDICATORS ({config.TIMEFRAME_TREND} / {config.TIMEFRAME_EXEC})
+A. TECHNICAL INDICATORS ({config.TIMEFRAME_EXEC} / {config.TIMEFRAME_TREND} )
 - Price: {price}
 - Trend vs BTC: {btc_trend} (King Filter)
 - BTC Correlation: {btc_corr:.2f}
@@ -110,7 +110,7 @@ D. STRATEGY SELECTION
 ----------------------------------------
 
 INSTRUCTIONS:
-1. MARKET STRUCTURE: Check ADX for Trend Strength. High ADX -> Trend Strategies. Low ADX -> Sideways Strategies.
+1. MARKET STRUCTURE: Check ADX for Trend Strength.
    {btc_instruction}
 2. SELECT STRATEGY: Choose ONE strategy from the list that perfectly fits the current market structure.
 3. CONFLUENCE: Ensure Technicals + Sentiment align with the chosen strategy.
