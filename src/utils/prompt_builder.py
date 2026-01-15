@@ -62,7 +62,7 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data):
     strategies.append("")
     strategies.append("ADDITIONAL CONTEXT:")
     if config.USE_LIQUIDITY_HUNT:
-        strategies.append(f"- 🔫 LIQUIDITY HUNT ACTIVE: Entry will be via LIMIT ORDER at Price +/- {config.ATR_MULTIPLIER_SL} ATR.")
+        strategies.append(f"- LIQUIDITY HUNT ACTIVE: Entry will be via LIMIT ORDER at Price +/- {config.ATR_MULTIPLIER_SL} ATR.")
         strategies.append("  (Ensure the setup allows for a wick/scam wick entry).")
     
     strat_str = "\n".join([f"{s}" for s in strategies])
@@ -82,11 +82,11 @@ DATA CONTEXT:
 ----------------------------------------
 A. TECHNICAL INDICATORS ({config.TIMEFRAME_EXEC} / {config.TIMEFRAME_TREND} )
 - Price: {price}
-- Trend vs BTC: {btc_trend} (King Filter)
+- Trend vs BTC: {btc_trend}
 - BTC Correlation: {btc_corr:.2f}
-- EMA Trend: {ema_pos} (Fast), {trend_major} (Slow/Major)
+- EMA Trend: {ema_pos} (Fast {config.EMA_FAST}: {ema_fast:.2f}), {trend_major} (Slow {config.EMA_SLOW}: {ema_slow:.2f})
 - RSI ({config.RSI_PERIOD}): {rsi:.2f}
-- ADX ({config.ADX_PERIOD}): {adx:.2f} [Note: ADX > 25 = Strong Trend, ADX < 20 = Weak Trend/Sideways]
+- ADX ({config.ADX_PERIOD}): {adx:.2f}
 - StochRSI ({config.STOCHRSI_K},{config.STOCHRSI_D}): K={stoch_k:.2f}, D={stoch_d:.2f}
 - Bollinger Bands: Up={bb_upper:.2f}, Low={bb_lower:.2f}
 - Pivot Points ({config.TIMEFRAME_TREND}): {pivot_str}
