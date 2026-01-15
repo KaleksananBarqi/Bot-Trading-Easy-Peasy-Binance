@@ -314,8 +314,9 @@ class OrderExecutor:
                     base = symbol.split('/')[0]
                     if base in self.position_cache:
                         # It is filled! Update tracker.
-                        logger.info(f"✅ Order {symbol} found filled during sync. Updating tracker to SECURED.")
-                        self.safety_orders_tracker[symbol]['status'] = 'SECURED'
+                        # It is filled! Update tracker.
+                        logger.info(f"✅ Order {symbol} found filled during sync. Queuing for Safety Orders (PENDING).")
+                        self.safety_orders_tracker[symbol]['status'] = 'PENDING'
                         self.safety_orders_tracker[symbol]['last_check'] = time.time()
                         self.save_tracker()
                     
