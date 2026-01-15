@@ -7,7 +7,7 @@ import pandas_ta as ta
 import ccxt.async_support as ccxt
 import websockets
 import config
-from src.utils.helper import logger, kirim_tele, wib_time
+from src.utils.helper import logger, kirim_tele, wib_time, parse_timeframe_to_seconds
 
 class MarketDataManager:
     def __init__(self, exchange):
@@ -51,13 +51,20 @@ class MarketDataManager:
                 # 2. Fetch Funding Rate & Open Interest (Public Endpoint)
                 # Note: CCXT fetch_funding_rate usually works
                 fund_rate = await self.exchange.fetch_funding_rate(symbol)
-                # Open Interest might need specific call or ticker
+                # Open Interest (CCXT)
+                try:
+                    oi_data = await self.exchange.fetch_open_interest(symbol)
+                    oi_val = float(oi_data.get('openInterestAmount', 0))
+                except:
+                    oi_val = 0.0
+
                 # We will update these via Rest mostly or WS if available
                 
                 async with self.data_lock:
                     self.market_store[symbol][config.TIMEFRAME_EXEC] = bars_exec
                     self.market_store[symbol][config.TIMEFRAME_TREND] = bars_trend
                     self.funding_rates[symbol] = fund_rate.get('fundingRate', 0)
+                    self.open_interest[symbol] = oi_val
                 
                 logger.info(f"   ✅ Data Loaded: {symbol}")
             except Exception as e:
@@ -131,6 +138,9 @@ class MarketDataManager:
             
             # Keep Alive Task from Config
             asyncio.create_task(self._keep_alive_listen_key())
+            
+            # [NEW] Background Task untuk Data Lambat (Funding Rate & OI)
+            asyncio.create_task(self._maintain_slow_data())
 
             try:
                 async with websockets.connect(url) as ws:
@@ -166,6 +176,39 @@ class MarketDataManager:
             except Exception as e:
                 logger.warning(f"⚠️ WS Disconnected: {e}. Reconnecting...")
                 await asyncio.sleep(5)
+
+    async def _maintain_slow_data(self):
+        """
+        Background task untuk update data yang tidak perlu real-time (Funding Rate & Open Interest).
+        Interval: Mengikuti config.TIMEFRAME_EXEC (misal 15 menit).
+        """
+        interval = parse_timeframe_to_seconds(config.TIMEFRAME_EXEC)
+        logger.info(f"🐢 Slow Data Maintenance Started (Interval: {interval}s)")
+        
+        while True:
+            await asyncio.sleep(interval)
+            try:
+                for coin in config.DAFTAR_KOIN:
+                    symbol = coin['symbol']
+                    try:
+                        # 1. Update Funding Rate
+                        fr = await self.exchange.fetch_funding_rate(symbol)
+                        
+                        # 2. Update Open Interest
+                        oi = await self.exchange.fetch_open_interest(symbol) # Return dict
+                        
+                        async with self.data_lock:
+                            self.funding_rates[symbol] = fr.get('fundingRate', 0)
+                            self.open_interest[symbol] = float(oi.get('openInterestAmount', 0))
+                            
+                    except Exception as e:
+                        # logger.debug(f"Slow Data Update Failed {symbol}: {e}") # Silent error agar log tidak penuh
+                        pass
+                        
+                # logger.info("🐢 Slow Data Updated")
+                
+            except Exception as e:
+                logger.error(f"Slow Data Loop Error: {e}")
 
     async def _keep_alive_listen_key(self):
         while True:
@@ -286,7 +329,7 @@ class MarketDataManager:
                 "trend_major": trend_major,
                 "btc_trend": self.btc_trend,
                 "funding_rate": self.funding_rates.get(symbol, 0),
-                "open_interest": "N/A",
+                "open_interest": self.open_interest.get(symbol, 0.0),
                 "pivots": pivots,
                 # [NEW] Candle Timestamp for Smart Throttling
                 "candle_timestamp": int(cur['timestamp'])
