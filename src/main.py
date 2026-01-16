@@ -20,6 +20,7 @@ from src.modules.sentiment import SentimentAnalyzer
 from src.modules.onchain import OnChainAnalyzer
 from src.modules.ai_brain import AIBrain
 from src.modules.executor import OrderExecutor
+from src.modules.pattern_recognizer import PatternRecognizer
 
 # GLOBAL INSTANCES
 market_data = None
@@ -27,6 +28,7 @@ sentiment = None
 onchain = None
 ai_brain = None
 executor = None
+pattern_recognizer = None
 
 async def safety_monitor_loop():
     """
@@ -72,7 +74,7 @@ async def safety_monitor_loop():
             await asyncio.sleep(config.ERROR_SLEEP_DELAY)
 
 async def main():
-    global market_data, sentiment, onchain, ai_brain, executor
+    global market_data, sentiment, onchain, ai_brain, executor, pattern_recognizer
     
     # Track AI Query Timestamp (Candle ID)
     analyzed_candle_ts = {}
@@ -101,6 +103,7 @@ async def main():
     onchain = OnChainAnalyzer()
     ai_brain = AIBrain()
     executor = OrderExecutor(exchange)
+    pattern_recognizer = PatternRecognizer(market_data)
 
     # 3. PRELOAD DATA
     await market_data.initialize_data()
@@ -334,8 +337,12 @@ async def main():
 
             # ... (Existing Code)
             logger.info(f"🤖 Asking AI: {symbol} (Corr: {btc_corr:.2f}, Candle: {current_candle_ts}) ...")
+            
+            # [NEW] Pattern Recognition (Vision)
+            pattern_ctx = await pattern_recognizer.analyze_pattern(symbol)
+            
             tech_data['btc_correlation'] = btc_corr
-            prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data)
+            prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_ctx)
             
             # [LOGGING] Print Prompt for Debugging
             logger.info(f"📝 AI PROMPT INPUT for {symbol}:\n{prompt}")

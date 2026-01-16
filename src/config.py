@@ -40,6 +40,11 @@ AI_BASE_URL = "https://openrouter.ai/api/v1"
 AI_APP_URL = "https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy"
 AI_APP_TITLE = "Bot Trading Easy Peasy"
 
+# Vision AI (Chart Pattern)
+USE_PATTERN_RECOGNITION = True
+AI_VISION_MODEL = 'gpt-4o-mini' # Model hemat cost namun capable untuk vision
+AI_VISION_TEMPERATURE = 0.2
+
 Sentiment_Provider = 'RSS_Feed'  # Pilihan: 'RSS_Feed'
 OnChain_Provider = 'DefiLlama'   # Pilihan: 'DefiLlama'
 
@@ -99,9 +104,12 @@ TIMEFRAME_EXEC = '15m'
 LIMIT_TREND = 500           
 LIMIT_EXEC = 300
 
+# Setup Context (Pattern Recognition)
+TIMEFRAME_SETUP = '30m'      
+LIMIT_SETUP = 100
+
 # BTC Global Trend Filter
 BTC_SYMBOL = 'BTC/USDT'
-BTC_TIMEFRAME = '1h'
 BTC_EMA_PERIOD = 200             # EMA 200 sebagai trend king filter
 
 # Indicator Parameters
