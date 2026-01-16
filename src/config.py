@@ -156,16 +156,16 @@ TRAP_SAFETY_SL = 1.2             # Jarak Safety SL Dari Entry Baru (ATR)
 
 AVAILABLE_STRATEGIES = {
     # 1. Fokus pada Pattern + Trend (The Conservative)
-    'PATTERN_CONFLUENCE_TREND': "Strategi ini mewajibkan keselarasan antara Macro Trend H1 dan visual pattern di M30 (misal: Bullish Flag di trend Bullish). Entry dilakukan hanya jika indikator 15m (RSI/StochRSI) baru saja keluar dari area oversold/overbought.",
+    'PATTERN_CONFLUENCE_TREND': "Strategi ini mewajibkan keselarasan antara Macro Trend {config.TIMEFRAME_TREND} dan visual pattern di {config.TIMEFRAME_SETUP} (misal: Bullish Flag di trend Bullish). Entry dilakukan hanya jika indikator {config.TIMEFRAME_EXEC} (RSI/StochRSI/ADX) baru saja keluar dari area oversold/overbought.",
 
     # 2. Fokus pada Breakout Volatilitas (The Aggressive)
-    'VOLATILITY_BREAKOUT_ADVANCED': "Mendeteksi breakout dari pattern konsolidasi M30 (Wedges, Triangles, atau Channels). Strategi ini sangat bergantung pada lonjakan Volume, kenaikan Open Interest, dan nilai ADX > 25 di timeframe 15m sebagai validasi kekuatan breakout.",
+    'VOLATILITY_BREAKOUT_ADVANCED': "Mendeteksi breakout dari pattern konsolidasi {config.TIMEFRAME_SETUP} (Wedges, Triangles, atau Channels). Strategi ini sangat bergantung pada lonjakan Volume, kenaikan Open Interest, dan nilai ADX > 25 di timeframe {config.TIMEFRAME_EXEC} sebagai validasi kekuatan breakout.",
 
     # 3. Fokus pada Reversal & Liquidity (The Contrarian)
-    'LIQUIDITY_REVERSAL_MASTER': "Mencari tanda pembalikan arah saat harga menyentuh Pivot Points (S1/R1) atau batas Bollinger Bands. Membutuhkan konfirmasi visual pattern Reversal (Double Top/Bottom, H&S) di M30 dan divergence pada RSI 15m.",
+    'LIQUIDITY_REVERSAL_MASTER': "Mencari tanda pembalikan arah saat harga menyentuh Pivot Points (S1/R1) atau batas Bollinger Bands. Membutuhkan konfirmasi visual pattern Reversal (Double Top/Bottom, H&S) di {config.TIMEFRAME_SETUP} dan divergence pada RSI {config.TIMEFRAME_EXEC}.",
 
     # 4. Fokus pada Sentimen & Whale Flow (The Follow-the-Money)
-    'SMART_MONEY_FLOW': "Strategi yang mengutamakan data Whale Activity, Stablecoin Inflow, dan LSR (Long/Short Ratio). Entry dilakukan saat 'High Conviction' terlihat dari akumulasi Whale yang didukung oleh pattern Bullish Continuation di M30.",
+    'SMART_MONEY_FLOW': "Strategi yang mengutamakan data Whale Activity, Stablecoin Inflow, dan LSR (Long/Short Ratio). Entry dilakukan saat 'High Conviction' terlihat dari akumulasi Whale yang didukung oleh pattern Bullish Continuation di {config.TIMEFRAME_SETUP}.",
 
     # 5. Fallback/Standard
     'STANDARD_MULTI_CONFIRMATION': "Analisa teknikal komprehensif. Menyeimbangkan Macro Bias, Setup Pattern, dan Execution Trigger. Jika ketiga komponen tidak searah, AI akan cenderung memberikan keputusan WAIT."
