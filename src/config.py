@@ -19,7 +19,7 @@ CMC_API_KEY = os.getenv("CMC_API_KEY")
 # ==============================================================================
 # --- SECTION 2: SYSTEM & APPLICATION CONFIG ---
 # ==============================================================================
-PAKAI_DEMO = True               # Set True untuk menggunakan Binance Testnet
+PAKAI_DEMO = False               # Set True untuk menggunakan Binance Testnet
 LOG_FILENAME = 'bot_trading.log'
 TRACKER_FILENAME = 'safety_tracker.json'
 
@@ -32,7 +32,7 @@ API_RECV_WINDOW = 10000          # RecvWindow untuk CCXT / Binance
 # ==============================================================================
 # --- SECTION 3: AI BRAIN & PROMPT ENGINE ---
 # ==============================================================================
-AI_MODEL_NAME = 'xiaomi/mimo-v2-flash:free' 
+AI_MODEL_NAME = 'deepseek/deepseek-chat-v3-0324' 
 AI_TEMPERATURE = 0.0             # 0.0 agar AI konsisten & tidak halusinasi
 AI_CONFIDENCE_THRESHOLD = 80     # Minimal confidence score untuk eksekusi
 AI_SYSTEM_ROLE = "You are an expert Crypto Trading AI with a focus on Risk Management and Trend Following."

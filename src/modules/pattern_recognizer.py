@@ -21,7 +21,11 @@ class PatternRecognizer:
             self.client = AsyncOpenAI(
                 base_url=config.AI_BASE_URL,
                 api_key=config.AI_API_KEY,
-                http_client=httpx.AsyncClient()
+                http_client=httpx.AsyncClient(),
+                default_headers={
+                    "HTTP-Referer": config.AI_APP_URL,
+                    "X-Title": config.AI_APP_TITLE,
+                }
             )
             self.model = config.AI_VISION_MODEL
             logger.info(f"👁️ Pattern Recognizer Initialized: {self.model}")
