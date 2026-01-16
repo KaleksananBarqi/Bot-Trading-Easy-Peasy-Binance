@@ -306,7 +306,7 @@ async def main():
                 is_interesting = True
             
             if not is_interesting:
-                logger.info(f"💤 {symbol} Boring (RSI: {tech_data['rsi']:.1f}, Corr: {btc_corr:.2f}). Skip AI.")
+                #logger.info(f"💤 {symbol} Boring (RSI: {tech_data['rsi']:.1f}, Corr: {btc_corr:.2f}). Skip AI.")
                 await asyncio.sleep(2)
                 continue
 

@@ -179,7 +179,7 @@ AVAILABLE_STRATEGIES = {
 # CATATAN: Jika leverage/amount tiap koin tidak diisi, akan memakai default dari Section 5
 DAFTAR_KOIN = [
     # --- Kategori: LAYER 1 ---
-    {"symbol": "AVAX/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
+    #{"symbol": "AVAX/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
     
     # --- Kategori: MEMECOIN ---
     {"symbol": "DOGE/USDT", "category": "MEME", "leverage": 15, "margin_type": "isolated", "amount": 5},
