@@ -116,15 +116,31 @@ python main.py
 ---
 
 ## 📊 Struktur Proyek
-```
-📂 src/
- ├── 📂 modules/
- │    ├── 🧠 ai_brain.py          # Logika AI (Text/Strategy)
- │    ├── 👁️ pattern_recognizer.py # Vision AI & Chart Generator
- │    ├── ⚙️ executor.py          # Eksekusi Order & Safety
- │    └── 📊 market_data.py       # Data Feed & Indikator
- ├── 📝 config.py                 # PENGATURAN STRATEGI & RISK
- └── 🚀 main.py                   # Entry Point
+
+```text
+📂 Bot-Trading-Easy-Peasy/
+ ├── 📂 backtesting/             # ⏳ Sistem Pengujian Backtest
+ │    ├── 📊 backtest.py          # Engine utama simulasi trading
+ │    ├── 📈 backtest_runner.py   # Script untuk menjalankan batch backtest
+ │    ├── 📥 data_fetcher.py      # Pengambil data historis dari exchange
+ │    └── 📂 historical_data/     # Database CSV data market masa lalu
+ ├── 📂 src/                     # 🚀 Source Code Utama
+ │    ├── 📂 modules/            # Modul Logika Inti
+ │    │    ├── 🧠 ai_brain.py           # Otak AI (Strategic decision maker)
+ │    │    ├── 👁️ pattern_recognizer.py # Vision AI (Analisis pola chart)
+ │    │    ├── ⚙️ executor.py           # Eksekusi order & Management posisi
+ │    │    ├── � market_data.py        # Pengolah indikator & price action
+ │    │    ├── 🔗 onchain.py            # Analisis data whale & flow money
+ │    │    └── 🗞️ sentiment.py          # Analisis News & Fear/Greed Index
+ │    ├── 📂 utils/              # Fungsi Pembantu (Common Utils)
+ │    │    ├── �️ helper.py             # Fungsi bantuan umum & logger
+ │    │    └── �📝 prompt_builder.py    # Konstruktor prompt AI yang kompleks
+ │    ├── ⚙️ config.py                 # PUSAT KONFIGURASI (Strategi & API)
+ │    ├── 🚀 main.py                   # Titik masuk utama Bot (Prod)
+ │    └── 📜 .env                      # konfigurasi environment
+ ├── 📂 strategies/              # 📚 Dokumentasi & Blueprint Strategi
+ ├── 📂 tests/                   # 🧪 Automated Testing (Unit & Integration)
+ └── 📦 requirements.txt         # Daftar dependensi Python
 ```
 
 ---
