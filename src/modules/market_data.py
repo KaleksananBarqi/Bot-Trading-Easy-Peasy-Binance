@@ -39,6 +39,9 @@ class MarketDataManager:
                 config.TIMEFRAME_TREND: [],
                 config.TIMEFRAME_SETUP: []
             }
+        
+        # Cache for Order Book Analysis to avoid spamming API if managed differently
+        self.ob_cache = {} # {symbol: {ts, data}}
 
     async def initialize_data(self):
         """Fetch Initial Historical Data (REST API)"""
@@ -344,6 +347,10 @@ class MarketDataManager:
             # 8. Market Structure (Swing High/Low)
             structure = self._calculate_market_structure(symbol)
 
+            # 9. Order Book Imbalance (Calculated externally or here? Better external to keep this generic technical data)
+            # But prompt requires it inside tech_data. Let's return a placeholder or allow main to inject it.
+            # We will return the dict, and main can update it.
+
             return {
                 "price": cur['close'],
                 "rsi": cur['RSI'],
@@ -469,4 +476,48 @@ class MarketDataManager:
             }
         except Exception as e:
             logger.error(f"Pivot calc error {symbol}: {e}")
+            return None
+
+    async def get_order_book_depth(self, symbol, limit=20):
+        """
+        Fetch Order Book and calculate imbalance within 2% range.
+        Return: {bids_vol_usdt, asks_vol_usdt, imbalance_pct}
+        """
+        try:
+            # Fetch directly from exchange (Live)
+            ob = await self.exchange.fetch_order_book(symbol, limit)
+            
+            bids = ob['bids']
+            asks = ob['asks']
+            
+            if not bids or not asks: return None
+            
+            mid_price = (bids[0][0] + asks[0][0]) / 2
+            
+            # Filter Range 2%
+            range_limit = 0.02
+            
+            bids_vol = 0
+            for price, qty in bids:
+                if price < mid_price * (1 - range_limit): break
+                bids_vol += price * qty
+                
+            asks_vol = 0
+            for price, qty in asks:
+                if price > mid_price * (1 + range_limit): break
+                asks_vol += price * qty
+                
+            total_vol = bids_vol + asks_vol
+            if total_vol == 0: return None
+            
+            imbalance = ((bids_vol - asks_vol) / total_vol) * 100 # Positive = Bullish (More Bids)
+            
+            return {
+                "bids_vol_usdt": bids_vol,
+                "asks_vol_usdt": asks_vol,
+                "imbalance_pct": imbalance
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Order Book Error {symbol}: {e}")
             return None

@@ -342,6 +342,10 @@ async def main():
             # [NEW] Pattern Recognition (Vision)
             pattern_ctx = await pattern_recognizer.analyze_pattern(symbol)
             
+            # [NEW] Order Book Depth Analysis (Scalping Context)
+            ob_depth = await market_data.get_order_book_depth(symbol)
+            tech_data['order_book'] = ob_depth
+            
             tech_data['btc_correlation'] = btc_corr
             prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_ctx)
             

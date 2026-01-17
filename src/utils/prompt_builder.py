@@ -1,6 +1,18 @@
 
 import config
 
+def format_price(value):
+    """
+    Format price based on value size to avoid rounding errors on small caps.
+    < 1.0   : 5 decimals (0.13779)
+    < 50.0  : 4 decimals (24.1234)
+    >= 50.0 : 2 decimals (65000.12)
+    """
+    if not isinstance(value, (int, float)): return str(value)
+    if value < 1.0: return f"{value:.5f}"
+    if value < 50.0: return f"{value:.4f}"
+    return f"{value:.2f}"
+
 def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_analysis=None):
     """
     Menyusun prompt untuk AI berdasarkan data teknikal, sentimen, dan on-chain.
@@ -24,7 +36,7 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern
     pivots = tech_data.get('pivots')
     pivot_str = "N/A"
     if pivots:
-        pivot_str = f"P={pivots['P']:.2f}, S1={pivots['S1']:.2f}, R1={pivots['R1']:.2f}"
+        pivot_str = f"P={format_price(pivots['P'])}, S1={format_price(pivots['S1'])}, R1={format_price(pivots['R1'])}"
 
     # --- B. EXECUTION DATA (Execution Timeframe / 15m) ---
     price = tech_data.get('price', 0)
@@ -43,6 +55,15 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern
     atr = tech_data.get('atr', 0)
     stoch_k = tech_data.get('stoch_k', 50)
     stoch_d = tech_data.get('stoch_d', 50)
+    
+    # Order Book Depth
+    ob_data = tech_data.get('order_book', {})
+    ob_imp = "N/A"
+    if ob_data:
+        bid_vol = ob_data.get('bids_vol_usdt', 0) / 1000 # to K
+        ask_vol = ob_data.get('asks_vol_usdt', 0) / 1000 # to K
+        imbalance = ob_data.get('imbalance_pct', 0)
+        ob_imp = f"Bids: ${bid_vol:.1f}K | Asks: ${ask_vol:.1f}K | Imbalance: {imbalance:+.1f}%"
     
     # Volume & Market Data
     volume = tech_data.get('volume', 0)
@@ -119,14 +140,18 @@ TASK: Analyze market data for {symbol} using the Multi-Timeframe logic below. De
 - ADX ({config.ADX_PERIOD}): {adx:.2f} (Trend Strength)
 
 [TREND]
-- Price: {price}
-- EMA Status: {ema_pos} (Fast: {ema_fast:.2f} vs Slow: {ema_slow:.2f})
+- Price: {format_price(price)}
+- EMA Status: {ema_pos} (Fast: {format_price(ema_fast)} vs Slow: {format_price(ema_slow)})
 - Major Trend (EMA {config.EMA_SLOW}): {trend_major}
 
 [VOLATILITY & VOLUME]
-- Bollinger Bands: Upper={bb_upper:.2f}, Lower={bb_lower:.2f}
-- ATR: {atr:.4f}
+- Bollinger Bands: Upper={format_price(bb_upper)}, Lower={format_price(bb_lower)}
+- ATR: {atr:.5f}
 - Volume: {volume} (Avg: {vol_ma})
+
+[ORDER BOOK DEPTH]
+- Depth (2%): {ob_imp}
+- NOTE: Significant Imbalance (>20%) suggests potential Liquidity Hunt or Breakout.
 
 [MARKET DATA]
 - Funding Rate: {funding_rate:.6f}%
