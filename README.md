@@ -67,8 +67,8 @@ Mengambil data dari **Fear & Greed Index** dan **RSS Feed Berita Kripto**. Jika 
 
 ### Langkah 1: Clone Repository
 ```bash
-git clone https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy-Binance.git
-cd Bot-Trading-Easy-Peasy-Binance
+git clone https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy
+cd Bot-Trading-Easy-Peasy
 ```
 
 ### Langkah 2: Virtual Environment (Rekomendasi)
