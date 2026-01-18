@@ -114,7 +114,7 @@ SENTIMENT_UPDATE_INTERVAL = '1h'
 
 # BTC Global Trend Filter
 BTC_SYMBOL = 'BTC/USDT'
-BTC_EMA_PERIOD = 200             # EMA 200 sebagai trend king filter
+BTC_EMA_PERIOD = 50             # EMA 200 sebagai trend king filter
 
 # Indicator Parameters
 EMA_TREND_MAJOR = 200
@@ -132,7 +132,7 @@ STOCHRSI_K = 3
 STOCHRSI_D = 3
 
 # Correlation Rules
-CORRELATION_THRESHOLD_BTC = 0.5  # Jika < 0.5, koin dianggap "jalan sendiri"
+CORRELATION_THRESHOLD_BTC = 0.7  # Jika < 0.5, koin dianggap "jalan sendiri"
 CORRELATION_PERIOD = 30          # Jumlah candle untuk cek korelasi
 DEFAULT_CORRELATION_HIGH = 0.99
 
@@ -174,7 +174,10 @@ AVAILABLE_STRATEGIES = {
     'SMART_MONEY_FLOW': "Mengikuti jejak uang besar (Whale/Institutional). Jika data on-chain bullish kuat tapi harga masih dipahamin 'murah' (konsolidasi), gunakan [LIQUIDITY_HUNT]. Jika harga sudah mulai lari, gunakan [MARKET].",
 
     # 5. Fallback/Standard
-    'STANDARD_MULTI_CONFIRMATION': "Analisa teknikal seimbang. Evaluasi Risk:Reward (R:R) dari opsi MARKET vs LIQUIDITY_HUNT. Pilih yang memberikan R:R terbaik dan probabilitas sukses tertinggi."
+    #'STANDARD_MULTI_CONFIRMATION': "Analisa teknikal seimbang. Evaluasi Risk:Reward (R:R) dari opsi MARKET vs LIQUIDITY_HUNT. Pilih yang memberikan R:R terbaik dan probabilitas sukses tertinggi.",
+
+    # 6. Fokus pada Sideways & Reversal (The Ranger)
+    'BB_BOUNCE': "Jika ADX sedang lemah/sideways (< 20), fokus pada setup Reversal di area BB Top (Upper Band) atau BB Bottom (Lower Band). Sangat disarankan menggunakan [LIQUIDITY_HUNT] untuk mendapatkan harga entry terbaik saat terjadi pantulan."
 }
 
 # ==============================================================================
