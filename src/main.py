@@ -79,8 +79,9 @@ async def main():
     
     # Track AI Query Timestamp (Candle ID)
     analyzed_candle_ts = {}
+    # Time constants
     timeframe_exec_seconds = parse_timeframe_to_seconds(config.TIMEFRAME_EXEC)
-    timeframe_trend_seconds = parse_timeframe_to_seconds(config.TIMEFRAME_TREND)
+    sentiment_interval_seconds = parse_timeframe_to_seconds(config.SENTIMENT_UPDATE_INTERVAL)
     last_sentiment_update_time = time.time()
 
     # 1. INITIALIZATION
@@ -229,8 +230,8 @@ async def main():
             # Round Robin Scan (One coin per loop to save API/AI limit)
             
             # --- STEP 0: PERIODIC SENTIMENT REFRESH ---
-             # Cek apakah sudah waktunya update berita & F&G (misal setiap 1 jam)
-            if time.time() - last_sentiment_update_time >= timeframe_trend_seconds:
+             # Cek apakah sudah waktunya update berita & F&G (custom interval)
+            if time.time() - last_sentiment_update_time >= sentiment_interval_seconds:
                 logger.info("🔄 Refreshing Sentiment & On-Chain Data...")
                 try:
                     # Jalankan di background task agar tidak memblokir main loop (Fire & Forget)

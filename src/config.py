@@ -108,6 +108,10 @@ LIMIT_EXEC = 300
 TIMEFRAME_SETUP = '30m'      
 LIMIT_SETUP = 100
 
+# Interval khusus untuk update News, F&G, dan Stablecoin Inflow
+# Terpisah dari TIMEFRAME_TREND agar lebih fleksibel.
+SENTIMENT_UPDATE_INTERVAL = '1h'
+
 # BTC Global Trend Filter
 BTC_SYMBOL = 'BTC/USDT'
 BTC_EMA_PERIOD = 200             # EMA 200 sebagai trend king filter
