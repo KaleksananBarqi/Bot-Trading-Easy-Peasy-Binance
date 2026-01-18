@@ -22,7 +22,7 @@
 Dibangun di atas arsitektur **Dual AI Core**, bot ini bisa "membaca" berita dan sentimen pasar, sekaligus "melihat" pola chart secara harfiah layaknya trader manusia profesional.
 
 ### 🧠 The Dual AI Core
-1.  **Strategic Brain (Logic AI)**: Ditenagai oleh **DeepSeek V3**. Bertugas menganalisis data numerik, sentimen berita global, dan indikator teknikal untuk menentukan bias pasar (Bullish/Bearish).
+1.  **Strategic Brain (Logic AI)**: Ditenagai oleh **DeepSeek V3**. Menganalisis **Market Structure** (Fractals HH/LL), **Triple Timeframe Confluence** (1H/30m/15m), sentimen berita, dan indikator teknikal untuk menentukan bias pasar yang akurat.
 2.  **Visual Cortex (Vision AI)**: Ditenagai oleh **Llama-4-Maverick**. Modul ini menghasilkan chart candlestick real-time (via `mplfinance`) dan mengirimkannya ke AI untuk mendeteksi pola visual murni (Flags, Pennants, Head & Shoulders) yang sering terlewat oleh indikator matematis biasa.
 
 ---
@@ -47,6 +47,7 @@ Bot ini memiliki 5 kepribadian strategi yang beradaptasi dengan kondisi pasar (d
 Terintegrasi dengan **DefiLlama** dan **Whale Alert**:
 *   **Stablecoin Inflow**: Memantau jika ada uang segar (USDT/USDC) masuk ke exchange (tanda beli).
 *   **Whale Transactions**: Mendeteksi jika ada pembelian/penjualan masif di detik terakhir.
+*   **Smart Money Positioning**: Memantau **Top Trader Long/Short Ratio** untuk membaca posisi pemain besar vs ritel (Contrarian Signal).
 
 ### 4. 📰 Global Sentiment Analysis
 Mengambil data dari **Fear & Greed Index** dan **RSS Feed Berita Kripto**. Jika sentimen pasar "Extreme Fear", bot akan lebih berhati-hati mengambil posisi Long.
@@ -55,7 +56,11 @@ Mengambil data dari **Fear & Greed Index** dan **RSS Feed Berita Kripto**. Jika 
 *   **Liquidity Hunt (ATR Traps)**: Memasang Limit Order di area "jebakan" likuiditas retail (dihitung menggunakan ATR) untuk mendapatkan harga diskon terbaik.
 *   **Ghost Order Protection**: Tracker lokal (`safety_tracker.json`) memastikan tidak ada order yang "nyangkut" atau terlupakan di exchange.
 *   **Auto-Decoupling**: Fitur cerdas yang memisahkan Altcoin dari BTC jika korelasinya melemah (< 0.5), memungkinkan Altcoin pump saat BTC sideways.
+*   **Smart Resource Architecture**: Menggunakan *Smart Data Throttling* untuk memisahkan data real-time (Price) dan slow data (Funding Rate/OI) demi efisiensi CPU dan API yang maksimal.
 
+### 6. 🔬 Micro-Structure & Depth Analysis
+*   **Order Book Imbalance**: Bot "mengintip" kedalaman pasar (Order Book Depth 2%) untuk mendeteksi tembok supply/demand tersembunyi yang tidak terlihat di chart biasa.
+*   **Fractal Market Structure**: Algoritma internal secara otomatis memetakan struktur harga (Higher High, Lower Low, Sideways) untuk validasi trend murni tanpa lag.
 ---
 
 ## 🛠️ Instalasi & Konfigurasi
