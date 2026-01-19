@@ -54,9 +54,17 @@ async def kirim_tele(pesan, alert=False):
     try:
         prefix = "⚠️ <b>SYSTEM ALERT</b>\n" if alert else ""
         def send_request():
+            data = {
+                'chat_id': config.TELEGRAM_CHAT_ID, 
+                'text': f"{prefix}{pesan}", 
+                'parse_mode': 'HTML'
+            }
+            if config.TELEGRAM_MESSAGE_THREAD_ID:
+                data['message_thread_id'] = config.TELEGRAM_MESSAGE_THREAD_ID
+                
             return requests.post(
                 f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
-                data={'chat_id': config.TELEGRAM_CHAT_ID, 'text': f"{prefix}{pesan}", 'parse_mode': 'HTML'}
+                data=data
             )
         
         response = await asyncio.to_thread(send_request)
@@ -77,6 +85,8 @@ def kirim_tele_sync(pesan):
             'text': pesan, 
             'parse_mode': 'HTML'
         }
+        if config.TELEGRAM_MESSAGE_THREAD_ID:
+            data['message_thread_id'] = config.TELEGRAM_MESSAGE_THREAD_ID
         # Timeout 5 detik agar bot tidak hang selamanya jika internet mati
         requests.post(url, data=data, timeout=5) 
         print("✅ Notifikasi Telegram terkirim (Sync).")
