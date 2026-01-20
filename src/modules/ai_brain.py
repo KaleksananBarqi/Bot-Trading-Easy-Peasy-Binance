@@ -71,3 +71,44 @@ class AIBrain:
             raw_text_snippet = raw_text[:200] if 'raw_text' in locals() and raw_text else "None"
             logger.error(f"❌ AI Analysis Failed: {e}. Raw Text snippet: {raw_text_snippet}...")
             return {"decision": "WAIT", "confidence": 0, "reason": "AI Error"}
+
+    async def analyze_sentiment(self, prompt_text):
+        """
+        Khusus untuk Sentiment Analysis (Output: analysis='sentiment')
+        Menggunakan Model yang lebih murah (config.AI_SENTIMENT_MODEL)
+        """
+        if not self.client:
+            return None
+
+        # Tentukan Model: Gunakan config khusus jika ada, jika tidak fallback ke default model
+        target_model = getattr(config, 'AI_SENTIMENT_MODEL', self.model_name)
+        
+        try:
+            completion = self.client.chat.completions.create(
+                extra_headers={
+                    "HTTP-Referer": config.AI_APP_URL, 
+                    "X-Title": config.AI_APP_TITLE, 
+                },
+                model=target_model,
+                messages=[{"role": "user", "content": prompt_text}],
+                # Sentiment boleh lebih kreatif sedikit
+                temperature=0.3 
+            )
+            
+            raw_text = completion.choices[0].message.content
+            
+            # Cleaning JSON
+            match = re.search(r"\{.*\}", raw_text, re.DOTALL)
+            if match:
+                cleaned_text = match.group(0)
+                decision_json = json.loads(cleaned_text)
+            else:
+                cleaned_text = raw_text.replace('```json', '').replace('```', '').strip()
+                decision_json = json.loads(cleaned_text)
+                
+            logger.info(f"🧠 Sentiment Analysis Done via {target_model}")
+            return decision_json
+
+        except Exception as e:
+            logger.error(f"❌ Sentiment Analysis Failed: {e}")
+            return None

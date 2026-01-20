@@ -227,3 +227,56 @@ OUTPUT FORMAT (JSON ONLY):
 }}
 """
     return prompt
+
+def build_sentiment_prompt(sentiment_data, onchain_data):
+    """
+    Menyusun prompt khusus untuk Analisa Sentimen AI.
+    Fokus: Berita Global, Fear & Greed, Whale Activity.
+    Output: JSON dengan key 'analysis': 'sentiment'
+    """
+    
+    # 1. Parsing Data
+    fng_value = sentiment_data.get('fng_value', 50)
+    fng_text = sentiment_data.get('fng_text', 'Neutral')
+    news_headlines = sentiment_data.get('news', [])
+    news_str = "\n".join([f"- {n}" for n in news_headlines]) if news_headlines else "No major news."
+    
+    whale_activity = onchain_data.get('whale_activity', [])
+    whale_str = "\n".join([f"- {w}" for w in whale_activity]) if whale_activity else "No significant whale activity detected."
+    inflow_status = onchain_data.get('stablecoin_inflow', 'Neutral')
+
+    # 2. Prompt Construction
+    prompt = f"""
+ROLE: You are an expert Crypto Narrative Analyst. You analyze market sentiment, news, and on-chain flows to provide a "Bird's Eye View" of the market condition.
+
+TASK: Analyze the provided data and generate a SENTIMENT REPORT in INDONESIAN language.
+
+--------------------------------------------------
+DATA INPUT:
+[MARKET MOOD]
+- Fear & Greed Index: {fng_value} ({fng_text})
+- Stablecoin Inflow: {inflow_status}
+
+[WHALE ACTIVITY (ON-CHAIN)]
+{whale_str}
+
+[LATEST HEADLINES (RSS)]
+{news_str}
+--------------------------------------------------
+
+INSTRUCTIONS:
+1. Synthesize the "Market Vibe" based on F&G and News.
+2. Analyze if Whales are accumulating (Bullish) or dumping (Bearish).
+3. Provide a clear summary in INDONESIAN.
+
+OUTPUT FORMAT (JSON ONLY):
+{{
+  "analysis": "sentiment",
+  "overall_sentiment": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+  "sentiment_score": 0-100,
+  "summary": "Full summary in Indonesian (max 1 paragraph). Mention key drivers.",
+  "key_drivers": ["List of 2-3 main factors driving the sentiment"],
+  "risk_assessment": "Low/Medium/High details"
+}}
+"""
+    return prompt

@@ -14,6 +14,9 @@ SECRET_KEY_DEMO = os.getenv("BINANCE_TESTNET_SECRET")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TELEGRAM_MESSAGE_THREAD_ID = os.getenv("TELEGRAM_MESSAGE_THREAD_ID")  # Opsional untuk topik/forum
+TELEGRAM_TOKEN_SENTIMENT = os.getenv("TELEGRAM_TOKEN_SENTIMENT")
+TELEGRAM_CHAT_ID_SENTIMENT = os.getenv("TELEGRAM_CHAT_ID_SENTIMENT")
+TELEGRAM_MESSAGE_THREAD_ID_SENTIMENT = os.getenv("TELEGRAM_MESSAGE_THREAD_ID_SENTIMENT")
 AI_API_KEY = os.getenv("AI_API_KEY")
 CMC_API_KEY = os.getenv("CMC_API_KEY")
 
@@ -40,6 +43,10 @@ AI_SYSTEM_ROLE = "You are an elite Crypto Trading AI capable of Adaptive Multi-S
 AI_BASE_URL = "https://openrouter.ai/api/v1"
 AI_APP_URL = "https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy"
 AI_APP_TITLE = "Bot Trading Easy Peasy"
+
+# Sentiment Analysis Config
+ENABLE_SENTIMENT_ANALYSIS = True
+AI_SENTIMENT_MODEL = 'google/gemini-flash-1.5' # Model hemat cost untuk analisa berita
 
 # Vision AI (Chart Pattern)
 USE_PATTERN_RECOGNITION = True

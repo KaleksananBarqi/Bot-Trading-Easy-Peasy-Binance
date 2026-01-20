@@ -11,7 +11,7 @@ import html
 import ccxt.async_support as ccxt
 import config
 from src.utils.helper import logger, kirim_tele, kirim_tele_sync, parse_timeframe_to_seconds
-from src.utils.prompt_builder import build_market_prompt
+from src.utils.prompt_builder import build_market_prompt, build_sentiment_prompt
 from src.utils.calc import calculate_trade_scenarios
 
 # MODULE IMPORTS
@@ -239,6 +239,48 @@ async def main():
                     
                     last_sentiment_update_time = time.time()
                     logger.info("✅ Sentiment & On-Chain Data Refreshed.")
+                    
+                    # [NEW] TRIGGER SENTIMENT ANALYSIS AI
+                    if config.ENABLE_SENTIMENT_ANALYSIS:
+                        logger.info("🧠 Running Dedicated Sentiment Analysis...")
+                        async def run_sentiment_analysis():
+                            try:
+                                # Prepare Prompt
+                                s_data = sentiment.get_latest()
+                                o_data = onchain.get_latest()
+                                prompt = build_sentiment_prompt(s_data, o_data)
+                                
+                                # Ask AI
+                                result = await ai_brain.analyze_sentiment(prompt)
+                                
+                                if result:
+                                    # Kirim ke Telegram Channel Sentiment
+                                    mood = result.get('overall_sentiment', 'UNKNOWN')
+                                    score = result.get('sentiment_score', 0)
+                                    summary = result.get('summary', '-')
+                                    drivers = result.get('key_drivers', [])
+                                    drivers_str = "\n".join([f"• {d}" for d in drivers])
+                                    
+                                    icon = "😐"
+                                    if score > 60: icon = "🚀"
+                                    elif score < 40: icon = "🐻"
+                                    
+                                    msg = (
+                                        f"📢 <b>PASAR SAAT INI {mood} {icon}</b>\n"
+                                        f"Score: {score}/100\n\n"
+                                        f"📝 <b>Ringkasan:</b>\n{summary}\n\n"
+                                        f"🔑 <b>Faktor Utama:</b>\n{drivers_str}\n\n"
+                                        f"<i>Analisa ini digenerate otomatis oleh AI ({config.AI_SENTIMENT_MODEL})</i>"
+                                    )
+                                    
+                                    await kirim_tele(msg, channel='sentiment')
+                                    logger.info("✅ Sentiment Report Sent.")
+                            except Exception as e:
+                                logger.error(f"❌ Sentiment Loop Error: {e}")
+
+                        # Run in background
+                        asyncio.create_task(run_sentiment_analysis())
+
                 except Exception as e:
                     logger.error(f"❌ Failed to refresh data: {e}")
 

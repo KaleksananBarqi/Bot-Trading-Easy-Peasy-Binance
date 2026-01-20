@@ -50,26 +50,53 @@ logger = setup_logger()
 # ==========================================
 # TELEGRAM NOTIFIER
 # ==========================================
-async def kirim_tele(pesan, alert=False):
+async def kirim_tele(pesan, alert=False, channel='default'):
+    """
+    Kirim pesan ke Telegram.
+    :param channel: 'default' (Sinyal Utama) atau 'sentiment' (Analisa Berita)
+    """
     try:
         prefix = "⚠️ <b>SYSTEM ALERT</b>\n" if alert else ""
+        
+        # Tentukan Token & ChatID berdasarkan channel
+        bot_token = config.TELEGRAM_TOKEN
+        chat_id = config.TELEGRAM_CHAT_ID
+        
+        if channel == 'sentiment':
+            if config.TELEGRAM_TOKEN_SENTIMENT and config.TELEGRAM_CHAT_ID_SENTIMENT:
+                bot_token = config.TELEGRAM_TOKEN_SENTIMENT
+                chat_id = config.TELEGRAM_CHAT_ID_SENTIMENT
+            else:
+                # Fallback atau skip jika credentials sentimen tidak ada
+                logger.warning("⚠️ Credentials Sentiment Telegram kosong, menggunakan default channel.")
+                # Kita bisa memilih untuk tetap kirim ke default atau return.
+                # Sesuai request user: "beda untuk dikirimnya". Jika kosong, lebih aman tetap kirim (fallback) atau log error.
+                # Mari kita gunakan fallback ke default agar info tidak hilang, tapi beri log warning.
+        
         def send_request():
             data = {
-                'chat_id': config.TELEGRAM_CHAT_ID, 
+                'chat_id': chat_id, 
                 'text': f"{prefix}{pesan}", 
                 'parse_mode': 'HTML'
             }
-            if config.TELEGRAM_MESSAGE_THREAD_ID:
+            # Message Thread ID hanya support di default channel biasanya, atau jika user set var khusus (belum ada).
+            # Asumsi: Sentimen channel mungkin topik terpisah atau grup terpisah. 
+            # Jika user set unique Token/ChatID, kemungkinan besar itu channel/grup berbeda.
+            # Jadi kita hanya pakai message_thread_id untuk default channel jika ada.
+            
+            if channel == 'default' and config.TELEGRAM_MESSAGE_THREAD_ID:
                 data['message_thread_id'] = config.TELEGRAM_MESSAGE_THREAD_ID
+            elif channel == 'sentiment' and config.TELEGRAM_MESSAGE_THREAD_ID_SENTIMENT:
+                data['message_thread_id'] = config.TELEGRAM_MESSAGE_THREAD_ID_SENTIMENT
                 
             return requests.post(
-                f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
+                f"https://api.telegram.org/bot{bot_token}/sendMessage",
                 data=data
             )
         
         response = await asyncio.to_thread(send_request)
         if response.status_code != 200:
-            logger.error(f"❌ Telegram Send Failed (Status {response.status_code}): {response.text}")
+            logger.error(f"❌ Telegram Send Failed ({channel}) Status {response.status_code}: {response.text}")
     except Exception as e:
         logger.error(f"❌ Telegram Exception: {e}")
 
