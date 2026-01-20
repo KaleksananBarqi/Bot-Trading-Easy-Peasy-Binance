@@ -2,6 +2,7 @@ import requests
 import feedparser
 import random
 import config
+from datetime import datetime, timedelta
 from src.utils.helper import logger
 
 class SentimentAnalyzer:
@@ -59,11 +60,7 @@ class SentimentAnalyzer:
 
         all_news = []
         max_per_source = config.NEWS_MAX_PER_SOURCE # Ambil sedikit per source agar variatif
-        
-        # Shuffle URLs agar tidak melulu sumber yang sama di awal jika list panjang
-        # Tapi karena kita iterasi semua, shuffle tidak terlalu penting untuk fetch,
-        # tapi penting jika kita membatasi total request (tapi disini kita request semua).
-        # Kita request semua tapi batasi items.
+        max_age_hours = getattr(config, 'NEWS_MAX_AGE_HOURS', 1) 
         
         for url in rss_urls:
             try:
@@ -72,8 +69,7 @@ class SentimentAnalyzer:
                 
                 # Check status (bozo bit)
                 if feed.bozo and hasattr(feed, 'bozo_exception'):
-                     # logger.warning(f"⚠️ RSS Parse Error {url}: {feed.bozo_exception}")
-                     # Lanjut saja, best effort extraction
+                     # Logger warning di skip agar log tidak penuh, best effort saja
                      pass
                      
                 if not feed.entries:
@@ -81,11 +77,29 @@ class SentimentAnalyzer:
 
                 source_name = feed.feed.get('title', 'Unknown Source')
                 
-                # Ambil N berita terbaru dari source ini
-                for entry in feed.entries[:max_per_source]:
-                    title = entry.title
-                    # Format: "Judul Berita (Sumber)"
-                    all_news.append(f"{title} ({source_name})")
+                # Filter dan ambil N berita terbaru
+                count = 0
+                for entry in feed.entries:
+                    if count >= max_per_source:
+                        break
+                    
+                    # Logika Filter Waktu (1 Jam Terakhir)
+                    is_recent = True
+                    if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                        try:
+                            # feedparser returns UTC struct_time
+                            published_dt = datetime(*entry.published_parsed[:6])
+                            # Bandingkan dengan UTC Now
+                            age_seconds = (datetime.utcnow() - published_dt).total_seconds()
+                            if age_seconds > (max_age_hours * 3600):
+                                is_recent = False
+                        except Exception:
+                            pass # Jika gagal parse tanggal, anggap relevant (fallback)
+                    
+                    if is_recent:
+                        title = entry.title
+                        all_news.append(f"{title} ({source_name})")
+                        count += 1
                     
             except Exception as e:
                 logger.warning(f"⚠️ Failed to fetch RSS {url}: {e}")

@@ -20,7 +20,7 @@ CMC_API_KEY = os.getenv("CMC_API_KEY")
 # ==============================================================================
 # --- SECTION 2: SYSTEM & APPLICATION CONFIG ---
 # ==============================================================================
-PAKAI_DEMO = True               # Set True untuk menggunakan Binance Testnet
+PAKAI_DEMO = False               # Set True untuk menggunakan Binance Testnet
 LOG_FILENAME = 'bot_trading.log'
 TRACKER_FILENAME = 'safety_tracker.json'
 
@@ -63,6 +63,7 @@ WS_KEEP_ALIVE_INTERVAL = 1800    # Detik untuk refresh listen key
 # News & RSS Config
 NEWS_MAX_PER_SOURCE = 2
 NEWS_RETENTION_LIMIT = 15
+NEWS_MAX_AGE_HOURS = 6      # Filter berita: hanya 1 jam terakhir
 RSS_FEED_URLS = [
     "https://www.theblock.co/rss.xml",
     "https://cryptoslate.com/feed/",
@@ -72,14 +73,12 @@ RSS_FEED_URLS = [
     "https://www.newsbtc.com/feed/",
     "https://dailyhodl.com/feed/",
     "https://beincrypto.com/feed/",
-    "https://news.google.com/rss/search?q=cryptocurrency+when:1h&hl=en-US&gl=US&ceid=US:en",
-    "https://www.reddit.com/r/CryptoCurrency/top/.rss?t=hour"
 ]
 
 # ==============================================================================
 # --- SECTION 5: GLOBAL TRADING RISK MANAGEMENT ---
 # ==============================================================================
-USE_DYNAMIC_SIZE = True         # Set True untuk aktifkan Compounding
+USE_DYNAMIC_SIZE = False         # Set True untuk aktifkan Compounding
 RISK_PERCENT_PER_TRADE = 10       # % dari saldo per trade jika Dynamic True
 DEFAULT_AMOUNT_USDT = 10         # Besar posisi awal (Cadangan jika dynamic False)
 MIN_ORDER_USDT = 5                
@@ -115,7 +114,7 @@ SENTIMENT_UPDATE_INTERVAL = '1h'
 
 # BTC Global Trend Filter
 BTC_SYMBOL = 'BTC/USDT'
-BTC_EMA_PERIOD = 50             # EMA 200 sebagai trend king filter
+BTC_EMA_PERIOD = 21             # EMA 200 sebagai trend king filter
 
 # Indicator Parameters
 EMA_TREND_MAJOR = 200
@@ -187,10 +186,10 @@ AVAILABLE_STRATEGIES = {
 # CATATAN: Jika leverage/amount tiap koin tidak diisi, akan memakai default dari Section 5
 DAFTAR_KOIN = [
     # --- Kategori: LAYER 1 ---
-    {"symbol": "XRP/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
-    {"symbol": "SOL/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
-    {"symbol": "BTC/USDT", "category": "KING", "leverage": 15, "margin_type": "isolated", "amount": 5},
-    {"symbol": "ETH/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
+    #{"symbol": "XRP/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
+    #{"symbol": "SOL/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
+    #{"symbol": "BTC/USDT", "category": "KING", "leverage": 15, "margin_type": "isolated", "amount": 5},
+    #{"symbol": "ETH/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
     
     # --- Kategori: MEMECOIN ---
     {"symbol": "DOGE/USDT", "category": "MEME", "leverage": 15, "margin_type": "isolated", "amount": 5},
