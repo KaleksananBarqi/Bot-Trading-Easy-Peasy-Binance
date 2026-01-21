@@ -138,11 +138,16 @@ OPTION B: PASSIVE (LIQUIDITY HUNT)
     # ==========================================
     # 3. PROMPT CONSTRUCTION
     # ==========================================
-    prompt = f"""
-ROLE: {config.AI_SYSTEM_ROLE}
-
-TASK: Analyze market data for {symbol} using the Multi-Timeframe logic below. Decide to BUY, SELL, or WAIT.
-
+    
+    # [LOGIC: BTC CORRELATION VISIBILITY]
+    # Jika USE_BTC_CORRELATION = True, tampilkan data BTC.
+    # Jika USE_BTC_CORRELATION = False, HILANGKAN TOTAL dari pandangan AI.
+    
+    macro_section = ""
+    btc_instruction_prompt = ""
+    
+    if config.USE_BTC_CORRELATION:
+        macro_section = f"""
 --------------------------------------------------
 1. MACRO VIEW (TIMEFRAME: {config.TIMEFRAME_TREND})
 > OBJECTIVE: Determine the Major Trend Bias.
@@ -151,6 +156,31 @@ TASK: Analyze market data for {symbol} using the Multi-Timeframe logic below. De
 - Market Structure: {market_struct} (Swing High/Low Analysis)
 - Pivot Points: {pivot_str}
 --------------------------------------------------
+"""
+        btc_instruction_prompt = f"""
+1. CHECK MACRO BIAS: Is the {config.TIMEFRAME_TREND} Structure & BTC Trend supportive?
+   {btc_instruction}
+"""
+    else:
+        # Jika OFF, hanya tampilkan Market Structure & Pivot (Tanpa BTC)
+        macro_section = f"""
+--------------------------------------------------
+1. MACRO VIEW (TIMEFRAME: {config.TIMEFRAME_TREND})
+> OBJECTIVE: Determine the Major Trend Bias.
+- Market Structure: {market_struct} (Swing High/Low Analysis)
+- Pivot Points: {pivot_str}
+--------------------------------------------------
+"""
+        btc_instruction_prompt = f"""
+1. CHECK MACRO BIAS: Is the {config.TIMEFRAME_TREND} Market Structure supportive?
+"""
+
+    prompt = f"""
+ROLE: {config.AI_SYSTEM_ROLE}
+
+TASK: Analyze market data for {symbol} using the Multi-Timeframe logic below. Decide to BUY, SELL, or WAIT.
+
+{macro_section}
 
 --------------------------------------------------
 2. SETUP VALIDATION (TIMEFRAME: {config.TIMEFRAME_SETUP})
@@ -202,8 +232,7 @@ TASK: Analyze market data for {symbol} using the Multi-Timeframe logic below. De
 {execution_options_str}
 
 FINAL INSTRUCTIONS:
-1. CHECK MACRO BIAS: Is the {config.TIMEFRAME_TREND} Structure & BTC Trend supportive?
-   {btc_instruction}
+{btc_instruction_prompt}
 2. VERIFY SETUP: Does the {config.TIMEFRAME_SETUP} Pattern align with the Bias?
 3. CHECK TRIGGER: Are {config.TIMEFRAME_EXEC} Momentum indicators (RSI/Stoch/ADX) giving a clear signal?
 4. SELECT STRATEGY & EXECUTION: 

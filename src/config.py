@@ -80,6 +80,7 @@ RSS_FEED_URLS = [
     "https://www.newsbtc.com/feed/",
     "https://dailyhodl.com/feed/",
     "https://beincrypto.com/feed/",
+    "https://news.google.com/rss/search?q=federal+reserve+rates+OR+us+inflation+cpi+OR+global+recession+when:24h&hl=en-US&gl=US&ceid=US:en",
 ]
 
 # ==============================================================================
@@ -139,6 +140,7 @@ STOCHRSI_K = 3
 STOCHRSI_D = 3
 
 # Correlation Rules
+USE_BTC_CORRELATION = False       # Set False untuk menonaktifkan fitur/logika korelasi BTC
 CORRELATION_THRESHOLD_BTC = 0.7  # Jika < 0.5, koin dianggap "jalan sendiri"
 CORRELATION_PERIOD = 30          # Jumlah candle untuk cek korelasi
 DEFAULT_CORRELATION_HIGH = 0.99
@@ -197,9 +199,12 @@ DAFTAR_KOIN = [
     {"symbol": "SOL/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
     {"symbol": "BTC/USDT", "category": "KING", "leverage": 15, "margin_type": "isolated", "amount": 5},
     {"symbol": "ETH/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
+    {"symbol": "SUI/USDT", "category": "LAYER_1", "leverage": 15, "margin_type": "isolated", "amount": 5},
     
     # --- Kategori: MEMECOIN ---
     {"symbol": "DOGE/USDT", "category": "MEME", "leverage": 15, "margin_type": "isolated", "amount": 5},
     # ---- Kategori:DEX ----
     {"symbol": "HYPE/USDT", "category": "DEX", "leverage": 15, "margin_type": "isolated", "amount": 5},
+    # --- Kategori : STABLECOIN ---
+    {"symbol": "XPL/USDT", "category": "STABLECOIN", "leverage": 15, "margin_type": "isolated", "amount": 5},
 ]

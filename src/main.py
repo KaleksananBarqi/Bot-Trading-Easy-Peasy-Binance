@@ -338,20 +338,32 @@ async def main():
             # Filter 1: Trend Alignment (King Filter) & Correlation Check
             btc_corr = await market_data.get_btc_correlation(symbol)
             
-            if btc_corr >= config.CORRELATION_THRESHOLD_BTC:
-                # High Correlation: Must follow BTC
-                if tech_data['btc_trend'] == "BULLISH" and tech_data['price_vs_ema'] == "Above":
-                     is_interesting = True
-                elif tech_data['btc_trend'] == "BEARISH" and tech_data['price_vs_ema'] == "Below":
-                     is_interesting = True
+            # [LOGIC UPDATE] Cek Konfigurasi USE_BTC_CORRELATION
+            if config.USE_BTC_CORRELATION:
+                if btc_corr >= config.CORRELATION_THRESHOLD_BTC:
+                    # High Correlation: Must follow BTC
+                    if tech_data['btc_trend'] == "BULLISH" and tech_data['price_vs_ema'] == "Above":
+                         is_interesting = True
+                    elif tech_data['btc_trend'] == "BEARISH" and tech_data['price_vs_ema'] == "Below":
+                         is_interesting = True
+                    else:
+                        # logger.info(f"msg: {symbol} Skipping. High Corr ({btc_corr:.2f}) but Trend Mismatch (BTC {tech_data['btc_trend']} vs {tech_data['price_vs_ema']})")
+                        pass
                 else:
-                    # logger.info(f"msg: {symbol} Skipping. High Corr ({btc_corr:.2f}) but Trend Mismatch (BTC {tech_data['btc_trend']} vs {tech_data['price_vs_ema']})")
-                    pass
+                    # Low Correlation: Independent Movement Allowed
+                    # We assume if Independent, we allow AI to see it regardless of BTC
+                    # logger.info(f"✨ {symbol} Low Corr ({btc_corr:.2f}). Independent Trend Allowed.")
+                    is_interesting = True
             else:
-                # Low Correlation: Independent Movement Allowed
-                # We assume if Independent, we allow AI to see it regardless of BTC
-                # logger.info(f"✨ {symbol} Low Corr ({btc_corr:.2f}). Independent Trend Allowed.")
-                is_interesting = True
+                # [BTC CORRELATION OFF]
+                # Anggap semua koin independen atau hanya melihat teknikal internalnya saja (Price vs EMA)
+                # Syarat minimal: Price vs EMA harus 'Above' (Bullish) atau 'Below' (Bearish) agar tidak sideways parah
+                if tech_data['price_vs_ema'] in ["Above", "Below"]:
+                    is_interesting = True
+                else:
+                    # Jika unconfirmed/sideways, skip
+                    pass
+
             
             # Filter 2: RSI Extremes (Reversal)
             if tech_data['rsi'] < config.RSI_OVERSOLD or tech_data['rsi'] > config.RSI_OVERBOUGHT:
@@ -496,8 +508,14 @@ async def main():
                     position_size_usdt = amt * lev
                     direction_icon = "🟢" if side == 'buy' else "🔴"
                     
+                    # [MESSAGE UPDATE] Conditional BTC Lines
                     btc_trend_icon = "🟢" if tech_data['btc_trend'] == "BULLISH" else "🔴"
                     btc_corr_icon = "🔒" if btc_corr >= config.CORRELATION_THRESHOLD_BTC else "🔓"
+                    
+                    btc_lines = ""
+                    if config.USE_BTC_CORRELATION:
+                        btc_lines = (f"BTC Trend: {btc_trend_icon} {tech_data['btc_trend']}\n"
+                                     f"BTC Correlation: {btc_corr_icon} {btc_corr:.2f}\n")
 
                     # Execution Type Header
                     type_str = "🚀 AGRESSIVE (MARKET)" if order_type == 'market' else "🪤 PASSIVE (LIQUIDITY HUNT)"
@@ -507,8 +525,7 @@ async def main():
                            f"Coin: {symbol}\n"
                            f"Signal: {direction_icon} {decision} ({confidence}%)\n"
                            f"Timeframe: {config.TIMEFRAME_EXEC}\n"
-                           f"BTC Trend: {btc_trend_icon} {tech_data['btc_trend']}\n"
-                           f"BTC Correlation: {btc_corr_icon} {btc_corr:.2f}\n"
+                           f"{btc_lines}"
                            f"Strategy: {strategy_mode}\n\n"
                            f"🛒 <b>Order Details:</b>\n"
                            f"• Type: {order_type.upper()}\n"
@@ -520,7 +537,11 @@ async def main():
                            f"• Margin: ${margin_usdt:.2f}\n"
                            f"• Size: ${position_size_usdt:.2f} (x{lev})\n\n"
                            f"📝 <b>Reason:</b>\n"
-                           f"{reason}")
+                           f"{reason}\n\n"
+                           f"⚠️ <b>Disclaimer:</b>\n"
+                           f"• Sinyal dibuat oleh AI dari berbagai sumber, tetap DYOR & SUYBI (Sayangi Uangmu Yang Berharga Itu).\n"
+                           f"• Pattern recognition by {config.AI_VISION_MODEL}\n"
+                           f"• Final analyze & execution by {config.AI_MODEL_NAME}")
                     
                     logger.info(f"📤 Sending Tele Message:\n{msg}")
                     await kirim_tele(msg)

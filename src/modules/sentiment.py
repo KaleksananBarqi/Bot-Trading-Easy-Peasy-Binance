@@ -64,8 +64,10 @@ class SentimentAnalyzer:
         
         for url in rss_urls:
             try:
-                # Parse RSS
-                feed = feedparser.parse(url)
+                logger.info(f"🌐 Fetching RSS: {url}")
+                # Use requests with timeout to avoid hanging
+                response = requests.get(url, timeout=config.API_REQUEST_TIMEOUT)
+                feed = feedparser.parse(response.content)
                 
                 # Check status (bozo bit)
                 if feed.bozo and hasattr(feed, 'bozo_exception'):

@@ -8,6 +8,16 @@ sys.path.append(project_root)
 sys.path.append(os.path.join(project_root, 'src'))
 
 from src.modules.sentiment import SentimentAnalyzer
+import logging
+
+# Configure logging to stdout
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 
 class TestNewsRetrieval(unittest.TestCase):
     def test_fetch_news_output(self):
