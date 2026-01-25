@@ -45,7 +45,7 @@ AI_APP_URL = "https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy"
 AI_APP_TITLE = "Bot Trading Easy Peasy"
 
 # Sentiment Analysis Config
-ENABLE_SENTIMENT_ANALYSIS = True
+ENABLE_SENTIMENT_ANALYSIS = False
 SENTIMENT_ANALYSIS_INTERVAL = '2h' # Interval untuk AI menganalisa sentimen pasar (terpisah dari update data)
 AI_SENTIMENT_MODEL = 'xiaomi/mimo-v2-flash' # Model hemat cost untuk analisa berita
 
@@ -88,7 +88,7 @@ RSS_FEED_URLS = [
 # ==============================================================================
 # --- SECTION 5: GLOBAL TRADING RISK MANAGEMENT ---
 # ==============================================================================
-USE_DYNAMIC_SIZE = True         # Set True untuk aktifkan Compounding
+USE_DYNAMIC_SIZE = False         # Set True untuk aktifkan Compounding
 RISK_PERCENT_PER_TRADE = 3       # % dari saldo per trade jika Dynamic True
 DEFAULT_AMOUNT_USDT = 10         # Besar posisi awal (Cadangan jika dynamic False)
 MIN_ORDER_USDT = 5                
@@ -173,12 +173,12 @@ LIMIT_ORDER_EXPIRY_SECONDS = 147600 # ~41 Jam
 # --- SECTION 8: SPECIFIC STRATEGY SETTINGS ---
 # ==============================================================================
 # Liquidity Hunt
-# USE_LIQUIDITY_HUNT Removed (Obsolete)
+
 TRAP_SAFETY_SL = 2.0             # Jarak Safety SL Dari Entry Baru (ATR)           
 
 AVAILABLE_STRATEGIES = {
     # 1. Fokus pada Pattern + Trend (The Conservative)
-    #'PATTERN_CONFLUENCE_TREND': "Strategi ini mewajibkan keselarasan antara Macro Trend {config.TIMEFRAME_TREND} dan visual pattern di {config.TIMEFRAME_SETUP}. RECOMMENDED EXECUTION: [MARKET] untuk menangkap momentum breakout yang valid.",
+
 
     # 2. Fokus pada Breakout Volatilitas (The Aggressive)
     'VOLATILITY_BREAKOUT_ADVANCED': "Mendeteksi breakout signifikan dengan volume tinggi dan ADX > 25. RECOMMENDED EXECUTION: [MARKET] karena harga bergerak cepat dan jarang pullback dalam waktu dekat.",
@@ -187,7 +187,7 @@ AVAILABLE_STRATEGIES = {
     'LIQUIDITY_REVERSAL_MASTER': "Mencari pembalikan arah di area Pivot (S1/R1) atau Liquidity Sweep. RECOMMENDED EXECUTION: [LIQUIDITY_HUNT] untuk mendapatkan harga terbaik saat 'Stop Hunt' terjadi, dengan R:R yang jauh lebih superior.",
 
     # 4. Fokus pada Sentimen & Whale Flow (The Follow-the-Money)
-    #'SMART_MONEY_FLOW': "Mengikuti jejak uang besar (Whale/Institutional). Jika data on-chain bullish kuat tapi harga masih dipahamin 'murah' (konsolidasi), gunakan [LIQUIDITY_HUNT]. Jika harga sudah mulai lari, gunakan [MARKET].",
+
 
     # 5. Fallback/Standard
     'STANDARD_MULTI_CONFIRMATION': "Analisa teknikal seimbang. Evaluasi Risk:Reward (R:R) dari opsi MARKET vs LIQUIDITY_HUNT. Pilih yang memberikan R:R terbaik dan probabilitas sukses tertinggi.",
@@ -202,12 +202,6 @@ AVAILABLE_STRATEGIES = {
 # CATATAN: Jika leverage/amount tiap koin tidak diisi, akan memakai default dari Section 5
 DAFTAR_KOIN = [
     # --- Kategori: LAYER 1 ---
-    {"symbol": "XRP/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": True},
-    {"symbol": "SOL/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": True},
-    {"symbol": "BTC/USDT", "category": "KING", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": False},
-    {"symbol": "ETH/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": True},
-    {"symbol": "SUI/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": True},
-    
-    # --- Kategori: RWA ---
-    {"symbol": "XAU/USDT", "category": "RWA", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": False},
+    {"symbol": "XRP/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 4, "btc_corr": True},
+
 ]

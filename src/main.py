@@ -384,15 +384,8 @@ async def main():
                 await asyncio.sleep(2)
                 continue
 
-            # --- STEP C.5: STRATEGY SELECTION REMOVED ---
-            # We now let AI decide the strategy based on the prompt.
-            # ADX is still passed in tech_data's 'adx' for AI context.
-            tech_data['strategy_mode'] = 'AI_DECISION' # Placeholder, overridden by AI response
-
-            # Filter Logic Update based on Strategy
-            # ... (Existing filter logic modified to respect strategy) ...
-            
-            # (Untuk simplifikasi, kita gabung ke existing logic tapi tambah logging)
+            # Strategy Selection is now handled by AI
+            tech_data['strategy_mode'] = 'AI_DECISION'
 
             # --- STEP D: AI ANALYSIS ---
             # Candle-Based Throttling (Smart Execution)
@@ -407,7 +400,7 @@ async def main():
                 await asyncio.sleep(config.LOOP_SLEEP_DELAY)
                 continue
 
-            # ... (Existing Code)
+
             logger.info(f"🤖 Asking AI: {symbol} (Corr: {btc_corr:.2f}, Candle: {current_candle_ts}) ...")
             
             # Pattern Recognition (Vision)

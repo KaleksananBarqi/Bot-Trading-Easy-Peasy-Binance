@@ -213,7 +213,7 @@ class MarketDataManager:
                                 price = float(payload['p'])
                                 qty = float(payload['q'])
                                 amount_usdt = price * qty
-                                side = "SELL" if payload['m'] else "BUY" # m=True means Maker (Sell side initiatior usually? No, m=True means maker... wait. AggTrade: m=True means the buyer was the maker. So it was a SELL.)
+                                side = "SELL" if payload['m'] else "BUY" # m=True means the maker was a buyer, so the aggressor was a seller (SELL trade).
                                 if amount_usdt >= config.WHALE_THRESHOLD_USDT:
                                     callback_whale(symbol, amount_usdt, side)
                                 
