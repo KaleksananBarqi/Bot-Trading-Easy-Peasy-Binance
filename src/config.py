@@ -5,74 +5,170 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ==============================================================================
-# --- SECTION 1: CREDENTIALS & API KEYS ---
+# 🛠️ KONFIGURASI KREDENSIAL & API KEYS
 # ==============================================================================
+# Binance (Pastikan file .env sudah terisi dengan benar)
 API_KEY_LIVE = os.getenv("BINANCE_API_KEY")
 SECRET_KEY_LIVE = os.getenv("BINANCE_SECRET_KEY")
 API_KEY_DEMO = os.getenv("BINANCE_TESTNET_KEY")
 SECRET_KEY_DEMO = os.getenv("BINANCE_TESTNET_SECRET")
+
+# Telegram Notifikasi
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-TELEGRAM_MESSAGE_THREAD_ID = os.getenv("TELEGRAM_MESSAGE_THREAD_ID")  # Opsional untuk topik/forum
+TELEGRAM_MESSAGE_THREAD_ID = os.getenv("TELEGRAM_MESSAGE_THREAD_ID")  # Opsional: untuk Topik/Forum ID
+
+# Telegram Sentimen (Channel Terpisah)
 TELEGRAM_TOKEN_SENTIMENT = os.getenv("TELEGRAM_TOKEN_SENTIMENT")
 TELEGRAM_CHAT_ID_SENTIMENT = os.getenv("TELEGRAM_CHAT_ID_SENTIMENT")
 TELEGRAM_MESSAGE_THREAD_ID_SENTIMENT = os.getenv("TELEGRAM_MESSAGE_THREAD_ID_SENTIMENT")
-AI_API_KEY = os.getenv("AI_API_KEY")
-CMC_API_KEY = os.getenv("CMC_API_KEY")
+
+# 3rd Party APIs
+AI_API_KEY = os.getenv("AI_API_KEY")       # OpenRouter / DeepSeek
+CMC_API_KEY = os.getenv("CMC_API_KEY")     # CoinMarketCap
 
 # ==============================================================================
-# --- SECTION 2: SYSTEM & APPLICATION CONFIG ---
+# ⚙️ PENGATURAN SISTEM & APLIKASI
 # ==============================================================================
-PAKAI_DEMO = False               # Set True untuk menggunakan Binance Testnet
+PAKAI_DEMO = False               # False = Real Money, True = Testnet (Uang Monopoly)
 LOG_FILENAME = 'bot_trading.log'
 TRACKER_FILENAME = 'safety_tracker.json'
 
-CONCURRENCY_LIMIT = 20          # Maksimal pair yang diproses bersamaan
-LOOP_SLEEP_DELAY = 1             # Jeda antar loop utama (detik)
-ERROR_SLEEP_DELAY = 5            # Jeda jika terjadi error loop (detik)
-API_REQUEST_TIMEOUT = 10         # Timeout request API (detik)
-API_RECV_WINDOW = 10000          # RecvWindow untuk CCXT / Binance
+# Performa Loop & Request
+CONCURRENCY_LIMIT = 20           # Maksimal pair yang diproses bersamaan (multithreading)
+LOOP_SLEEP_DELAY = 1             # Istirahat antar putaran loop utama (detik)
+ERROR_SLEEP_DELAY = 5            # Istirahat jika terjadi error (detik)
+API_REQUEST_TIMEOUT = 10         # Batas waktu tunggu balasan server (detik)
+API_RECV_WINDOW = 10000          # Toleransi waktu server Binance (ms)
 
 # ==============================================================================
-# --- SECTION 3: AI BRAIN & PROMPT ENGINE ---
+# 🧠 KECERDASAN BUATAN (AI) & STRATEGI
 # ==============================================================================
-AI_MODEL_NAME = 'deepseek/deepseek-v3.2' 
-AI_TEMPERATURE = 0.0             # 0.0 agar AI konsisten & tidak halusinasi
-AI_CONFIDENCE_THRESHOLD = 75     # Minimal confidence score untuk eksekusi
+# Otak Utama (Decision Maker)
+AI_MODEL_NAME = 'deepseek/deepseek-v3.2'
+AI_TEMPERATURE = 0.0             # 0.0 = Logis & Konsisten, 1.0 = Kreatif & Halusinasi
+AI_CONFIDENCE_THRESHOLD = 75     # Minimal keyakinan (%) untuk berani eksekusi
 AI_SYSTEM_ROLE = "You are an elite Crypto Trading AI capable of Adaptive Multi-Strategy Execution with an uncompromising focus on Risk Management and Capital Preservation."
 AI_BASE_URL = "https://openrouter.ai/api/v1"
+
+# Identitas Bot
 AI_APP_URL = "https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy"
 AI_APP_TITLE = "Bot Trading Easy Peasy"
 
-# Sentiment Analysis Config
-ENABLE_SENTIMENT_ANALYSIS = False
-SENTIMENT_ANALYSIS_INTERVAL = '2h' # Interval untuk AI menganalisa sentimen pasar (terpisah dari update data)
-AI_SENTIMENT_MODEL = 'xiaomi/mimo-v2-flash' # Model hemat cost untuk analisa berita
+# Analisa Berita & Sentimen
+ENABLE_SENTIMENT_ANALYSIS = False          # Aktifkan analisa sentimen berita?
+AI_SENTIMENT_MODEL = 'xiaomi/mimo-v2-flash' # Model ekonomis untuk baca berita
+SENTIMENT_ANALYSIS_INTERVAL = '2h'         # Seberapa sering cek sentimen (misal: tiap 2 jam)
+SENTIMENT_UPDATE_INTERVAL = '1h'           # Interval update data raw sentimen
+Sentiment_Provider = 'RSS_Feed'            # Sumber: 'RSS_Feed'
 
-# Vision AI (Chart Pattern)
+# Analisa Visual (Chart Pattern)
 USE_PATTERN_RECOGNITION = True
-AI_VISION_MODEL = 'meta-llama/llama-4-maverick' # Model hemat cost namun capable untuk vision
+AI_VISION_MODEL = 'meta-llama/llama-4-maverick' # Model vision
 AI_VISION_TEMPERATURE = 0.0
 AI_VISION_MAX_TOKENS = 150
 
-Sentiment_Provider = 'RSS_Feed'  # Pilihan: 'RSS_Feed'
-OnChain_Provider = 'DefiLlama'   # Pilihan: 'DefiLlama'
+# Data OnChain
+OnChain_Provider = 'DefiLlama'     # Sumber data OnChain
 
 # ==============================================================================
-# --- SECTION 4: EXTERNAL DATA SOURCES ---
+# 💰 MANAJEMEN RISIKO & MONEY MANAGEMENT
 # ==============================================================================
+# Pengaturan Ukuran Posisi
+USE_DYNAMIC_SIZE = False         # True = Compounding (% saldo), False = Fix USDT
+RISK_PERCENT_PER_TRADE = 3       # Jika Dynamic: Gunakan 3% dari total wallet
+DEFAULT_AMOUNT_USDT = 10         # Jika Static: Gunakan $10 per trade
+MIN_ORDER_USDT = 5               # Minimal order yang diizinkan Binance
+
+# Leverage & Margin
+DEFAULT_LEVERAGE = 10
+DEFAULT_MARGIN_TYPE = 'isolated' # 'isolated' (aman) atau 'cross' (beresiko/gabungan)
+MAX_POSITIONS_PER_CATEGORY = 5   # Batas maksimal koin aktif per kategori (Layer 1, AI, Meme, dll)
+
+# Pendeteksi Paus (Whale)
+WHALE_THRESHOLD_USDT = 1000000   # Transaksi > $1 Juta ditandai sebagai Whale
+WHALE_HISTORY_LIMIT = 10         # Cek 10 transaksi terakhir
+STABLECOIN_INFLOW_THRESHOLD_PERCENT = 0.05 # Ambang batas aliran masuk stablecoin
+
+# Mekanisme Pendinginan (Anti-FOMO/Anti-Revenge)
+COOLDOWN_IF_PROFIT = 3600        # Jeda trading di koin ini jika PROFIT (detik)
+COOLDOWN_IF_LOSS = 7200          # Jeda trading di koin ini jika LOSS (detik)
+
+# ==============================================================================
+# 📊 INDIKATOR TEKNIKAL & ANALISA CHART
+# ==============================================================================
+# Timeframe
+TIMEFRAME_TREND = '1h'           # Timeframe untuk melihat tren besar
+TIMEFRAME_EXEC = '15m'           # Timeframe untuk eksekusi entry
+TIMEFRAME_SETUP = '30m'          # Timeframe untuk pola chart
+
+# Data Limit (Berapa candle ke belakang yg diambil)
+LIMIT_TREND = 500
+LIMIT_EXEC = 300
+LIMIT_SETUP = 100
+
+# Filter Tren BTC (Bitcoin King Effect)
+USE_BTC_CORRELATION = True       # Wajib cek gerak-gerik Bitcoin?
+BTC_SYMBOL = 'BTC/USDT'
+BTC_EMA_PERIOD = 50              # EMA Trend Filter Bitcoin
+CORRELATION_THRESHOLD_BTC = 0.7  # Minimal korelasi untuk dianggap ngikut BTC
+CORRELATION_PERIOD = 30          # Periode cek korelasi
+DEFAULT_CORRELATION_HIGH = 0.99  # Nilai default jika data korrelasi belum ada
+
+# Parameter Indikator
+EMA_TREND_MAJOR = 21             # EMA filter tren utama
+EMA_FAST = 7                     # EMA Cepat
+EMA_SLOW = 21                    # EMA Lambat
+RSI_PERIOD = 14                  # RSI standard
+RSI_OVERSOLD = 35                # Batas bawah RSI (Jenuh Jual)
+RSI_OVERBOUGHT = 65              # Batas atas RSI (Jenuh Beli)
+ADX_PERIOD = 14                  # Kekuatan Tren
+VOL_MA_PERIOD = 20               # Rata-rata Volume
+BB_LENGTH = 20                   # Bollinger Bands Length
+BB_STD = 2.0                     # Bollinger Bands Deviasi
+STOCHRSI_LEN = 14                # Stochastic RSI
+STOCHRSI_K = 3
+STOCHRSI_D = 3
+MACD_FAST = 12
+MACD_SLOW = 26
+MACD_SIGNAL = 9
+
+# ==============================================================================
+# 🎯 EKSEKUSI ORDER & TARGET PROFIT
+# ==============================================================================
+ENABLE_MARKET_ORDERS = True      # Izinkan Market Order (Hajar Kanan/Kiri)?
+LIMIT_ORDER_EXPIRY_SECONDS = 147600 # Batas waktu Limit Order pending (dihapus jika basi) -> ~41 Jam
+
+# Stop Loss (SL) & Take Profit (TP) - Fallback/Default
+DEFAULT_SL_PERCENT = 0.015       # 1.5% (Jaga-jaga jika ATR bermasalah)
+DEFAULT_TP_PERCENT = 0.025       # 2.5%
+
+# Penghitungan SL/TP Dinamis (Berbasis ATR)
+ATR_PERIOD = 14
+ATR_MULTIPLIER_SL = 2.0          # Lebar SL = 2x ATR
+ATR_MULTIPLIER_TP1 = 3.0         # Target TP = 3x ATR (Risk Reward 1:1.5)
+TRAP_SAFETY_SL = 2.0             # Jarak Safety SL untuk Liquidity Hunt
+
+# Mekanisme Retry (Coba Lagi)
+ORDER_SLTP_RETRIES = 3           # Berapa kali coba pasang SL/TP jika server sibuk
+ORDER_SLTP_RETRY_DELAY = 2       # Jeda percobaan (detik)
+
+# ==============================================================================
+# 📡 SUMBER DATA EKSTERNAL
+# ==============================================================================
+# API URLs
 CMC_FNG_URL = "https://pro-api.coinmarketcap.com/v3/fear-and-greed/latest"
 DEFILLAMA_STABLECOIN_URL = "https://stablecoins.llama.fi/stablecoincharts/all"
 
-# Websocket URLs
+# Websocket Binance
 WS_URL_FUTURES_LIVE = "wss://fstream.binance.com/stream?streams="
 WS_URL_FUTURES_TESTNET = "wss://stream.binancefuture.com/stream?streams="
-WS_KEEP_ALIVE_INTERVAL = 1800    # Detik untuk refresh listen key
+WS_KEEP_ALIVE_INTERVAL = 1800
 
-# News & RSS Config
-NEWS_MAX_PER_SOURCE = 2
-NEWS_RETENTION_LIMIT = 15
-NEWS_MAX_AGE_HOURS = 6      # Filter berita: hanya 1 jam terakhir
+# Sumber Berita (RSS Feeds)
+NEWS_MAX_PER_SOURCE = 2          # Ambil 2 berita trbaru per web
+NEWS_RETENTION_LIMIT = 15        # Simpan max 15 berita di memori
+NEWS_MAX_AGE_HOURS = 6           # Jangan ambil berita yg > 6 jam lalu
 RSS_FEED_URLS = [
     "https://www.theblock.co/rss.xml",
     "https://cryptoslate.com/feed/",
@@ -86,123 +182,22 @@ RSS_FEED_URLS = [
 ]
 
 # ==============================================================================
-# --- SECTION 5: GLOBAL TRADING RISK MANAGEMENT ---
+# 📋 DAFTAR STRATEGI
 # ==============================================================================
-USE_DYNAMIC_SIZE = False         # Set True untuk aktifkan Compounding
-RISK_PERCENT_PER_TRADE = 3       # % dari saldo per trade jika Dynamic True
-DEFAULT_AMOUNT_USDT = 10         # Besar posisi awal (Cadangan jika dynamic False)
-MIN_ORDER_USDT = 5                
-
-DEFAULT_LEVERAGE = 10
-DEFAULT_MARGIN_TYPE = 'isolated' # 'isolated' atau 'cross'
-MAX_POSITIONS_PER_CATEGORY = 5   # Limit posisi per sektor koin
-
-# Cooldown Logic
-COOLDOWN_IF_PROFIT = 3600        # Jeda setelah profit (detik) - ride the trend
-COOLDOWN_IF_LOSS = 7200          # Jeda setelah loss (detik) - cooling down
-
-# Whale & Money Flow
-WHALE_THRESHOLD_USDT = 1000000    # Transaksi > $100k dianggap Whale
-WHALE_HISTORY_LIMIT = 10
-STABLECOIN_INFLOW_THRESHOLD_PERCENT = 0.05
-
-# ==============================================================================
-# --- SECTION 6: TECHNICAL ANALYSIS & INDICATORS ---
-# ==============================================================================
-TIMEFRAME_TREND = '1h'      
-TIMEFRAME_EXEC = '15m'      
-LIMIT_TREND = 500           
-LIMIT_EXEC = 300
-
-# Setup Context (Pattern Recognition)
-TIMEFRAME_SETUP = '30m'      
-LIMIT_SETUP = 100
-
-# Interval khusus untuk update News, F&G, dan Stablecoin Inflow (Hanya Fetch Data)
-# Terpisah dari TIMEFRAME_TREND agar lebih fleksibel.
-SENTIMENT_UPDATE_INTERVAL = '1h'
-
-# BTC Global Trend Filter
-BTC_SYMBOL = 'BTC/USDT'
-BTC_EMA_PERIOD = 50             # EMA 200 sebagai trend king filter
-
-# Indicator Parameters
-EMA_TREND_MAJOR = 21
-EMA_FAST = 7           
-EMA_SLOW = 21          
-RSI_PERIOD = 14
-RSI_OVERSOLD = 35
-RSI_OVERBOUGHT = 65
-ADX_PERIOD = 14
-VOL_MA_PERIOD = 20               # Filter volume transaksi
-BB_LENGTH = 20
-BB_STD = 2.0 
-STOCHRSI_LEN = 14
-STOCHRSI_K = 3
-STOCHRSI_D = 3
-
-# MACD Parameters
-MACD_FAST = 12
-MACD_SLOW = 26
-MACD_SIGNAL = 9
-
-# Correlation Rules
-USE_BTC_CORRELATION = True       # Set False untuk menonaktifkan fitur/logika korelasi BTC
-CORRELATION_THRESHOLD_BTC = 0.7  # Jika < 0.5, koin dianggap "jalan sendiri"
-CORRELATION_PERIOD = 30          # Jumlah candle untuk cek korelasi
-DEFAULT_CORRELATION_HIGH = 0.99
-
-# ==============================================================================
-# --- SECTION 7: EXECUTION & ORDER MANAGEMENT ---
-# ==============================================================================
-# SL/TP Percent Defaults (Safety Fallback)
-DEFAULT_SL_PERCENT = 0.015       # 1.5%
-DEFAULT_TP_PERCENT = 0.025       # 2.5%
-
-# ATR Based SL/TP Multipliers (Primary)
-ATR_PERIOD = 14             
-ATR_MULTIPLIER_SL = 2.0
-ATR_MULTIPLIER_TP1 = 3.0
-
-# Order Management
-ENABLE_MARKET_ORDERS = True      # Set False untuk mematikan Market Order (Force Limit/Liquidity Hunt)
-ORDER_SLTP_RETRIES = 3           # Re-try pasang SL/TP jika gagal
-ORDER_SLTP_RETRY_DELAY = 2       # Jeda antar percobaan (detik)
-LIMIT_ORDER_EXPIRY_SECONDS = 147600 # ~41 Jam
-
-# ==============================================================================
-# --- SECTION 8: SPECIFIC STRATEGY SETTINGS ---
-# ==============================================================================
-# Liquidity Hunt
-
-TRAP_SAFETY_SL = 2.0             # Jarak Safety SL Dari Entry Baru (ATR)           
-
 AVAILABLE_STRATEGIES = {
-    # 1. Fokus pada Pattern + Trend (The Conservative)
-
-
-    # 2. Fokus pada Breakout Volatilitas (The Aggressive)
     'VOLATILITY_BREAKOUT_ADVANCED': "Mendeteksi breakout signifikan dengan volume tinggi dan ADX > 25. RECOMMENDED EXECUTION: [MARKET] karena harga bergerak cepat dan jarang pullback dalam waktu dekat.",
-
-    # 3. Fokus pada Reversal & Liquidity (The Contrarian)
     'LIQUIDITY_REVERSAL_MASTER': "Mencari pembalikan arah di area Pivot (S1/R1) atau Liquidity Sweep. RECOMMENDED EXECUTION: [LIQUIDITY_HUNT] untuk mendapatkan harga terbaik saat 'Stop Hunt' terjadi, dengan R:R yang jauh lebih superior.",
-
-    # 4. Fokus pada Sentimen & Whale Flow (The Follow-the-Money)
-
-
-    # 5. Fallback/Standard
     'STANDARD_MULTI_CONFIRMATION': "Analisa teknikal seimbang. Evaluasi Risk:Reward (R:R) dari opsi MARKET vs LIQUIDITY_HUNT. Pilih yang memberikan R:R terbaik dan probabilitas sukses tertinggi.",
-
-    # 6. Fokus pada Sideways & Reversal (The Ranger)
     'BB_BOUNCE': "Jika ADX sedang lemah/sideways (< 20), fokus pada setup Reversal di area BB Top (Upper Band) atau BB Bottom (Lower Band). Sangat disarankan menggunakan [LIQUIDITY_HUNT] untuk mendapatkan harga entry terbaik saat terjadi pantulan."
 }
 
 # ==============================================================================
-# --- SECTION 9: COIN REGISTRY ---
+# 🪙 DAFTAR KOIN (MARKET WATCH)
 # ==============================================================================
-# CATATAN: Jika leverage/amount tiap koin tidak diisi, akan memakai default dari Section 5
+# Format: {"symbol": "KOIN/USDT", "category": "KATEGORI", "leverage": X, "amount": Y}
 DAFTAR_KOIN = [
     # --- Kategori: LAYER 1 ---
     {"symbol": "XRP/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 4, "btc_corr": True},
-
+    
+    # Tambahkan koin lain di sini...
 ]
