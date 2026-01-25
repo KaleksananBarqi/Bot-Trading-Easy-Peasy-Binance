@@ -13,10 +13,12 @@ def format_price(value):
     if value < 50.0: return f"{value:.4f}"
     return f"{value:.2f}"
 
-def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_analysis=None, trade_scenarios=None):
+def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_analysis=None, trade_scenarios=None, show_btc_context=True):
     """
     Menyusun prompt untuk AI berdasarkan data teknikal, sentimen, dan on-chain.
     Struktur Baru: Multi-Timeframe (Macro -> Setup -> Execution).
+    Args:
+        show_btc_context (bool): Jika False, data BTC dan korelasinya akan DISEMBUNYIKAN total dari AI.
     """
     
     # 0. VALIDATION: Critical Data Check
@@ -109,7 +111,7 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern
 
     # Dynamic BTC Warning
     btc_instruction = ""
-    if btc_corr >= config.CORRELATION_THRESHOLD_BTC:
+    if show_btc_context and btc_corr >= config.CORRELATION_THRESHOLD_BTC:
         btc_instruction = f"IMPORTANT: High BTC Correlation ({btc_corr:.2f}). Do NOT open positions against BTC Trend ({btc_trend})."
 
     # ==========================================
@@ -140,13 +142,13 @@ OPTION B: PASSIVE (LIQUIDITY HUNT)
     # ==========================================
     
     # [LOGIC: BTC CORRELATION VISIBILITY]
-    # Jika USE_BTC_CORRELATION = True, tampilkan data BTC.
-    # Jika USE_BTC_CORRELATION = False, HILANGKAN TOTAL dari pandangan AI.
+    # Jika show_btc_context = True, tampilkan data BTC.
+    # Jika False (karena rule/correlation low), HILANGKAN TOTAL dari pandangan AI.
     
     macro_section = ""
     btc_instruction_prompt = ""
     
-    if config.USE_BTC_CORRELATION:
+    if show_btc_context:
         macro_section = f"""
 --------------------------------------------------
 1. MACRO VIEW (TIMEFRAME: {config.TIMEFRAME_TREND})
@@ -162,7 +164,7 @@ OPTION B: PASSIVE (LIQUIDITY HUNT)
    {btc_instruction}
 """
     else:
-        # Jika OFF, hanya tampilkan Market Structure & Pivot (Tanpa BTC)
+        # Jika BTC Hidden (Independent Move), hanya tampilkan Market Structure & Pivot
         macro_section = f"""
 --------------------------------------------------
 1. MACRO VIEW (TIMEFRAME: {config.TIMEFRAME_TREND})
@@ -316,9 +318,11 @@ def build_pattern_recognition_prompt(symbol, timeframe):
     """
     prompt_text = (
         f"Analyze this {timeframe} chart for {symbol}. "
-        "Identify any specific chart patterns (e.g. Head & Shoulders, Flags, Wedges, Double Top/Bottom). "
-        "Determine the bias (BULLISH/BEARISH/NEUTRAL) and strength. "
-        "Keep it concise (max 2-3 sentences)."
+        "1. VISUAL PATTERNS: Identify Chart Patterns (e.g. Head & Shoulders, Flags, Wedges, Double Top/Bottom).\n"
+        "2. MACD DIVERGENCE (Bottom Panel): Look for divergences between Price and MACD Histogram/Lines.\n"
+        "   - BULLISH DIVERGENCE: Price makes Lower Low, MACD makes Higher Low -> Signal Reversal UP.\n"
+        "   - BEARISH DIVERGENCE: Price makes Higher High, MACD makes Lower High -> Signal Reversal DOWN.\n"
+        "Determine the overall bias (BULLISH/BEARISH/NEUTRAL). Keep it concise (max 3-4 sentences)."
     )
     return prompt_text
 

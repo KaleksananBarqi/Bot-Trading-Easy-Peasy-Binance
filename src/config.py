@@ -46,6 +46,7 @@ AI_APP_TITLE = "Bot Trading Easy Peasy"
 
 # Sentiment Analysis Config
 ENABLE_SENTIMENT_ANALYSIS = True
+SENTIMENT_ANALYSIS_INTERVAL = '2h' # Interval untuk AI menganalisa sentimen pasar (terpisah dari update data)
 AI_SENTIMENT_MODEL = 'xiaomi/mimo-v2-flash' # Model hemat cost untuk analisa berita
 
 # Vision AI (Chart Pattern)
@@ -117,7 +118,7 @@ LIMIT_EXEC = 300
 TIMEFRAME_SETUP = '30m'      
 LIMIT_SETUP = 100
 
-# Interval khusus untuk update News, F&G, dan Stablecoin Inflow
+# Interval khusus untuk update News, F&G, dan Stablecoin Inflow (Hanya Fetch Data)
 # Terpisah dari TIMEFRAME_TREND agar lebih fleksibel.
 SENTIMENT_UPDATE_INTERVAL = '1h'
 
@@ -139,6 +140,11 @@ BB_STD = 2.0
 STOCHRSI_LEN = 14
 STOCHRSI_K = 3
 STOCHRSI_D = 3
+
+# MACD Parameters
+MACD_FAST = 12
+MACD_SLOW = 26
+MACD_SIGNAL = 9
 
 # Correlation Rules
 USE_BTC_CORRELATION = True       # Set False untuk menonaktifkan fitur/logika korelasi BTC
@@ -196,16 +202,12 @@ AVAILABLE_STRATEGIES = {
 # CATATAN: Jika leverage/amount tiap koin tidak diisi, akan memakai default dari Section 5
 DAFTAR_KOIN = [
     # --- Kategori: LAYER 1 ---
-    {"symbol": "XRP/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5},
-    {"symbol": "SOL/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5},
-    {"symbol": "BTC/USDT", "category": "KING", "leverage": 25, "margin_type": "isolated", "amount": 5},
-    {"symbol": "ETH/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5},
-    {"symbol": "SUI/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5},
+    {"symbol": "XRP/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": True},
+    {"symbol": "SOL/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": True},
+    {"symbol": "BTC/USDT", "category": "KING", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": False},
+    {"symbol": "ETH/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": True},
+    {"symbol": "SUI/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": True},
     
-    # --- Kategori: MEMECOIN ---
-    {"symbol": "DOGE/USDT", "category": "MEME", "leverage": 25, "margin_type": "isolated", "amount": 5},
-    # ---- Kategori:DEX ----
-    {"symbol": "HYPE/USDT", "category": "DEX", "leverage": 25, "margin_type": "isolated", "amount": 5},
-    # --- Kategori : STABLECOIN ---
-    {"symbol": "XPL/USDT", "category": "STABLECOIN", "leverage": 25, "margin_type": "isolated", "amount": 5},
+    # --- Kategori: RWA ---
+    {"symbol": "XAU/USDT", "category": "RWA", "leverage": 25, "margin_type": "isolated", "amount": 5, "btc_corr": False},
 ]

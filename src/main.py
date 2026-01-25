@@ -83,7 +83,11 @@ async def main():
     
     # [NEW] Fixed Time Scheduler Logic
     next_sentiment_update_time = get_next_rounded_time(config.SENTIMENT_UPDATE_INTERVAL)
-    logger.info(f"⏳ Next Sentiment Update scheduled at: {time.ctime(next_sentiment_update_time)}")
+    # Jadwal terpisah untuk Analisa AI (agar tidak boros token tiap jam kalau mau)
+    next_sentiment_analysis_time = get_next_rounded_time(config.SENTIMENT_ANALYSIS_INTERVAL)
+    
+    logger.info(f"⏳ Next Sentiment Data Refresh: {time.ctime(next_sentiment_update_time)}")
+    logger.info(f"⏳ Next Sentiment AI Analysis: {time.ctime(next_sentiment_analysis_time)}")
 
     # 1. INITIALIZATION
     exchange = ccxt.binance({
@@ -230,10 +234,12 @@ async def main():
         try:
             # Round Robin Scan (One coin per loop to save API/AI limit)
             
-            # --- STEP 0: PERIODIC SENTIMENT REFRESH ---
-            # Cek apakah sudah waktunya update berita (Fixed Time Schedule)
-            if time.time() >= next_sentiment_update_time:
-                logger.info("🔄 Refreshing Sentiment & On-Chain Data...")
+            # --- STEP 0: PERIODIC UPDATE SCHEDULER ---
+            current_time = time.time()
+
+            # A. DATA REFRESH (RSS & FnG & OnChain)
+            if current_time >= next_sentiment_update_time:
+                logger.info("🔄 Refreshing Sentiment & On-Chain Data (Fetch Only)...")
                 try:
                     # Jalankan di background task agar tidak memblokir main loop (Fire & Forget)
                     asyncio.create_task(asyncio.to_thread(sentiment.update_all))
@@ -241,56 +247,58 @@ async def main():
                     
                     # Schedule Next Update
                     next_sentiment_update_time = get_next_rounded_time(config.SENTIMENT_UPDATE_INTERVAL)
-                    logger.info(f"✅ Sentiment & On-Chain Data Refreshed. Next: {time.ctime(next_sentiment_update_time)}")
-                    
-                    # [NEW] TRIGGER SENTIMENT ANALYSIS AI
-                    if config.ENABLE_SENTIMENT_ANALYSIS:
-                        logger.info("🧠 Running Dedicated Sentiment Analysis...")
-                        async def run_sentiment_analysis():
-                            try:
-                                # Prepare Prompt
-                                s_data = sentiment.get_latest()
-                                o_data = onchain.get_latest()
-                                prompt = build_sentiment_prompt(s_data, o_data)
-                                
-                                # Ask AI
-                                logger.info(f"📝 SENTIMENT AI PROMPT:\n{prompt}")
-                                result = await ai_brain.analyze_sentiment(prompt)
-                                
-                                if result:
-                                    # Kirim ke Telegram Channel Sentiment
-                                    mood = result.get('overall_sentiment', 'UNKNOWN')
-                                    score = result.get('sentiment_score', 0)
-                                    summary = result.get('summary', '-')
-                                    drivers = result.get('key_drivers', [])
-                                    risk = result.get('risk_assessment', 'N/A')
-                                    drivers_str = "\n".join([f"• {d}" for d in drivers])
-                                    
-                                    icon = "😐"
-                                    if score > 60: icon = "🚀"
-                                    elif score < 40: icon = "🐻"
-                                    
-                                    msg = (
-                                        f"📢 <b>PASAR SAAT INI {mood} {icon}</b>\n"
-                                        f"Score: {score}/100\n\n"
-                                        f"📝 <b>Ringkasan:</b>\n{summary}\n\n"
-                                        f"🔑 <b>Faktor Utama:</b>\n{drivers_str}\n\n"
-                                        f"⚠️ <b>Risk Assessment:</b>\n{risk}\n\n"
-                                        f"<i>Analisa ini digenerate otomatis oleh AI ({config.AI_SENTIMENT_MODEL})</i>"
-                                    )
-                                    
-                                    
-                                    logger.info(f"📤 SENTIMENT TELEGRAM MESSAGE:\n{msg}")
-                                    await kirim_tele(msg, channel='sentiment')
-                                    logger.info("✅ Sentiment Report Sent.")
-                            except Exception as e:
-                                logger.error(f"❌ Sentiment Loop Error: {e}")
-
-                        # Run in background
-                        asyncio.create_task(run_sentiment_analysis())
-
+                    logger.info(f"✅ Data Refreshed. Next: {time.ctime(next_sentiment_update_time)}")
                 except Exception as e:
-                    logger.error(f"❌ Failed to refresh data: {e}")
+                     logger.error(f"❌ Failed to refresh data: {e}")
+
+            # B. AI SENTIMENT ANALYSIS (Report Generation)
+            if config.ENABLE_SENTIMENT_ANALYSIS and current_time >= next_sentiment_analysis_time:
+                 logger.info("🧠 Running Dedicated Sentiment Analysis (AI)...")
+                 async def run_sentiment_analysis():
+                    try:
+                        # Prepare Prompt
+                        s_data = sentiment.get_latest()
+                        o_data = onchain.get_latest()
+                        prompt = build_sentiment_prompt(s_data, o_data)
+                        
+                        # Ask AI
+                        logger.info(f"📝 SENTIMENT AI PROMPT:\n{prompt}")
+                        result = await ai_brain.analyze_sentiment(prompt)
+                        
+                        if result:
+                            # Kirim ke Telegram Channel Sentiment
+                            mood = result.get('overall_sentiment', 'UNKNOWN')
+                            score = result.get('sentiment_score', 0)
+                            summary = result.get('summary', '-')
+                            drivers = result.get('key_drivers', [])
+                            risk = result.get('risk_assessment', 'N/A')
+                            drivers_str = "\n".join([f"• {d}" for d in drivers])
+                            
+                            icon = "😐"
+                            if score > 60: icon = "🚀"
+                            elif score < 40: icon = "🐻"
+                            
+                            msg = (
+                                f"📢 <b>PASAR SAAT INI {mood} {icon}</b>\n"
+                                f"Score: {score}/100\n\n"
+                                f"📝 <b>Ringkasan:</b>\n{summary}\n\n"
+                                f"🔑 <b>Faktor Utama:</b>\n{drivers_str}\n\n"
+                                f"⚠️ <b>Risk Assessment:</b>\n{risk}\n\n"
+                                f"<i>Analisa ini digenerate otomatis oleh AI ({config.AI_SENTIMENT_MODEL})</i>"
+                            )
+                            
+                            logger.info(f"📤 SENTIMENT TELEGRAM MESSAGE:\n{msg}")
+                            await kirim_tele(msg, channel='sentiment')
+                            logger.info("✅ Sentiment Report Sent.")
+                    except Exception as e:
+                        logger.error(f"❌ Sentiment Loop Error: {e}")
+
+                 # Run in background
+                 asyncio.create_task(run_sentiment_analysis())
+                 
+                 # Schedule Next Analysis
+                 next_sentiment_analysis_time = get_next_rounded_time(config.SENTIMENT_ANALYSIS_INTERVAL)
+                 logger.info(f"✅ Analysis Triggered. Next: {time.ctime(next_sentiment_analysis_time)}")
 
             coin_cfg = config.DAFTAR_KOIN[ticker_idx]
             symbol = coin_cfg['symbol']
@@ -335,28 +343,35 @@ async def main():
             # Filter 1: Trend Alignment (King Filter) & Correlation Check
             btc_corr = await market_data.get_btc_correlation(symbol)
             
-            # [LOGIC UPDATE] Cek Konfigurasi USE_BTC_CORRELATION
-            if config.USE_BTC_CORRELATION:
+            # [LOGIC UPDATE] Cek Konfigurasi BTC Correlation Per-Koin
+            use_btc_corr_config = coin_cfg.get('btc_corr', True) # Default True
+            show_btc_context = False
+
+            if use_btc_corr_config:
                 if btc_corr >= config.CORRELATION_THRESHOLD_BTC:
-                    # High Correlation: Must follow BTC
+                    # High Correlation: Show BTC Data & Enforce Trend Following
+                    show_btc_context = True # Allow AI to see BTC
+                    
                     if tech_data['btc_trend'] == "BULLISH" and tech_data['price_vs_ema'] == "Above":
                          is_interesting = True
                     elif tech_data['btc_trend'] == "BEARISH" and tech_data['price_vs_ema'] == "Below":
                          is_interesting = True
                     else:
-                        pass
+                        pass # Conflicting signal (e.g. BTC Bullish but Altcoin Below EMA) -> Skip
                 else:
-                    # Low Correlation: Independent Movement Allowed
-                    # We assume if Independent, we allow AI to see it regardless of BTC
+                    # Low Correlation: Hide BTC Data (Prevent Hallucination)
+                    show_btc_context = False
+                    # Allow entry based on independent structure
                     is_interesting = True
             else:
-                # [BTC CORRELATION OFF]
-                # Anggap semua koin independen atau hanya melihat teknikal internalnya saja (Price vs EMA)
-                # Syarat minimal: Price vs EMA harus 'Above' (Bullish) atau 'Below' (Bearish) agar tidak sideways parah
+                # [BTC CORRELATION OFF BY CONFIG]
+                # Hide BTC Data completely
+                show_btc_context = False
+                
+                # Anggap independent, cek teknikal internal saja
                 if tech_data['price_vs_ema'] in ["Above", "Below"]:
                     is_interesting = True
                 else:
-                    # Jika unconfirmed/sideways, skip
                     pass
 
             
@@ -427,7 +442,7 @@ async def main():
                 side=pre_calc_side 
             )
 
-            prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_ctx, trade_scenarios)
+            prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_ctx, trade_scenarios, show_btc_context=show_btc_context)
             
             # Print Prompt for Debugging
             logger.info(f"📝 AI PROMPT INPUT for {symbol}:\n{prompt}")

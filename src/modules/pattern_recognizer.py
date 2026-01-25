@@ -44,7 +44,7 @@ class PatternRecognizer:
         Returns base64 encoded string.
         """
         candles = self.get_setup_candles(symbol)
-        if not candles or len(candles) < 20:
+        if not candles or len(candles) < config.MACD_SLOW: # Need at least MACD_SLOW
             return None
         
         try:
@@ -52,22 +52,56 @@ class PatternRecognizer:
             df = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
             df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
             df.set_index('timestamp', inplace=True)
+
+            # --- MACD Calculation ---
+            # append=True adds columns to df: MACD_12_26_9, MACDh_12_26_9, MACDs_12_26_9
+            import pandas_ta as ta
+            df.ta.macd(fast=config.MACD_FAST, slow=config.MACD_SLOW, signal=config.MACD_SIGNAL, append=True)
             
+            # Clean NaN created by indicators
+            df.dropna(inplace=True)
+
             # Create Buffer
             buf = io.BytesIO()
             
+            # --- MACD Plot Configuration ---
+            # Use the same slice for main plot and addplots
+            plot_data = df.tail(60)
+
+            macd_col = df.columns[-3] # MACD Line
+            hist_col = df.columns[-2] # Histogram
+            sig_col  = df.columns[-1] # Signal Line
+            
+            # Determine Histogram Colors
+            colors = ['#26a69a' if v >= 0 else '#ef5350' for v in plot_data[hist_col]]
+
+            macd_plots = [
+                mpf.make_addplot(plot_data[macd_col], panel=2, color='#2962FF', width=1.2, ylabel='MACD'),  # MACD Line
+                mpf.make_addplot(plot_data[sig_col],  panel=2, color='#FF6D00', width=1.2),               # Signal Line
+                mpf.make_addplot(plot_data[hist_col], panel=2, type='bar', color=colors, alpha=0.5),      # Histogram
+            ]
+
             # Style & Plot
             # rc params for dark mode
-            s = mpf.make_mpf_style(base_mpf_style='nightclouds', rc={'font.size': 8})
+            # Custom Market Colors: Up=Green, Down=Red
+            mc = mpf.make_marketcolors(
+                up='#00ff00', down='#ff0000',
+                edge='inherit',
+                wick='inherit',
+                volume='in',
+                ohlc='i'
+            )
+            s = mpf.make_mpf_style(base_mpf_style='nightclouds', marketcolors=mc, rc={'font.size': 8})
             
             mpf.plot(
-                df.tail(60), # Last 60 candles
+                plot_data, # Last 60 candles
                 type='candle',
                 style=s,
                 volume=True,
+                addplot=macd_plots,
+                panel_ratios=(6,2,2), # Price: 60%, Volume: 20%, MACD: 20%
                 savefig=dict(fname=buf, dpi=100, bbox_inches='tight', format='png'),
-                axisoff=True, # Hide axis to save tokens (just pure pattern) ? Or keep axis for price context? 
-                # Better keep axis for context (Price values matters)
+                axisoff=True, 
                 tight_layout=True
             )
             
