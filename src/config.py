@@ -136,7 +136,7 @@ MACD_SIGNAL = 9
 # ==============================================================================
 # 🎯 EKSEKUSI ORDER & TARGET PROFIT
 # ==============================================================================
-ENABLE_MARKET_ORDERS = True      # Izinkan Market Order (Hajar Kanan/Kiri)?
+ENABLE_MARKET_ORDERS = False      # Izinkan Market Order (Hajar Kanan/Kiri)?
 LIMIT_ORDER_EXPIRY_SECONDS = 147600 # Batas waktu Limit Order pending (dihapus jika basi) -> ~41 Jam
 
 # Stop Loss (SL) & Take Profit (TP) - Fallback/Default
@@ -185,10 +185,9 @@ RSS_FEED_URLS = [
 # 📋 DAFTAR STRATEGI
 # ==============================================================================
 AVAILABLE_STRATEGIES = {
-    'VOLATILITY_BREAKOUT_ADVANCED': "Mendeteksi breakout signifikan dengan volume tinggi dan ADX > 25. RECOMMENDED EXECUTION: [MARKET] karena harga bergerak cepat dan jarang pullback dalam waktu dekat.",
-    'LIQUIDITY_REVERSAL_MASTER': "Mencari pembalikan arah di area Pivot (S1/R1) atau Liquidity Sweep. RECOMMENDED EXECUTION: [LIQUIDITY_HUNT] untuk mendapatkan harga terbaik saat 'Stop Hunt' terjadi, dengan R:R yang jauh lebih superior.",
-    'STANDARD_MULTI_CONFIRMATION': "Analisa teknikal seimbang. Evaluasi Risk:Reward (R:R) dari opsi MARKET vs LIQUIDITY_HUNT. Pilih yang memberikan R:R terbaik dan probabilitas sukses tertinggi.",
-    'BB_BOUNCE': "Jika ADX sedang lemah/sideways (< 20), fokus pada setup Reversal di area BB Top (Upper Band) atau BB Bottom (Lower Band). Sangat disarankan menggunakan [LIQUIDITY_HUNT] untuk mendapatkan harga entry terbaik saat terjadi pantulan."
+    'LIQUIDITY_REVERSAL_MASTER': "Mencari pembalikan arah di area Pivot (S1/R1) atau Liquidity Sweep. ",
+    'STANDARD_MULTI_CONFIRMATION': "Analisa teknikal seimbang. ",
+    'BB_BOUNCE': "Jika ADX lemah/sideways (< 20), fokus pada setup Reversal di area BB Top (Upper Band) atau BB Bottom (Lower Band). "
 }
 
 # ==============================================================================
@@ -197,7 +196,7 @@ AVAILABLE_STRATEGIES = {
 # Format: {"symbol": "KOIN/USDT", "category": "KATEGORI", "leverage": X, "amount": Y}
 DAFTAR_KOIN = [
     # --- Kategori: LAYER 1 ---
-    {"symbol": "XRP/USDT", "category": "LAYER_1", "leverage": 25, "margin_type": "isolated", "amount": 4, "btc_corr": True},
+    {"symbol": "XRP/USDT", "category": "LAYER_1", "leverage": 20, "margin_type": "isolated", "amount": 3, "btc_corr": True},
     
     # Tambahkan koin lain di sini...
 ]
