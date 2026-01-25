@@ -23,7 +23,7 @@ CMC_API_KEY = os.getenv("CMC_API_KEY")
 # ==============================================================================
 # --- SECTION 2: SYSTEM & APPLICATION CONFIG ---
 # ==============================================================================
-PAKAI_DEMO = True               # Set True untuk menggunakan Binance Testnet
+PAKAI_DEMO = False               # Set True untuk menggunakan Binance Testnet
 LOG_FILENAME = 'bot_trading.log'
 TRACKER_FILENAME = 'safety_tracker.json'
 
@@ -165,6 +165,7 @@ ATR_MULTIPLIER_SL = 2.0
 ATR_MULTIPLIER_TP1 = 3.0
 
 # Order Management
+ENABLE_MARKET_ORDERS = True      # Set False untuk mematikan Market Order (Force Limit/Liquidity Hunt)
 ORDER_SLTP_RETRIES = 3           # Re-try pasang SL/TP jika gagal
 ORDER_SLTP_RETRY_DELAY = 2       # Jeda antar percobaan (detik)
 LIMIT_ORDER_EXPIRY_SECONDS = 147600 # ~41 Jam

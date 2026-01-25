@@ -122,7 +122,8 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern
         m = trade_scenarios.get('market', {})
         h = trade_scenarios.get('liquidity_hunt', {})
         
-        execution_options_str = f"""
+        if config.ENABLE_MARKET_ORDERS:
+            execution_options_str = f"""
 [EXECUTION OPTIONS]
 OPTION A: AGGRESSIVE (MARKET)
 - Entry: Market Price ({format_price(m.get('entry', 0))})
@@ -131,6 +132,16 @@ OPTION A: AGGRESSIVE (MARKET)
 - Risk:Reward: 1:{m.get('rr', 0)}
 
 OPTION B: PASSIVE (LIQUIDITY HUNT)
+- Entry: Limit Order at {format_price(h.get('entry', 0))} (Sweeping Standard SLs)
+- Stop Loss: {format_price(h.get('sl', 0))}
+- Take Profit: {format_price(h.get('tp', 0))}
+- Risk:Reward: 1:{h.get('rr', 0)}
+"""
+        else:
+            # Market Order DISABLED
+            execution_options_str = f"""
+[EXECUTION OPTIONS]
+OPTION: PASSIVE (LIQUIDITY HUNT)
 - Entry: Limit Order at {format_price(h.get('entry', 0))} (Sweeping Standard SLs)
 - Stop Loss: {format_price(h.get('sl', 0))}
 - Take Profit: {format_price(h.get('tp', 0))}
@@ -263,7 +274,9 @@ FINAL INSTRUCTIONS:
 3. CHECK TRIGGER: Are {config.TIMEFRAME_EXEC} Momentum indicators (RSI/Stoch/ADX) giving a clear signal?
 4. SELECT STRATEGY & EXECUTION: 
    - Choose the Strategy that aligns with the Bias.
-   - Select OPTION A (Aggressive) for clear momentum, or OPTION B (Passive) if a Stop Run/Liquidity Sweep is detected.
+4. SELECT STRATEGY & EXECUTION: 
+   - Choose the Strategy that aligns with the Bias.
+   - Select OPTION A (Aggressive - IF AVAILABLE) for clear momentum, or OPTION B (Passive) if a Stop Run/Liquidity Sweep is detected. { "If Market Orders are DISABLED, YOU MUST CHOOSE LIQUIDITY_HUNT." if not config.ENABLE_MARKET_ORDERS else "" }
 5. DECISION: Return WAIT if signals are conflicting.
 
 OUTPUT FORMAT (JSON ONLY):

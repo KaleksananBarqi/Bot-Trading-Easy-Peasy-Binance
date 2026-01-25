@@ -495,12 +495,31 @@ async def main():
                         logger.info(f"🔫 Liquidity Hunt Selected. Limit Order @ {entry_price:.4f}")
                     else:
                         # Default / Market Logic
-                        order_type = 'market'
-                        # Use recalculation from params['market'] to be consistent with what AI saw
-                        mode_data = params['market']
-                        entry_price = tech_data['price'] # Market order uses current price roughly
-                        sl_price = mode_data['sl']
-                        tp_price = mode_data['tp']
+                        # [MODIFIED] Check Config First
+                        if not config.ENABLE_MARKET_ORDERS:
+                             # FORCE FALLBACK TO LIQUIDITY HUNT
+                             order_type = 'limit'
+                             
+                             # Use Liquidity Hunt Params if available, otherwise calc manually? 
+                             # params['liquidity_hunt'] should be available from calc.
+                             mode_data = params.get('liquidity_hunt', params['market']) # Fallback to market params if lh missing (shouldn't happen)
+                             
+                             # Force Entry to be Limit (e.g. at Open Price or slightly optimized?)
+                             # Liquidity Hunt assumes Limit at specific level. 
+                             # If we fallback from Market, we might need a distinct logic, 
+                             # but safely we just use the Liquidity Hunt parameters calculated.
+                             entry_price = mode_data.get('entry', tech_data['price'])
+                             sl_price = mode_data['sl']
+                             tp_price = mode_data['tp']
+                             logger.info(f"🛡️ Market Order Disabled. Forcing Limit Order @ {entry_price:.4f}")
+                             exec_mode = 'LIQUIDITY_HUNT (FORCED)'
+                        else:
+                             order_type = 'market'
+                             # Use recalculation from params['market'] to be consistent with what AI saw
+                             mode_data = params['market']
+                             entry_price = tech_data['price'] # Market order uses current price roughly
+                             sl_price = mode_data['sl']
+                             tp_price = mode_data['tp']
 
                     rr_ratio = abs(tp_price - entry_price) / abs(entry_price - sl_price) if abs(entry_price - sl_price) > 0 else 0
                     
