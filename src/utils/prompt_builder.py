@@ -138,6 +138,31 @@ OPTION B: PASSIVE (LIQUIDITY HUNT)
 """
 
     # ==========================================
+    # 2.6 PREPARE PATTERN & RAW DATA
+    # ==========================================
+    pattern_text = "Not Available"
+    raw_stats_str = ""
+    
+    if isinstance(pattern_analysis, dict):
+        # New Format with Raw Data
+        pattern_text = pattern_analysis.get('analysis', 'Not Available')
+        raw = pattern_analysis.get('raw_data', {})
+        if raw:
+            raw_stats_str = (
+                 f"- [RAW DATA] Last Candle: O={format_price(raw.get('open'))} H={format_price(raw.get('high'))} L={format_price(raw.get('low'))} C={format_price(raw.get('close'))}\n"
+                 f"- [INDICATORS] MACD: {raw.get('macd',0):.4f} | Sig: {raw.get('macd_signal',0):.4f} | Hist: {raw.get('macd_hist',0):.4f} | Vol: {raw.get('volume',0):.1f}"
+            )
+    else:
+        # Legacy Format (String only)
+        pattern_text = pattern_analysis if pattern_analysis else "Not Available"
+
+    pattern_section_content = f"- Chart Pattern Analysis: {pattern_text}\n"
+    if raw_stats_str:
+        pattern_section_content += f"{raw_stats_str}\n"
+    
+    pattern_section_content += "*INSTRUCTION: Use this pattern & raw data to confirm the Macro Bias.*"
+
+    # ==========================================
     # 3. PROMPT CONSTRUCTION
     # ==========================================
     
@@ -186,8 +211,7 @@ TASK: Analyze market data for {symbol} using the Multi-Timeframe logic below. De
 
 --------------------------------------------------
 2. SETUP VALIDATION (TIMEFRAME: {config.TIMEFRAME_SETUP})
-- Chart Pattern Analysis: {pattern_analysis if pattern_analysis else "Not Available"}
-*INSTRUCTION: Use this pattern to confirm the Macro Bias.*
+{pattern_section_content}
 --------------------------------------------------
 
 --------------------------------------------------
@@ -312,12 +336,22 @@ OUTPUT FORMAT (JSON ONLY):
 """
     return prompt
 
-def build_pattern_recognition_prompt(symbol, timeframe):
+def build_pattern_recognition_prompt(symbol, timeframe, raw_data=None):
     """
     Menyusun prompt untuk Vision AI Pattern Recognition.
     """
+    raw_info = ""
+    if raw_data:
+        raw_info = (
+            f"\n\n[SUPPLEMENTARY DATA]\n"
+            f"Here are the exact numbers for the latest candle in the chart:\n"
+            f"- Price: Open={raw_data.get('open')}, High={raw_data.get('high')}, Low={raw_data.get('low')}, Close={raw_data.get('close')}\n"
+            f"- MACD (12,26,9): Line={raw_data.get('macd', 0):.4f}, Signal={raw_data.get('macd_signal', 0):.4f}, Histogram={raw_data.get('macd_hist', 0):.4f}\n"
+            f"- Volume: {raw_data.get('volume', 0)}\n"
+        )
+
     prompt_text = (
-        f"Analyze this {timeframe} chart for {symbol}. "
+        f"Analyze this {timeframe} chart for {symbol}. {raw_info}"
         "1. VISUAL PATTERNS: Identify Chart Patterns (e.g. Head & Shoulders, Flags, Wedges, Double Top/Bottom).\n"
         "2. MACD DIVERGENCE (Bottom Panel): Look for divergences between Price and MACD Histogram/Lines.\n"
         "   - BULLISH DIVERGENCE: Price makes Lower Low, MACD makes Higher Low -> Signal Reversal UP.\n"

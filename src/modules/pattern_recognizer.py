@@ -40,12 +40,12 @@ class PatternRecognizer:
 
     def generate_chart_image(self, symbol):
         """
-        Generate candlestick chart image using mplfinance.
-        Returns base64 encoded string.
+        Generate candlestick chart image using mplfinance AND extract raw stats.
+        Returns (base64_string, raw_stats_dict).
         """
         candles = self.get_setup_candles(symbol)
         if not candles or len(candles) < config.MACD_SLOW: # Need at least MACD_SLOW
-            return None
+            return None, None
         
         try:
             # Convert to DataFrame
@@ -61,6 +61,24 @@ class PatternRecognizer:
             # Clean NaN created by indicators
             df.dropna(inplace=True)
 
+            # --- EXTRACT RAW STATS (For AI Text Context) ---
+            last_row = df.iloc[-1]
+            macd_col = df.columns[-3] # MACD Line
+            hist_col = df.columns[-2] # Histogram
+            sig_col  = df.columns[-1] # Signal Line
+            
+            raw_stats = {
+                "close": last_row['close'],
+                "open": last_row['open'],
+                "high": last_row['high'],
+                "low": last_row['low'],
+                "volume": last_row['volume'],
+                "macd": last_row[macd_col],
+                "macd_signal": last_row[sig_col],
+                "macd_hist": last_row[hist_col],
+                "last_ts": str(df.index[-1])
+            }
+
             # Create Buffer
             buf = io.BytesIO()
             
@@ -68,10 +86,6 @@ class PatternRecognizer:
             # Use the same slice for main plot and addplots
             plot_data = df.tail(60)
 
-            macd_col = df.columns[-3] # MACD Line
-            hist_col = df.columns[-2] # Histogram
-            sig_col  = df.columns[-1] # Signal Line
-            
             # Determine Histogram Colors
             colors = ['#26a69a' if v >= 0 else '#ef5350' for v in plot_data[hist_col]]
 
@@ -107,51 +121,46 @@ class PatternRecognizer:
             
             buf.seek(0)
             img_str = base64.b64encode(buf.read()).decode('utf-8')
-            return img_str
+            return img_str, raw_stats
             
         except Exception as e:
             logger.error(f"❌ Chart Generation Failed {symbol}: {e}")
-            return None
+            return None, None
 
     async def analyze_pattern(self, symbol):
         """
         Main function to get pattern analysis.
         Checks cache first.
+        Returns Dict: {'analysis': "...", 'raw_data': {...}} or Error String (wrapped in dict or handled by caller)
         """
         if not self.client or not config.USE_PATTERN_RECOGNITION:
-            return "Vision AI Disabled."
+            return {"analysis": "Vision AI Disabled."}
 
         # Check Cache based on last candle timestamp
         candles = self.get_setup_candles(symbol)
-        if not candles: return "Not enough data."
+        if not candles: return {"analysis": "Not enough data."}
         
         last_ts = candles[-1][0] # Timestamp newest candle
         
-        # If latest candle is NOT closed yet, we should look at the ONE BEFORE IT for stable pattern?
-        # Or usually we analyze the evolving pattern. Let's use current last timestamp as ID.
-        # But optimize: only analyze if 'last_ts' is different from cached 'last_ts'. 
-        # Since 'candles[-1]' updates every realtime tick (in market_data), we only want to analyze ONCE PER CANDLE or if substantial time passed?
-        # Better: analyze once per candle ID. If candle hasn't closed, we might spam request.
-        # Strategy: Analyze on NEW candle close? OR periodic timeout?
-        # For setup (4h), one analysis per 4h candle is enough.
-        
         cached = self.cache.get(symbol)
-        if cached and cached['candle_ts'] == last_ts:
+        if cached and cached.get('candle_ts') == last_ts:
             # Return cached analysis
-            return cached['analysis']
+            return cached['result']
 
         logger.info(f"👁️ Recognizing Pattern for {symbol} ({config.TIMEFRAME_SETUP})...")
         
-        # Generate Image
+        # Generate Image & Stats
         # Run in thread executor to not block async loop (mplfinance is blocking)
-        img_base64 = await asyncio.to_thread(self.generate_chart_image, symbol)
+        result = await asyncio.to_thread(self.generate_chart_image, symbol)
+        img_base64, raw_stats = result
         
         if not img_base64:
-            return "Failed to generate chart."
+            return {"analysis": "Failed to generate chart."}
 
         # Call AI
         try:
-            prompt_text = build_pattern_recognition_prompt(symbol, config.TIMEFRAME_SETUP)
+            # Pass Raw Stats to Prompt Builder
+            prompt_text = build_pattern_recognition_prompt(symbol, config.TIMEFRAME_SETUP, raw_stats)
             
             logger.info(f"📤 Sending chart image to Vision AI for {symbol}...")
             
@@ -176,16 +185,22 @@ class PatternRecognizer:
                 temperature=config.AI_VISION_TEMPERATURE
             )
             
-            analysis = response.choices[0].message.content
+            analysis_text = response.choices[0].message.content
+            
+            # Construct Result
+            final_result = {
+                'analysis': analysis_text,
+                'raw_data': raw_stats
+            }
             
             # Update Cache
             self.cache[symbol] = {
                 'candle_ts': last_ts,
-                'analysis': analysis
+                'result': final_result
             }
-            logger.info(f"✅ Pattern Analysis Done {symbol}: {analysis[:50]}...")
-            return analysis
+            logger.info(f"✅ Pattern Analysis Done {symbol}: {analysis_text[:50]}...")
+            return final_result
             
         except Exception as e:
             logger.error(f"❌ Vision AI Error {symbol}: {e}")
-            return f"Error: {str(e)}"
+            return {"analysis": f"Error: {str(e)}"}
