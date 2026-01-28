@@ -48,7 +48,7 @@ API_RECV_WINDOW = 10000          # Toleransi waktu server Binance (ms)
 AI_MODEL_NAME = 'deepseek/deepseek-v3.2'
 AI_TEMPERATURE = 0.0             # 0.0 = Logis & Konsisten, 1.0 = Kreatif & Halusinasi
 AI_CONFIDENCE_THRESHOLD = 75     # Minimal keyakinan (%) untuk berani eksekusi
-AI_SYSTEM_ROLE = "You are an elite Crypto Trading AI capable of Adaptive Multi-Strategy Execution with an uncompromising focus on Risk Management and Capital Preservation."
+AI_SYSTEM_ROLE = "You are an elite Crypto Trading AI capable of Adaptive Multi-Strategy Execution."
 AI_BASE_URL = "https://openrouter.ai/api/v1"
 
 # Identitas Bot
