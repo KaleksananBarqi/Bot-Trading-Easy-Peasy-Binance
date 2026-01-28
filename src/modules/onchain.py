@@ -1,24 +1,46 @@
 
+import time
+from datetime import datetime
 import requests
 import config
 from src.utils.helper import logger
 
 class OnChainAnalyzer:
     def __init__(self):
-        self.whale_transactions = [] # List of strings: "$500k Buy BTC"
-        self.stablecoin_inflow = "Neutral" # Neutral, Positive, Negative
+        self.whale_transactions = []  # List of strings: "🐋 [14:30] BUY BTC/USDT worth $1,500,000"
+        self.stablecoin_inflow = "Neutral"  # Neutral, Positive, Negative
+        
+        # De-duplication state
+        self._last_whale_key: str | None = None
+        self._last_whale_time: float = 0
+        self._dedup_window_seconds: int = 5  # Skip transaksi identik dalam 5 detik
 
-    def detect_whale(self, symbol, size_usdt, side):
+    def detect_whale(self, symbol: str, size_usdt: float, side: str) -> None:
         """
-        Called by WebSocket AggTrade or OrderUpdate to record big trades
+        Called by WebSocket AggTrade or OrderUpdate to record big trades.
+        Includes de-duplication to prevent logging identical transactions.
         """
         if size_usdt >= config.WHALE_THRESHOLD_USDT:
-            emoji = "🐋"
-            msg = f"{emoji} {side} {symbol} worth ${size_usdt:,.0f}"
+            current_time = time.time()
+            
+            # De-duplication: Skip jika transaksi identik dalam window waktu
+            whale_key = f"{side}_{symbol}_{int(size_usdt)}"
+            if whale_key == self._last_whale_key and (current_time - self._last_whale_time) < self._dedup_window_seconds:
+                logger.debug(f"🐋 Skipped duplicate whale: {whale_key}")
+                return  # Skip duplicate
+            
+            # Update de-duplication state
+            self._last_whale_key = whale_key
+            self._last_whale_time = current_time
+            
+            # Format message dengan timestamp untuk clarity
+            timestamp = datetime.now().strftime("%H:%M")
+            msg = f"🐋 [{timestamp}] {side} {symbol} worth ${size_usdt:,.0f}"
             self.whale_transactions.append(msg)
-            # Keep only last 10
+            
+            # Keep only last N transactions
             if len(self.whale_transactions) > config.WHALE_HISTORY_LIMIT:
-               self.whale_transactions.pop(0)
+                self.whale_transactions.pop(0)
             
 
 

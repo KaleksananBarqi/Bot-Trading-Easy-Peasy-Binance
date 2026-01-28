@@ -323,7 +323,7 @@ async def main():
                 await asyncio.sleep(config.LOOP_SKIP_DELAY)
                 continue
 
-            sentiment_data = sentiment.get_latest()
+            sentiment_data = sentiment.get_latest(symbol=symbol)
             onchain_data = onchain.get_latest()
 
             # --- STEP B: CHECK EXCLUSION (Cooldown / Existing Position) ---
@@ -416,6 +416,12 @@ async def main():
             
             # Pattern Recognition (Vision)
             pattern_ctx = await pattern_recognizer.analyze_pattern(symbol)
+            
+            # Validasi Pattern Output - Skip jika gagal/terpotong
+            if not pattern_ctx.get('is_valid', True):
+                logger.warning(f"⚠️ Skipping {symbol} - Pattern analysis invalid/truncated")
+                await asyncio.sleep(config.LOOP_SKIP_DELAY)
+                continue
             
             # Order Book Depth Analysis (Scalping Context)
             ob_depth = await market_data.get_order_book_depth(symbol)

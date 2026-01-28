@@ -13,6 +13,44 @@ def format_price(value):
     if value < 50.0: return f"{value:.4f}"
     return f"{value:.2f}"
 
+def get_trend_narrative(price: float, ema_fast: float, ema_slow: float) -> tuple[str, str]:
+    """
+    Menghasilkan narasi trend yang jelas berdasarkan posisi Price terhadap kedua EMA.
+    
+    Returns:
+        tuple: (trend_narrative, ema_alignment)
+        
+    Logic Matrix:
+    | Price vs EMA_Fast | Price vs EMA_Slow | Narrative           |
+    |-------------------|-------------------|---------------------|
+    | Above             | Above             | STRONG BULLISH      |
+    | Below             | Below             | STRONG BEARISH      |
+    | Below             | Above             | BULLISH PULLBACK    |
+    | Above             | Below             | BEARISH BOUNCE      |
+    """
+    price_above_fast = price > ema_fast
+    price_above_slow = price > ema_slow
+    
+    # EMA Alignment (Fast vs Slow)
+    if ema_fast > ema_slow:
+        ema_alignment = "BULLISH ALIGNMENT (Fast > Slow)"
+    else:
+        ema_alignment = "BEARISH ALIGNMENT (Fast < Slow)"
+    
+    # Trend Narrative based on matrix
+    if price_above_fast and price_above_slow:
+        trend_narrative = "STRONG BULLISH - Price above both EMAs"
+    elif not price_above_fast and not price_above_slow:
+        trend_narrative = "STRONG BEARISH - Price below both EMAs"
+    elif not price_above_fast and price_above_slow:
+        trend_narrative = "BULLISH PULLBACK - Price dipping but still in uptrend"
+    elif price_above_fast and not price_above_slow:
+        trend_narrative = "BEARISH BOUNCE - Price recovering but still in downtrend"
+    else:
+        trend_narrative = "UNCLEAR"
+    
+    return trend_narrative, ema_alignment
+
 def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_analysis=None, trade_scenarios=None, show_btc_context=True):
     """
     Menyusun prompt untuk AI berdasarkan data teknikal, sentimen, dan on-chain.
@@ -50,6 +88,9 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern
     ema_slow = tech_data.get('ema_slow', 0)
     ema_pos = tech_data.get('price_vs_ema', 'UNKNOWN')
     trend_major = tech_data.get('trend_major', 'UNKNOWN')
+    
+    # Generate clear trend narrative for AI
+    trend_narrative, ema_alignment = get_trend_narrative(price, ema_fast, ema_slow)
     
     # Volatility & Momentum
     bb_upper = tech_data.get('bb_upper', 0)
@@ -249,9 +290,9 @@ TASK: Analyze market data for {symbol} using the Multi-Timeframe logic below. De
 - ADX ({config.ADX_PERIOD}): {adx:.2f} (Trend Strength)
 
 [TREND]
-- Price: {format_price(price)}
-- EMA Status: {ema_pos} (Fast: {format_price(ema_fast)} vs Slow: {format_price(ema_slow)})
-- Major Trend (EMA {config.EMA_SLOW}): {trend_major}
+- Current Price: {format_price(price)}
+- Trend Signal: {trend_narrative}
+- EMA Details: Fast({config.EMA_FAST})={format_price(ema_fast)} | Slow({config.EMA_SLOW})={format_price(ema_slow)} | {ema_alignment}
 
 [VOLATILITY & VOLUME]
 - Bollinger Bands: Upper={format_price(bb_upper)}, Lower={format_price(bb_lower)}

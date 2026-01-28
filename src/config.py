@@ -30,7 +30,7 @@ CMC_API_KEY = os.getenv("CMC_API_KEY")     # CoinMarketCap
 # ==============================================================================
 # ⚙️ PENGATURAN SISTEM & APLIKASI
 # ==============================================================================
-PAKAI_DEMO = False               # False = Real Money, True = Testnet (Uang Monopoly)
+PAKAI_DEMO = True               # False = Real Money, True = Testnet (Uang Monopoly)
 LOG_FILENAME = 'bot_trading.log'
 TRACKER_FILENAME = 'safety_tracker.json'
 
@@ -67,7 +67,12 @@ SENTIMENT_PROVIDER = 'RSS_Feed'  # Sumber: 'RSS_Feed'
 USE_PATTERN_RECOGNITION = True
 AI_VISION_MODEL = 'meta-llama/llama-4-maverick' # Model vision
 AI_VISION_TEMPERATURE = 0.0
-AI_VISION_MAX_TOKENS = 150
+AI_VISION_MAX_TOKENS = 300            # Naikkan untuk mencegah output terpotong
+
+# Validasi Pattern Recognition
+PATTERN_MAX_RETRIES = 2               # Berapa kali retry jika output tidak valid
+PATTERN_MIN_ANALYSIS_LENGTH = 80      # Minimal panjang karakter output yang dianggap valid
+PATTERN_REQUIRED_KEYWORDS = ['BULLISH', 'BEARISH', 'NEUTRAL']  # Minimal satu harus ada
 
 # Data OnChain
 ONCHAIN_PROVIDER = 'DefiLlama'   # Sumber data OnChain
@@ -170,8 +175,9 @@ WS_URL_FUTURES_TESTNET = "wss://stream.binancefuture.com/stream?streams="
 WS_KEEP_ALIVE_INTERVAL = 1800
 
 # Sumber Berita (RSS Feeds)
-NEWS_MAX_PER_SOURCE = 2          # Ambil 2 berita trbaru per web
-NEWS_RETENTION_LIMIT = 15        # Simpan max 15 berita di memori
+NEWS_MAX_PER_SOURCE = 3          # Ambil 3 berita terbaru per web
+NEWS_MAX_TOTAL = 30              # Total berita mentah yang disimpan (sebelum filter)
+NEWS_RETENTION_LIMIT = 10        # Max berita relevan yang dikirim ke prompt per koin
 NEWS_MAX_AGE_HOURS = 6           # Jangan ambil berita yg > 6 jam lalu
 RSS_FEED_URLS = [
     "https://www.theblock.co/rss.xml",

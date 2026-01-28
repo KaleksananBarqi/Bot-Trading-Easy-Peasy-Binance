@@ -127,18 +127,48 @@ class PatternRecognizer:
             logger.error(f"❌ Chart Generation Failed {symbol}: {e}")
             return None, None
 
+    def _is_valid_analysis(self, analysis_text: str) -> bool:
+        """
+        Validasi apakah output Vision AI cukup lengkap dan tidak terpotong.
+        Kriteria:
+        1. Panjang minimal sesuai config
+        2. Mengandung salah satu keyword bias (BULLISH/BEARISH/NEUTRAL)
+        3. Tidak berakhir dengan kata yang terpotong (misal: "bullish" tanpa titik di akhir)
+        """
+        if not analysis_text:
+            return False
+        
+        # Cek panjang minimal
+        if len(analysis_text) < config.PATTERN_MIN_ANALYSIS_LENGTH:
+            return False
+        
+        # Cek keyword bias
+        text_upper = analysis_text.upper()
+        has_bias = any(kw in text_upper for kw in config.PATTERN_REQUIRED_KEYWORDS)
+        if not has_bias:
+            return False
+        
+        # Cek apakah kalimat terpotong (heuristic: tidak diakhiri tanda baca/emoji)
+        analysis_stripped = analysis_text.strip()
+        if analysis_stripped and analysis_stripped[-1].isalpha():
+            # Kemungkinan terpotong mid-word
+            return False
+        
+        return True
+
     async def analyze_pattern(self, symbol):
         """
         Main function to get pattern analysis.
-        Checks cache first.
-        Returns Dict: {'analysis': "...", 'raw_data': {...}} or Error String (wrapped in dict or handled by caller)
+        Checks cache first. Implements retry if validation fails.
+        Returns Dict: {'analysis': "...", 'raw_data': {...}, 'is_valid': bool}
         """
         if not self.client or not config.USE_PATTERN_RECOGNITION:
-            return {"analysis": "Vision AI Disabled."}
+            return {"analysis": "Vision AI Disabled.", "is_valid": False}
 
         # Check Cache based on last candle timestamp
         candles = self.get_setup_candles(symbol)
-        if not candles: return {"analysis": "Not enough data."}
+        if not candles: 
+            return {"analysis": "Not enough data.", "is_valid": False}
         
         last_ts = candles[-1][0] # Timestamp newest candle
         
@@ -155,52 +185,74 @@ class PatternRecognizer:
         img_base64, raw_stats = result
         
         if not img_base64:
-            return {"analysis": "Failed to generate chart."}
+            return {"analysis": "Failed to generate chart.", "is_valid": False}
 
-        # Call AI
-        try:
-            # Pass Raw Stats to Prompt Builder
-            prompt_text = build_pattern_recognition_prompt(symbol, config.TIMEFRAME_SETUP, raw_stats)
-            
-            logger.info(f"📤 Sending chart image to Vision AI for {symbol}...")
-            
-            response = await self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt_text},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/png;base64,{img_base64}",
-                                    "detail": "low" # Low detail to save tokens, usually enough for patterns
+        # Retry Loop for AI Call
+        for attempt in range(config.PATTERN_MAX_RETRIES + 1):
+            try:
+                # Pass Raw Stats to Prompt Builder
+                prompt_text = build_pattern_recognition_prompt(symbol, config.TIMEFRAME_SETUP, raw_stats)
+                
+                logger.info(f"📤 Sending chart image to Vision AI for {symbol} (attempt {attempt + 1})...")
+                
+                response = await self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": prompt_text},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/png;base64,{img_base64}",
+                                        "detail": "low" # Low detail to save tokens, usually enough for patterns
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
+                    ],
+                    max_tokens=config.AI_VISION_MAX_TOKENS,
+                    temperature=config.AI_VISION_TEMPERATURE
+                )
+                
+                analysis_text = response.choices[0].message.content
+                
+                # VALIDASI OUTPUT
+                if self._is_valid_analysis(analysis_text):
+                    # Output valid - gunakan
+                    final_result = {
+                        'analysis': analysis_text,
+                        'raw_data': raw_stats,
+                        'is_valid': True
                     }
-                ],
-                max_tokens=config.AI_VISION_MAX_TOKENS,
-                temperature=config.AI_VISION_TEMPERATURE
-            )
-            
-            analysis_text = response.choices[0].message.content
-            
-            # Construct Result
-            final_result = {
-                'analysis': analysis_text,
-                'raw_data': raw_stats
-            }
-            
-            # Update Cache
-            self.cache[symbol] = {
-                'candle_ts': last_ts,
-                'result': final_result
-            }
-            logger.info(f"✅ Pattern Analysis Done {symbol}: {analysis_text[:50]}...")
-            return final_result
-            
-        except Exception as e:
-            logger.error(f"❌ Vision AI Error {symbol}: {e}")
-            return {"analysis": f"Error: {str(e)}"}
+                    
+                    # Update Cache
+                    self.cache[symbol] = {
+                        'candle_ts': last_ts,
+                        'result': final_result
+                    }
+                    logger.info(f"✅ Pattern Analysis Done {symbol} (attempt {attempt + 1}): {analysis_text[:50]}...")
+                    return final_result
+                else:
+                    # Output tidak valid - retry atau skip
+                    logger.warning(f"⚠️ Pattern output terpotong {symbol} (attempt {attempt + 1}/{config.PATTERN_MAX_RETRIES + 1}): {analysis_text[:60]}...")
+                    if attempt < config.PATTERN_MAX_RETRIES:
+                        await asyncio.sleep(1)  # Brief delay sebelum retry
+                        continue
+                
+            except Exception as e:
+                logger.error(f"❌ Vision AI Error {symbol} (attempt {attempt + 1}): {e}")
+                if attempt < config.PATTERN_MAX_RETRIES:
+                    await asyncio.sleep(1)
+                    continue
+                break
+        
+        # Semua retry gagal - return dengan flag invalid
+        logger.error(f"❌ All pattern retries failed for {symbol}. Skipping.")
+        return {
+            'analysis': 'Pattern analysis failed after retries.',
+            'raw_data': raw_stats if raw_stats else {},
+            'is_valid': False
+        }
+
