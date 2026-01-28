@@ -1,16 +1,12 @@
 
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import asyncio
 
 import time
 import html
 import ccxt.async_support as ccxt
 import config
-from src.utils.helper import logger, kirim_tele, kirim_tele_sync, parse_timeframe_to_seconds, get_next_rounded_time
+from src.utils.helper import logger, kirim_tele, kirim_tele_sync, parse_timeframe_to_seconds, get_next_rounded_time, get_coin_leverage
 from src.utils.prompt_builder import build_market_prompt, build_sentiment_prompt
 from src.utils.calc import calculate_trade_scenarios
 
@@ -156,11 +152,7 @@ async def main():
                 
                 # --- ROI CALCULATION ---
                 # 1. Get Leverage from Config
-                leverage = config.DEFAULT_LEVERAGE
-                for c in config.DAFTAR_KOIN:
-                    if c['symbol'] == symbol:
-                        leverage = c.get('leverage', config.DEFAULT_LEVERAGE)
-                        break
+                leverage = get_coin_leverage(symbol)
                 
                 # 2. Calculate Margin & ROI
                 # Margin = Size / Leverage
@@ -328,7 +320,7 @@ async def main():
             tech_data = market_data.get_technical_data(symbol)
             if not tech_data:
                 logger.warning(f"⚠️ No tech data or insufficient history for {symbol}")
-                await asyncio.sleep(2)
+                await asyncio.sleep(config.LOOP_SKIP_DELAY)
                 continue
 
             sentiment_data = sentiment.get_latest()
@@ -400,7 +392,7 @@ async def main():
             
 
             if not is_interesting:
-                await asyncio.sleep(2)
+                await asyncio.sleep(config.LOOP_SKIP_DELAY)
                 continue
 
             # Strategy Selection is now handled by AI

@@ -1,6 +1,12 @@
+from typing import Dict, Any
 import config
 
-def calculate_trade_scenarios(price, atr, side, precision=4):
+def calculate_trade_scenarios(
+    price: float, 
+    atr: float, 
+    side: str, 
+    precision: int = 4
+) -> Dict[str, Any]:
     """
     Menghitung skenario trade untuk Market (Aggressive) vs Liquidity Hunt (Passive).
     

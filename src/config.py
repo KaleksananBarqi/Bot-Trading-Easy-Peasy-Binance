@@ -40,6 +40,7 @@ LOOP_SLEEP_DELAY = 1             # Istirahat antar putaran loop utama (detik)
 ERROR_SLEEP_DELAY = 5            # Istirahat jika terjadi error (detik)
 API_REQUEST_TIMEOUT = 10         # Batas waktu tunggu balasan server (detik)
 API_RECV_WINDOW = 10000          # Toleransi waktu server Binance (ms)
+LOOP_SKIP_DELAY = 2              # Delay saat skip coin karena data tidak lengkap (detik)
 
 # ==============================================================================
 # 🧠 KECERDASAN BUATAN (AI) & STRATEGI
@@ -60,7 +61,7 @@ ENABLE_SENTIMENT_ANALYSIS = False          # Aktifkan analisa sentimen berita?
 AI_SENTIMENT_MODEL = 'xiaomi/mimo-v2-flash' # Model ekonomis untuk baca berita
 SENTIMENT_ANALYSIS_INTERVAL = '2h'         # Seberapa sering cek sentimen (misal: tiap 2 jam)
 SENTIMENT_UPDATE_INTERVAL = '1h'           # Interval update data raw sentimen
-Sentiment_Provider = 'RSS_Feed'            # Sumber: 'RSS_Feed'
+SENTIMENT_PROVIDER = 'RSS_Feed'  # Sumber: 'RSS_Feed'
 
 # Analisa Visual (Chart Pattern)
 USE_PATTERN_RECOGNITION = True
@@ -69,7 +70,7 @@ AI_VISION_TEMPERATURE = 0.0
 AI_VISION_MAX_TOKENS = 150
 
 # Data OnChain
-OnChain_Provider = 'DefiLlama'     # Sumber data OnChain
+ONCHAIN_PROVIDER = 'DefiLlama'   # Sumber data OnChain
 
 # ==============================================================================
 # 💰 MANAJEMEN RISIKO & MONEY MANAGEMENT
@@ -89,6 +90,9 @@ MAX_POSITIONS_PER_CATEGORY = 5   # Batas maksimal koin aktif per kategori (Layer
 WHALE_THRESHOLD_USDT = 1000000   # Transaksi > $1 Juta ditandai sebagai Whale
 WHALE_HISTORY_LIMIT = 10         # Cek 10 transaksi terakhir
 STABLECOIN_INFLOW_THRESHOLD_PERCENT = 0.05 # Ambang batas aliran masuk stablecoin
+
+# Order Book Analysis
+ORDERBOOK_RANGE_PERCENT = 0.02   # Range depth analysis order book (2%)
 
 # Mekanisme Pendinginan (Anti-FOMO/Anti-Revenge)
 COOLDOWN_IF_PROFIT = 3600        # Jeda trading di koin ini jika PROFIT (detik)

@@ -50,7 +50,7 @@ logger = setup_logger()
 # ==========================================
 # TELEGRAM NOTIFIER
 # ==========================================
-async def kirim_tele(pesan, alert=False, channel='default'):
+async def kirim_tele(pesan: str, alert: bool = False, channel: str = 'default') -> None:
     """
     Kirim pesan ke Telegram.
     :param channel: 'default' (Sinyal Utama) atau 'sentiment' (Analisa Berita)
@@ -134,7 +134,7 @@ import time
 
 # ... (rest of imports)
 
-def get_next_rounded_time(interval_str):
+def get_next_rounded_time(interval_str: str) -> float:
     """
     Calculate the next fixed-time alignment timestamp (Unix Epoch based).
     Example: interval '1h' -> Returns next X:00:00 timestamp.
@@ -147,11 +147,11 @@ def get_next_rounded_time(interval_str):
     next_time = ((int(now) // interval_seconds) + 1) * interval_seconds
     return next_time
 
-def format_currency(num):
+def format_currency(num: float | None) -> str:
     if num is None: return "0.00"
     return f"{num:,.2f}"
 
-def parse_timeframe_to_seconds(tf_str):
+def parse_timeframe_to_seconds(tf_str: str) -> int:
     """
     Convert timeframe string (e.g. '1m', '1h') to seconds.
     Default to 60s if invalid.
@@ -161,7 +161,7 @@ def parse_timeframe_to_seconds(tf_str):
     unit = tf_str[-1].lower()
     try:
         val = int(tf_str[:-1])
-    except:
+    except ValueError:
         return 60
         
     if unit == 's': return val
@@ -169,3 +169,28 @@ def parse_timeframe_to_seconds(tf_str):
     elif unit == 'h': return val * 3600
     elif unit == 'd': return val * 86400
     else: return 60
+
+
+# ==========================================
+# CONFIG HELPERS
+# ==========================================
+def get_coin_config(symbol: str) -> dict | None:
+    """
+    Cari konfigurasi koin dari config.DAFTAR_KOIN.
+    Return None jika tidak ditemukan.
+    """
+    for coin in config.DAFTAR_KOIN:
+        if coin['symbol'] == symbol:
+            return coin
+    return None
+
+
+def get_coin_leverage(symbol: str) -> int:
+    """
+    Ambil leverage untuk symbol tertentu.
+    Return config.DEFAULT_LEVERAGE jika tidak ditemukan.
+    """
+    coin_cfg = get_coin_config(symbol)
+    if coin_cfg:
+        return coin_cfg.get('leverage', config.DEFAULT_LEVERAGE)
+    return config.DEFAULT_LEVERAGE

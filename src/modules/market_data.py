@@ -93,7 +93,7 @@ class MarketDataManager:
                 try:
                     oi_data = await self.exchange.fetch_open_interest(symbol)
                     oi_val = float(oi_data.get('openInterestAmount', 0))
-                except:
+                except ccxt.BaseError:
                     oi_val = 0.0
 
                 # We will update these via Rest mostly or WS if available
@@ -263,7 +263,8 @@ class MarketDataManager:
             await asyncio.sleep(config.WS_KEEP_ALIVE_INTERVAL)
             try:
                 await self.exchange.fapiPrivatePutListenKey({'listenKey': self.listen_key})
-            except: pass
+            except ccxt.NetworkError as e:
+                logger.debug(f"Keep alive listen key failed: {e}")
 
     async def _handle_kline(self, data):
         sym = data['s'].replace('USDT', '/USDT')
@@ -510,8 +511,8 @@ class MarketDataManager:
             
             mid_price = (bids[0][0] + asks[0][0]) / 2
             
-            # Filter Range 2%
-            range_limit = 0.02
+            # Filter Range from Config
+            range_limit = config.ORDERBOOK_RANGE_PERCENT
             
             bids_vol = 0
             for price, qty in bids:
