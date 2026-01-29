@@ -51,11 +51,12 @@ def get_trend_narrative(price: float, ema_fast: float, ema_slow: float) -> tuple
     
     return trend_narrative, ema_alignment
 
-def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_analysis=None, trade_scenarios=None, show_btc_context=True):
+def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_analysis=None, dual_scenarios=None, show_btc_context=True):
     """
     Menyusun prompt untuk AI berdasarkan data teknikal, sentimen, dan on-chain.
     Struktur Baru: Multi-Timeframe (Macro -> Setup -> Execution).
     Args:
+        dual_scenarios (dict): Result dari calculate_dual_scenarios(), berisi {"long": {...}, "short": {...}}.
         show_btc_context (bool): Jika False, data BTC dan korelasinya akan DISEMBUNYIKAN total dari AI.
     """
     
@@ -156,37 +157,39 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern
         btc_instruction = f"IMPORTANT: High BTC Correlation ({btc_corr:.2f}). Do NOT open positions against BTC Trend ({btc_trend})."
 
     # ==========================================
-    # 2.5 TRADE SCENARIOS (Market vs Liquidity Hunt)
+    # 2.5 DUAL TRADE SCENARIOS (Long vs Short)
     # ==========================================
     execution_options_str = "N/A"
-    if trade_scenarios:
-        m = trade_scenarios.get('market', {})
-        h = trade_scenarios.get('liquidity_hunt', {})
+    if dual_scenarios:
+        long_s = dual_scenarios.get('long', {})
+        short_s = dual_scenarios.get('short', {})
+        
+        long_m = long_s.get('market', {})
+        long_h = long_s.get('liquidity_hunt', {})
+        short_m = short_s.get('market', {})
+        short_h = short_s.get('liquidity_hunt', {})
         
         if config.ENABLE_MARKET_ORDERS:
+            # Full Mode: Show both Aggressive (Market) and Passive (Limit) for each direction
             execution_options_str = f"""
-[EXECUTION OPTIONS]
-OPTION A: AGGRESSIVE (MARKET)
-- Entry: Market Price ({format_price(m.get('entry', 0))})
-- Stop Loss: {format_price(m.get('sl', 0))}
-- Take Profit: {format_price(m.get('tp', 0))}
-- Risk:Reward: 1:{m.get('rr', 0)}
+[EXECUTION SCENARIOS]
+SCENARIO A: IF BULLISH (LONG)
+  > Option A1 (Aggressive/Market): Entry={format_price(long_m.get('entry', 0))}, SL={format_price(long_m.get('sl', 0))}, TP={format_price(long_m.get('tp', 0))}, R:R=1:{long_m.get('rr', 0)}
+  > Option A2 (Passive/Limit): Entry={format_price(long_h.get('entry', 0))}, SL={format_price(long_h.get('sl', 0))}, TP={format_price(long_h.get('tp', 0))}, R:R=1:{long_h.get('rr', 0)}
 
-OPTION B: PASSIVE (LIQUIDITY HUNT)
-- Entry: Limit Order at {format_price(h.get('entry', 0))} (Sweeping Standard SLs)
-- Stop Loss: {format_price(h.get('sl', 0))}
-- Take Profit: {format_price(h.get('tp', 0))}
-- Risk:Reward: 1:{h.get('rr', 0)}
+SCENARIO B: IF BEARISH (SHORT)
+  > Option B1 (Aggressive/Market): Entry={format_price(short_m.get('entry', 0))}, SL={format_price(short_m.get('sl', 0))}, TP={format_price(short_m.get('tp', 0))}, R:R=1:{short_m.get('rr', 0)}
+  > Option B2 (Passive/Limit): Entry={format_price(short_h.get('entry', 0))}, SL={format_price(short_h.get('sl', 0))}, TP={format_price(short_h.get('tp', 0))}, R:R=1:{short_h.get('rr', 0)}
 """
         else:
-            # Market Order DISABLED
+            # Passive Only Mode: Show only Liquidity Hunt for each direction
             execution_options_str = f"""
-[EXECUTION PLAN]
-- Mode: PASSIVE (LIQUIDITY HUNT)
-- Entry: Limit Order at {format_price(h.get('entry', 0))} (Sweeping Standard SLs)
-- Stop Loss: {format_price(h.get('sl', 0))}
-- Take Profit: {format_price(h.get('tp', 0))}
-- Risk:Reward: 1:{h.get('rr', 0)}
+[EXECUTION SCENARIOS]
+SCENARIO A: IF BULLISH (LONG)
+  > Entry={format_price(long_h.get('entry', 0))}, SL={format_price(long_h.get('sl', 0))}, TP={format_price(long_h.get('tp', 0))}, R:R=1:{long_h.get('rr', 0)}
+
+SCENARIO B: IF BEARISH (SHORT)
+  > Entry={format_price(short_h.get('entry', 0))}, SL={format_price(short_h.get('sl', 0))}, TP={format_price(short_h.get('tp', 0))}, R:R=1:{short_h.get('rr', 0)}
 """
 
     # ==========================================

@@ -8,7 +8,7 @@ import ccxt.async_support as ccxt
 import config
 from src.utils.helper import logger, kirim_tele, kirim_tele_sync, parse_timeframe_to_seconds, get_next_rounded_time, get_coin_leverage
 from src.utils.prompt_builder import build_market_prompt, build_sentiment_prompt
-from src.utils.calc import calculate_trade_scenarios
+from src.utils.calc import calculate_trade_scenarios, calculate_dual_scenarios
 
 # MODULE IMPORTS
 from src.modules.market_data import MarketDataManager
@@ -432,27 +432,15 @@ async def main():
             # Calculate Trade Scenarios BEFORE AI Call
             # AI need to know what "Market" vs "Liquidity Hunt" looks like
             current_price = tech_data['price']
-            # Determine potential side (Assumption for Prompt Context - AI can switch but we give baseline)
-            # We can give both BUY/SELL scenarios or just implied one.
-            # To be neutral, we calculate generic parameters or double scenarios.
-            # However, prompt builder usually contextualizes based on trend. 
-            # Simplification: We send "BUY" scenarios as standard reference, AI understands inverse for sell.
-            # OR better: Calc creates generic structure. Let's stick to "BUY" reference for prompt clarity
-            # unless we detect Bearish trend. Let's try to pass BOTH or Generic.
-            # Current calc implementation needs a side. Let's Default to 'BUY' for visualization,
-            # AI will inverse the logic if it wants to SELL (sl/tp inverted).
-            # Actually, `calc` is cheap. We can check trend.
-            pre_calc_side = 'BUY'
-            if tech_data['trend_major'] == 'Bearish' or tech_data['btc_trend'] == 'BEARISH':
-                pre_calc_side = 'SELL'
             
-            trade_scenarios = calculate_trade_scenarios(
+            # [NEW] Generate BOTH Long AND Short Scenarios for Neutral Prompt
+            # AI will decide direction based on its own analysis, not pre-guessed bias
+            dual_scenarios = calculate_dual_scenarios(
                 price=current_price,
-                atr=tech_data.get('atr', 0),
-                side=pre_calc_side 
+                atr=tech_data.get('atr', 0)
             )
 
-            prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_ctx, trade_scenarios, show_btc_context=show_btc_context)
+            prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_ctx, dual_scenarios, show_btc_context=show_btc_context)
             
             # Print Prompt for Debugging
             logger.info(f"📝 AI PROMPT INPUT for {symbol}:\n{prompt}")
@@ -490,13 +478,9 @@ async def main():
                     # 1. Determine Mode from AI
                     exec_mode = ai_decision.get('execution_mode', 'MARKET').upper()
                     
-                    # 2. Re-Calculate PRECISELY for the decided side
-                    # (Helper function `calculate_trade_scenarios` is lightweight)
-                    params = calculate_trade_scenarios(
-                        price=tech_data['price'],
-                        atr=tech_data.get('atr', 0),
-                        side=side
-                    )
+                    # 2. Use CACHED Dual Scenarios (Already calculated before AI call)
+                    # Select Long or Short based on AI decision
+                    params = dual_scenarios['long'] if side == 'buy' else dual_scenarios['short']
                     
                     # 3. Select Parameters
                     final_setup = {}
@@ -516,15 +500,7 @@ async def main():
                         if not config.ENABLE_MARKET_ORDERS:
                              # FORCE FALLBACK TO LIQUIDITY HUNT
                              order_type = 'limit'
-                             
-                             # Use Liquidity Hunt Params if available, otherwise calc manually? 
-                             # params['liquidity_hunt'] should be available from calc.
-                             mode_data = params.get('liquidity_hunt', params['market']) # Fallback to market params if lh missing (shouldn't happen)
-                             
-                             # Force Entry to be Limit (e.g. at Open Price or slightly optimized?)
-                             # Liquidity Hunt assumes Limit at specific level. 
-                             # If we fallback from Market, we might need a distinct logic, 
-                             # but safely we just use the Liquidity Hunt parameters calculated.
+                             mode_data = params.get('liquidity_hunt', params['market'])
                              entry_price = mode_data.get('entry', tech_data['price'])
                              sl_price = mode_data['sl']
                              tp_price = mode_data['tp']
@@ -532,7 +508,6 @@ async def main():
                              exec_mode = 'LIQUIDITY_HUNT (FORCED)'
                         else:
                              order_type = 'market'
-                             # Use recalculation from params['market'] to be consistent with what AI saw
                              mode_data = params['market']
                              entry_price = tech_data['price'] # Market order uses current price roughly
                              sl_price = mode_data['sl']

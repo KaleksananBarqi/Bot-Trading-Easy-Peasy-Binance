@@ -84,3 +84,25 @@ def calculate_trade_scenarios(
     }
     
     return scenarios
+
+
+def calculate_dual_scenarios(price: float, atr: float, precision: int = 4) -> Dict[str, Any]:
+    """
+    Menghitung skenario trade untuk KEDUA arah (Long & Short) secara bersamaan.
+    Digunakan untuk membuat AI Prompt yang netral (tidak bias ke satu arah).
+    
+    Args:
+        price (float): Harga saat ini.
+        atr (float): Nilai ATR saat ini.
+        precision (int): Desimal untuk pembulatan harga.
+        
+    Returns:
+        dict: {
+            "long": {"market": {...}, "liquidity_hunt": {...}},
+            "short": {"market": {...}, "liquidity_hunt": {...}}
+        }
+    """
+    return {
+        "long": calculate_trade_scenarios(price, atr, 'BUY', precision),
+        "short": calculate_trade_scenarios(price, atr, 'SELL', precision)
+    }
