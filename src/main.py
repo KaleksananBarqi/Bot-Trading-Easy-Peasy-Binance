@@ -28,23 +28,23 @@ pattern_recognizer = None
 
 async def safety_monitor_loop():
     """
-    Background loop to check for:
-    1. Pending orders (Securing positions)
-    2. Tracker cleanup
+    Background Task untuk memantau posisi terbuka.
+    - Cek Pending Orders (cleanup)
+    - Re-verify Tracker consistency
+    - (Trailing Stop sekarang via WebSocket push, bukan polling di sini)
     """
     logger.info("🛡️ Safety Monitor Started")
     while True:
         try:
-            # Sync positions from Binance
-            count = await executor.sync_positions()
-
-            # Sync Pending Orders (Handle Manual Cancel)
+            # 1. Sync & Cleanup Pending Orders
             await executor.sync_pending_orders()
             
-            # Check Tracker vs Real Positions
+            # 2. Sync Posisi vs Tracker (Housekeeping)
+            # Pastikan jika ada posisi manual/baru yang belum masuk tracker, kita amankan.
+            count = await executor.sync_positions()
+            
             for base_sym, pos in executor.position_cache.items():
                 symbol = pos['symbol']
-                # If position exists but not in tracker OR status is PENDING
                 tracker = executor.safety_orders_tracker.get(symbol, {})
                 status = tracker.get('status', 'NONE')
                 
@@ -52,22 +52,29 @@ async def safety_monitor_loop():
                     logger.info(f"🛡️ Found Unsecured Position: {symbol}. Installing Safety...")
                     success = await executor.install_safety_orders(symbol, pos)
                     if success:
-                        # Update status but PRESERVE existing data (like atr_value)
                         if symbol not in executor.safety_orders_tracker:
                             executor.safety_orders_tracker[symbol] = {}
-                        
                         executor.safety_orders_tracker[symbol].update({
                             "status": "SECURED",
                             "last_check": time.time()
                         })
                         executor.save_tracker()
+
+            # Sleep agak lama karena load utama sudah di WebSocket
+            await asyncio.sleep(60) 
             
-            # Sleep 
-            await asyncio.sleep(config.ERROR_SLEEP_DELAY)
+        except Exception as e:
+            logger.error(f"Error Safety Loop: {e}")
+            await asyncio.sleep(60)
             
         except Exception as e:
             logger.error(f"Safety Loop Error: {e}")
             await asyncio.sleep(config.ERROR_SLEEP_DELAY)
+
+async def trailing_price_handler(symbol, price):
+    """Callback untuk menangani update harga realtime dari WebSocket"""
+    if config.ENABLE_TRAILING_STOP and executor:
+        await executor.check_trailing_on_price(symbol, price)
 
 async def main():
     global market_data, sentiment, onchain, ai_brain, executor, pattern_recognizer

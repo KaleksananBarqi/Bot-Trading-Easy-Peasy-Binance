@@ -13,6 +13,7 @@ class OrderExecutor:
         self.position_cache = {}
         self.symbol_cooldown = {}
         self._safety_lock = asyncio.Lock()  # Prevent race condition on safety orders
+        self._trailing_last_update = {} # [NEW] Throttle for Trailing SL Update to Exchange
         self.load_tracker()
 
     # --- TRACKER MANAGEMENT ---
@@ -21,11 +22,42 @@ class OrderExecutor:
             try:
                 with open(config.TRACKER_FILENAME, 'r') as f:
                     self.safety_orders_tracker = json.load(f)
-                logger.info(f"📂 Tracker loaded: {len(self.safety_orders_tracker)} data.")
-            except (json.JSONDecodeError, IOError) as e:
-                logger.warning(f"⚠️ Failed to load tracker, using empty: {e}")
+            except Exception as e:
+                logger.error(f"Failed to load tracker: {e}")
                 self.safety_orders_tracker = {}
-        else: self.safety_orders_tracker = {}
+        else:
+            self.safety_orders_tracker = {}
+
+    # --- [NEW] REALTIME TRAILING CHECK (CALLED BY WEBSOCKET) ---
+    async def check_trailing_on_price(self, symbol, current_price):
+        """
+        Dipanggil setiap ada update harga dari WebSocket (Realtime).
+        Menggunakan throttling agar tidak spam API saat update order.
+        """
+        if symbol not in self.safety_orders_tracker:
+            return
+            
+        tracker = self.safety_orders_tracker[symbol]
+        if tracker['status'] != 'SECURED':
+            return
+            
+        # 1. Cek Aktivasi (Jika belum aktif)
+        if not tracker.get('trailing_active', False):
+            await self.activate_trailing_mode(symbol, current_price)
+            return
+
+        # 2. Logic Throttling (Hanya untuk Update SL ke Exchange)
+        # Kita update internal state setiap saat, tapi push ke exchange pakai cooldown
+        now = time.time()
+        last_update = self._trailing_last_update.get(symbol, 0)
+        
+        if now - last_update < config.TRAILING_SL_UPDATE_COOLDOWN:
+            return 
+            
+        # 3. Update Trailing SL (Jika sudah aktif)
+        updated = await self.update_trailing_sl(symbol, current_price)
+        if updated:
+            self._trailing_last_update[symbol] = now
 
     def save_tracker(self):
         try:
@@ -252,10 +284,189 @@ class OrderExecutor:
                 })
                 
                 logger.info(f"✅ Safety Orders Installed: {symbol} | SL {p_sl} | TP {p_tp}")
+
+                # [UPDATE] Save TP/SL info to tracker for Trailing Logic
+                if symbol in self.safety_orders_tracker:
+                    self.safety_orders_tracker[symbol].update({
+                        "status": "SECURED", # Ensure status is updated
+                        "entry_price": entry_price,
+                        "tp_price": tp_price,
+                        "sl_price_initial": sl_price,
+                        "side": side, # LONG/SHORT
+                        "trailing_active": False 
+                    })
+                    self.save_tracker()
+
                 return True
             except Exception as e:
                 logger.error(f"❌ Install Safety Failed {symbol}: {e}")
                 return False
+
+    # --- TRAILING STOP LOSS LOGIC ---
+    def calculate_tp_progress(self, symbol, current_price):
+        """
+        Hitung progress harga menuju TP (0.0 - 1.0).
+        Return: float (e.g., 0.8 for 80%)
+        """
+        tracker = self.safety_orders_tracker.get(symbol)
+        if not tracker or 'entry_price' not in tracker or 'tp_price' not in tracker:
+            return 0.0
+            
+        entry = tracker['entry_price']
+        tp = tracker['tp_price']
+        side = tracker.get('side', 'LONG')
+        
+        if side == 'LONG':
+            total_dist = tp - entry
+            if total_dist <= 0: return 0.0
+            current_dist = current_price - entry
+            progress = current_dist / total_dist
+        else: # SHORT
+            total_dist = entry - tp
+            if total_dist <= 0: return 0.0
+            current_dist = entry - current_price
+            progress = current_dist / total_dist
+            
+        return progress
+
+    async def activate_trailing_mode(self, symbol, current_price):
+        """
+        Aktifkan mode trailing stop. 
+        Set initial Trailing SL based on callback rate & min profit lock.
+        """
+        tracker = self.safety_orders_tracker.get(symbol)
+        if not tracker: return
+
+        entry = tracker['entry_price']
+        side = tracker.get('side', 'LONG')
+        
+        # 1. Hitung SL Baru (Trailing)
+        new_sl = 0
+        
+        if side == 'LONG':
+            # Base Callback SL: High (Current) - Callback%
+            callback_sl = current_price * (1 - config.TRAILING_CALLBACK_RATE)
+            # Min Profit Lock: Entry + MinProfit%
+            min_profit_sl = entry * (1 + config.TRAILING_MIN_PROFIT_LOCK)
+            
+            # Kita ambil yang LEBIH TINGGI (Lebih aman/ketat)
+            new_sl = max(callback_sl, min_profit_sl)
+            
+            # Init High/Low tracks
+            tracker['trailing_high'] = current_price
+            
+        else: # SHORT
+            # Base Callback SL: Low (Current) + Callback%
+            callback_sl = current_price * (1 + config.TRAILING_CALLBACK_RATE)
+            # Min Profit Lock: Entry - MinProfit%
+            min_profit_sl = entry * (1 - config.TRAILING_MIN_PROFIT_LOCK)
+            
+            # Kita ambil yang LEBIH RENDAH (Lebih aman/ketat untuk short)
+            new_sl = min(callback_sl, min_profit_sl)
+            
+            tracker['trailing_low'] = current_price
+
+        # 2. Update Tracker
+        tracker['trailing_active'] = True
+        tracker['trailing_sl'] = new_sl
+        self.save_tracker()
+        
+        logger.info(f"🔄 Trailing Mode ACTIVATED for {symbol} @ {current_price} | SL: {new_sl:.4f}")
+        await kirim_tele(f"🔄 <b>TRAILING ACTIVE</b>\n{symbol}\nPrice: {current_price}\nInitial SL: {new_sl:.4f} (Locked)")
+        
+        # 3. Apply to Exchange
+        await self._amend_sl_order(symbol, new_sl, side)
+
+    async def update_trailing_sl(self, symbol, current_price):
+        """
+        Cek apakah harga membuat High/Low baru, jika ya, geser SL.
+        """
+        tracker = self.safety_orders_tracker.get(symbol)
+        if not tracker or not tracker.get('trailing_active'): return
+
+        side = tracker.get('side', 'LONG')
+        current_sl = tracker.get('trailing_sl', 0)
+        
+        need_update = False
+        new_sl = current_sl
+        
+        if side == 'LONG':
+            trailing_high = tracker.get('trailing_high', 0)
+            
+            # A. Check New High
+            if current_price > trailing_high:
+                tracker['trailing_high'] = current_price
+                
+                # B. Calculate New SL Candidate
+                candidate_sl = current_price * (1 - config.TRAILING_CALLBACK_RATE)
+                
+                # C. Only Update if Candidate is HIGHER than Old SL (Never move SL down)
+                if candidate_sl > current_sl:
+                    new_sl = candidate_sl
+                    need_update = True
+                    
+        else: # SHORT
+            trailing_low = tracker.get('trailing_low', float('inf'))
+            
+            # A. Check New Low
+            if current_price < trailing_low:
+                tracker['trailing_low'] = current_price
+                
+                # B. Calculate New SL Candidate
+                candidate_sl = current_price * (1 + config.TRAILING_CALLBACK_RATE)
+                
+                # C. Only Update if Candidate is LOWER than Old SL (Never move SL up)
+                if candidate_sl < current_sl:
+                    new_sl = candidate_sl
+                    need_update = True
+
+        if need_update:
+            # Save Logic
+            tracker['trailing_sl'] = new_sl
+            self.save_tracker()
+            
+            logger.info(f"📈 Trailing SL Updated {symbol}: {current_sl:.4f} -> {new_sl:.4f}")
+            # Execute on Exchange
+            await self._amend_sl_order(symbol, new_sl, side)
+
+    async def _amend_sl_order(self, symbol, new_sl_price, side):
+        """
+        Helper: Cancel old SL and create new one (or use modifyOrder if supported, 
+        but Cancel+Replace is safer/standard for simple bots).
+        Note: Since we use STOP_MARKET with closePosition=True, we just need to update trigger price.
+        """
+        try:
+             # Binance Futures allows cancelling generic orders. 
+             # To be robust, let's Cancel All Open Orders for this symbol (TP is static, but SL moves).
+             # Wait! If we cancel ALL, we lose the TP order too.
+             # Ideally we should identify the SL order ID. But to keep it simple and robust:
+             # We can just Cancel ALL and Re-Place TP + New SL. 
+             # Or better: Fetch open orders, find STOP_MARKET, cancel it.
+             
+             orders = await self.exchange.fetch_open_orders(symbol)
+             sl_order_id = None
+             
+             for o in orders:
+                 if o['type'] == 'stop_market' or o['type'] == 'STOP_MARKET':
+                     sl_order_id = o['id']
+                     break
+            
+             if sl_order_id:
+                 try:
+                     await self.exchange.cancel_order(sl_order_id, symbol)
+                 except Exception as e:
+                     logger.warning(f"Failed to cancel old SL {sl_order_id}: {e}")
+
+             # Place New SL
+             p_sl = self.exchange.price_to_precision(symbol, new_sl_price)
+             side_api = 'sell' if side == 'LONG' else 'buy'
+             
+             await self.exchange.create_order(symbol, 'STOP_MARKET', side_api, None, None, {
+                    'stopPrice': p_sl, 'closePosition': True, 'workingType': 'MARK_PRICE'
+             })
+             
+        except Exception as e:
+            logger.error(f"❌ Failed to Amend SL {symbol}: {e}")
 
     def remove_from_tracker(self, symbol):
         """Remove symbol from safety tracker and save."""

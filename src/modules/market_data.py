@@ -149,7 +149,7 @@ class MarketDataManager:
             logger.error(f"❌ Gagal ListenKey: {e}")
             return None
 
-    async def start_stream(self, callback_account_update=None, callback_order_update=None, callback_whale=None):
+    async def start_stream(self, callback_account_update=None, callback_order_update=None, callback_whale=None, callback_trailing=None):
         """Main WebSocket Loop"""
         while True:
             await self.get_listen_key()
@@ -158,13 +158,14 @@ class MarketDataManager:
                 continue
                 
             streams = [self.listen_key]
-            # Add Kline Streams
+            # Add Kline Streams & MiniTicker
             for coin in config.DAFTAR_KOIN:
                 s_clean = coin['symbol'].replace('/', '').lower()
                 streams.append(f"{s_clean}@kline_{config.TIMEFRAME_EXEC}")
                 streams.append(f"{s_clean}@kline_{config.TIMEFRAME_TREND}")
                 streams.append(f"{s_clean}@kline_{config.TIMEFRAME_SETUP}")
                 streams.append(f"{s_clean}@aggTrade") # Whale Detector Stream
+                streams.append(f"{s_clean}@miniTicker") # [NEW] Realtime Price for Trailing
             
             # Add BTC Stream manual if not exists
             btc_clean = config.BTC_SYMBOL.replace('/', '').lower()
@@ -216,6 +217,15 @@ class MarketDataManager:
                                 side = "SELL" if payload['m'] else "BUY" # m=True means the maker was a buyer, so the aggressor was a seller (SELL trade).
                                 if amount_usdt >= config.WHALE_THRESHOLD_USDT:
                                     callback_whale(symbol, amount_usdt, side)
+                            
+                            elif evt == '24hrMiniTicker':
+                                # [NEW] Realtime Price Handler for Trailing Stop
+                                # Payload: {"e":"24hrMiniTicker","E":167233,"s":"BTCUSDT","c":"1234.56",...}
+                                symbol = payload['s'].replace('USDT', '/USDT')
+                                price = float(payload['c']) # Current Close Price
+                                
+                                if callback_trailing:
+                                    await callback_trailing(symbol, price)
                                 
             except Exception as e:
                 logger.warning(f"⚠️ WS Disconnected: {e}. Reconnecting...")

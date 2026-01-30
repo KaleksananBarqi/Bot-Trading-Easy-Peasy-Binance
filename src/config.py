@@ -30,7 +30,7 @@ CMC_API_KEY = os.getenv("CMC_API_KEY")     # CoinMarketCap
 # ==============================================================================
 # ⚙️ PENGATURAN SISTEM & APLIKASI
 # ==============================================================================
-PAKAI_DEMO = False               # False = Real Money, True = Testnet (Uang Monopoly)
+PAKAI_DEMO = True               # False = Real Money, True = Testnet (Uang Monopoly)
 LOG_FILENAME = 'bot_trading.log'
 TRACKER_FILENAME = 'safety_tracker.json'
 
@@ -57,9 +57,9 @@ AI_APP_URL = "https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy"
 AI_APP_TITLE = "Bot Trading Easy Peasy"
 
 # Analisa Berita & Sentimen
-ENABLE_SENTIMENT_ANALYSIS = False          # Aktifkan analisa sentimen berita?
+ENABLE_SENTIMENT_ANALYSIS = True          # Aktifkan analisa sentimen berita?
 AI_SENTIMENT_MODEL = 'xiaomi/mimo-v2-flash' # Model ekonomis untuk baca berita
-SENTIMENT_ANALYSIS_INTERVAL = '2h'         # Seberapa sering cek sentimen (misal: tiap 2 jam)
+SENTIMENT_ANALYSIS_INTERVAL = '3h'         # Seberapa sering cek sentimen (misal: tiap 2 jam)
 SENTIMENT_UPDATE_INTERVAL = '1h'           # Interval update data raw sentimen
 SENTIMENT_PROVIDER = 'RSS_Feed'  # Sumber: 'RSS_Feed'
 
@@ -81,7 +81,7 @@ ONCHAIN_PROVIDER = 'DefiLlama'   # Sumber data OnChain
 # 💰 MANAJEMEN RISIKO & MONEY MANAGEMENT
 # ==============================================================================
 # Pengaturan Ukuran Posisi
-USE_DYNAMIC_SIZE = False         # True = Compounding (% saldo), False = Fix USDT
+USE_DYNAMIC_SIZE = True         # True = Compounding (% saldo), False = Fix USDT
 RISK_PERCENT_PER_TRADE = 3       # Jika Dynamic: Gunakan 3% dari total wallet
 DEFAULT_AMOUNT_USDT = 10         # Jika Static: Gunakan $10 per trade
 MIN_ORDER_USDT = 5               # Minimal order yang diizinkan Binance
@@ -163,6 +163,15 @@ ORDER_SLTP_RETRIES = 3           # Berapa kali coba pasang SL/TP jika server sib
 ORDER_SLTP_RETRY_DELAY = 2       # Jeda percobaan (detik)
 
 # ==============================================================================
+# 🔄 TRAILING STOP LOSS (TSL)
+# ==============================================================================
+ENABLE_TRAILING_STOP = True           # Aktifkan fitur Trailing Stop?
+TRAILING_ACTIVATION_THRESHOLD = 0.80  # Aktif saat harga sudah 80% jalan ke TP
+TRAILING_CALLBACK_RATE = 0.01         # Callback rate 1% (jarak SL dari harga tertinggi)
+TRAILING_MIN_PROFIT_LOCK = 0.005      # Minimal profit yang dikunci (0.5%)
+TRAILING_SL_UPDATE_COOLDOWN = 3       # Minimal interval antara update SL ke exchange (detik)
+
+# ==============================================================================
 # 📡 SUMBER DATA EKSTERNAL
 # ==============================================================================
 # API URLs
@@ -214,7 +223,7 @@ DAFTAR_KOIN = [
     {
         "symbol": "BTC/USDT", 
         "category": "KING", 
-        "leverage": 15, 
+        "leverage": 30, 
         "margin_type": "isolated", 
         "amount": 25, 
         "btc_corr": False,
@@ -223,10 +232,19 @@ DAFTAR_KOIN = [
     {
         "symbol": "SOL/USDT", 
         "category": "LAYER1", 
-        "leverage": 15, 
+        "leverage": 30, 
         "margin_type": "isolated", 
         "amount": 25, 
-        "btc_corr": False,
+        "btc_corr": True,
         "keywords": ["solana", "sol"]
+    },
+    {
+        "symbol": "ETH/USDT", 
+        "category": "LAYER1", 
+        "leverage": 30, 
+        "margin_type": "isolated", 
+        "amount": 25, 
+        "btc_corr": True,
+        "keywords": ["ethereum", "eth"]
     },
 ]
