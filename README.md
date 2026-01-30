@@ -1,13 +1,13 @@
 # 🤖 Easy Peasy Trading Bot: AI Vision & Logic Sniper
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/6a3f3cc2-9367-4444-9c62-5bfaf7b53e9e" width="45%" alt="Bot Trading Banner" />
+  <img width="1380" height="962" alt="Image" src="https://github.com/user-attachments/assets/17b117d9-5747-4170-9380-b2fbfa7169c1" />
 
   <br />
   
   ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)
   ![Binance](https://img.shields.io/badge/Binance-Futures-yellow?style=for-the-badge&logo=binance)
-  ![DeepSeek](https://img.shields.io/badge/Brain-DeepSeek%20V3-blueviolet?style=for-the-badge)
+  ![DeepSeek](https://img.shields.io/badge/Brain-DeepSeek%20V3.2-blueviolet?style=for-the-badge)
   ![Vision AI](https://img.shields.io/badge/Vision-Llama%20Vision-ff69b4?style=for-the-badge)
   ![Sentiment AI](https://img.shields.io/badge/Sentiment-Xiaomi%20Mimo-orange?style=for-the-badge)
   ![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)
@@ -18,115 +18,73 @@
 
 ## 📖 Tentang Easy Peasy Bot (Multi AI Edition)
 
-**Easy Peasy Trading Bot** bukan lagi sekadar bot algoritma biasa. Ini adalah sistem trading **Hybrid Multi-AI** yang menggabungkan analisis logika, tekstual, dan kemampuan visual (computer vision).
+**Easy Peasy Trading Bot** adalah sistem trading **Hybrid Multi-AI** tercanggih yang menggabungkan analisis logika, tekstual, dan kemampuan visual (computer vision) untuk menguasai market crypto.
 
-Dibangun di atas arsitektur **Triple AI Core**, bot ini bisa "membaca" berita dan sentimen pasar, sekaligus "melihat" pola chart secara harfiah layaknya trader manusia profesional.
+Dibangun di atas arsitektur **Triple AI Core**, bot ini tidak hanya menghitung angka, tapi juga "membaca" narasi berita dan "melihat" struktur market secara visual layaknya trader pro.
 
 ### 🧠 The Triple AI Core
-1.  **Strategic Brain (Logic AI)**: Ditenagai oleh **DeepSeek V3**. Menganalisis **Market Structure** (Fractals HH/LL), **Triple Timeframe Confluence** (1H/30m/15m), dan indikator teknikal untuk menentukan bias pasar yang akurat.
-2.  **Visual Cortex (Vision AI)**: Ditenagai oleh **Llama-4-Maverick**. Modul ini menghasilkan chart candlestick real-time (via `mplfinance`) dan mengirimkannya ke AI untuk mendeteksi pola visual murni (Flags, Pennants, Head & Shoulders).
-3.  **Sentiment Analyst (Text AI)**: Ditenagai oleh **Xiaomi Mimo V2 Flash**. Secara khusus bertugas membaca ratusan headline berita dan RSS feed setiap jam untuk menyimpulkan sentimen pasar global (Bullish/Bearish/Neutral) dan mengirimkan laporannya ke channel Telegram khusus.
+1.  **Strategic Brain (Logic AI)**: Ditenagai oleh **DeepSeek V3.2**. Bertugas sebagai eksekutor utama yang mengambil keputusan BUY/SELL/WAIT berdasarkan data teknikal, on-chain, dan sentimen secara holistik.
+2.  **Visual Cortex (Vision AI)**: Ditenagai oleh **Llama-4-Maverick**. Modul Vision yang menganalisis chart candlestick real-time untuk mendeteksi pola murni (Flags, Pennants, Divergence) dan validasi struktur market.
+3.  **Sentiment Analyst (Text AI)**: Ditenagai oleh **Xiaomi Mimo V2 Flash**. Spesialis narasi yang melakukan scanning berita global, news RSS, dan Fear & Greed index untuk menentukan "Market Vibe" saat ini.
 
 ---
 
 ## 🚀 Fitur Utama & Keunggulan
 
-### 1. 👁️ Vision AI Pattern Recognition (NEW!)
-Bot tidak buta. Sebelum mengeksekusi trade, bot akan:
-*   Mencetak chart candlestick 30-menit / 1-jam secara internal.
-*   Mengirim gambar chart tersebut ke AI Vision.
-*   Mendapatkan analisis visual: *"Terlihat Bullish Pennant valid, potensi breakout tinggi."*
+### 1. ⚖️ Dual Execution Plan (Anti-Bias AI) - **NEW!**
+Bot tidak lagi menebak arah. Untuk setiap koin, bot menghitung dua skenario sekaligus:
+*   **Scenario A (Long Case)**: Jika market bullish, di mana titik entry, SL, dan TP terbaik?
+*   **Scenario B (Short Case)**: Jika market bearish, di mana titik entry, SL, dan TP terbaik?
+AI akan memilih skenario yang memiliki probabilitas tertinggi berdasarkan data, menghilangkan bias subjektif.
 
-### 2. 🛡️ Adaptive Strategy Engine
-Bot ini memiliki beberapa kepribadian strategi yang beradaptasi dengan kondisi pasar (dikonfigurasi di `config.py`):
-*   **VOLATILITY_BREAKOUT_ADVANCED (Aggressive)**: Memburu ledakan harga dari fase konsolidasi. Mengandalkan ADX tinggi dan lonjakan Volume.
-*   **LIQUIDITY_REVERSAL_MASTER (Contrarian)**: Mencari titik balik di area Extreme RSI dan Pivot Points. Melawan arus untuk profit maksimal (Buy Low, Sell High).
-*   **BB_BOUNCE (Ranger)**: Strategi spesialis pasar Sideways. Mengambil posisi saat harga memantul di Bollinger Bands Top/Bottom ketika ADX rendah (<20).
-*   **STANDARD_MULTI_CONFIRMATION (Balanced)**: Penyeimbang default yang menggunakan konfirmasi indikator standar.
+### 2. �️ Vision AI Pattern Recognition
+Integrasi Computer Vision yang canggih:
+*   **Chart Rendering**: Otomatis mencetak chart teknikal lengkap dengan indikator.
+*   **Validasi Pola**: AI Vision memvalidasi apakah ada pola reversal atau continuation.
+*   **MACD Divergence Detection**: Deteksi visual divergensi harga vs momentum.
 
-### 3. 🐋 Whale & Flow Radar
-Terintegrasi dengan **DefiLlama** dan **Whale Alert**:
-*   **Stablecoin Inflow**: Memantau jika ada uang segar (USDT/USDC) masuk ke exchange (tanda beli).
-*   **Whale Transactions**: Mendeteksi jika ada pembelian/penjualan masif di detik terakhir.
-*   **Smart Money Positioning**: Memantau **Top Trader Long/Short Ratio** untuk membaca posisi pemain besar vs ritel (Contrarian Signal).
+### 3. 🛡️ Adaptive Strategy Engine
+Fitur strategi yang semakin kaya (dikonfigurasi di `config.py`):
+*   **LIQUIDITY_REVERSAL_MASTER**: Mencari titik balik di area "Liquidity Hunt" atau Stop Run.
+*   **COUNTER_TREND**: Melawan arus (fade) pada titik RSI/Stochastic ekstrem.
+*   **MEAN_REVERSION**: Entry saat harga menyimpang jauh dan berpotensi kembali ke EMA.
+*   **BB_BOUNCE**: Spesialis market sideways menggunakan Bollinger Bands.
+*   **VOLATILITY_BREAKOUT**: Memburu momentum ledakan harga dari fase konsolidasi.
 
-### 4. 📰 Enhanced Global Sentiment Analysis
-*   **Dedicated Channel**: Bot sekarang mengirimkan analisa sentimen detail ke channel Telegram terpisah (opsional).
-*   **Dual Source**: Menggabungkan data **Fear & Greed Index** dan **RSS Feed Berita** terupdate.
-*   **Risk Assessment**: AI secara otomatis menilai tingkat risiko global (Extreme Fear = Hati-hati Long).
+### 4. 🪙 Smart Per-Coin Configuration - **NEW!**
+Setiap koin dalam daftar pantau dapat dikustomisasi secara spesifik:
+*   **Specific Keywords**: News filtering yang lebih akurat per aset.
+*   **BTC Correlation Toggle**: Opsi untuk mengikuti atau mengabaikan tren Bitcoin.
+*   **Custom Leverage & Margin**: Pengaturan risiko berbeda untuk setiap koin.
 
-### 5. ⚡ Safety & Sniper Execution
-*   **Liquidity Hunt (ATR Traps)**: Memasang Limit Order di area "jebakan" likuiditas retail (dihitung menggunakan ATR) untuk mendapatkan harga diskon terbaik.
-*   **Ghost Order Protection**: Tracker lokal (`safety_tracker.json`) memastikan tidak ada order yang "nyangkut" atau terlupakan di exchange.
-*   **Auto-Decoupling**: Fitur cerdas yang memisahkan Altcoin dari BTC jika korelasinya melemah (< 0.7, adjustable). Jika `USE_BTC_CORRELATION = False`, fitur ini dimatikan.
-*   **Smart Resource Architecture**: Menggunakan *Smart Data Throttling* untuk memisahkan data real-time (Price) dan slow data (Funding Rate/OI) demi efisiensi CPU dan API yang maksimal.
+### 5. 📑 Dynamic Prompt Generation
+Sistem prompt AI yang cerdas dan adaptif:
+*   **Toggle-able Market Orders**: Jika `ENABLE_MARKET_ORDERS = False`, AI hanya akan diberikan opsi Limit Order (Liquidity Hunt) untuk meminimalkan slippage dan fee.
+*   **Contextual Hiding**: Jika korelasi BTC rendah, data BTC akan disembunyikan agar AI fokus pada price action independen koin tersebut.
 
-### 6. 🔬 Micro-Structure & Depth Analysis
-*   **Order Book Imbalance**: Bot "mengintip" kedalaman pasar (Order Book Depth 2%) untuk mendeteksi tembok supply/demand tersembunyi yang tidak terlihat di chart biasa.
-*   **Fractal Market Structure**: Algoritma internal secara otomatis memetakan struktur harga (Higher High, Lower Low, Sideways) untuk validasi trend murni tanpa lag.
+### 6. 📢 Pro-Grade Notifications with ROI - **NEW!**
+Notifikasi Telegram yang mendetail:
+*   **ROI Calculation**: Menampilkan persentase keuntungan/kerugian berdasarkan modal dan leverage.
+*   **Real-time Updates**: Notifikasi saat order dipasang (Limit), saat terisi (Filled), dan saat menyentuh TP/SL.
+
 ---
 
 ## 🛠️ Instalasi & Konfigurasi
 
-### Persyaratan
+### Persyaratan Sistem & API
 *   **Python 3.10+** (Wajib)
-*   Akun Binance Futures
-*   API Key dari [OpenRouter](https://openrouter.ai/) (Untuk akses DeepSeek & Llama Vision)
+*   **Akun Binance Futures**: API Key & Secret Key (Enable Futures Trading & Read)
+*   **Telegram Bot**: Token & Chat ID (Untuk notifikasi real-time)
+*   **AI Provider API**: Key dari [OpenRouter](https://openrouter.ai/) atau DeepSeek
+*   **CoinMarketCap API**: Key untuk analisis data fundamental & berita
+*   *(Opsional)* **Binance Testnet**: API Key khusus jika ingin menggunakan uang monopoli
+*   *(Opsional)* **Telegram Channel Khusus**: Token & Chat ID terpisah untuk log analisis sentimen
 
-### Langkah 1: Clone Repository
-```bash
-git clone https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy
-cd Bot-Trading-Easy-Peasy
-```
-
-### Langkah 2: Virtual Environment (Rekomendasi)
-```bash
-# Linux/Mac
-python3 -m venv venv
-source venv/bin/activate
-
-# Windows
-python -m venv venv
-.\venv\Scripts\activate
-```
-
-### Langkah 3: Install Dependencies
-Pastikan menginstall library untuk visualisasi chart (`mplfinance`).
-```bash
-pip install -r requirements.txt
-```
-
-### Langkah 4: Konfigurasi `.env`
-Buat file `.env` dari template ini. Pastikan semua variabel terisi!
-
-```ini
-# --- BINANCE (Futures) ---
-BINANCE_API_KEY=
-BINANCE_SECRET_KEY=
-BINANCE_TESTNET_KEY=
-BINANCE_TESTNET_SECRET=
-
-# --- NOTIFICATIONS (WAJIB) ---
-TELEGRAM_TOKEN=
-TELEGRAM_CHAT_ID=
-TELEGRAM_MESSAGE_THREAD_ID=
-
-# --- SENTIMENT NOTIFICATIONS (OPSIONAL) ---
-# Jika ingin laporan sentimen dipisah ke channel/topic berbeda
-TELEGRAM_TOKEN_SENTIMENT=
-TELEGRAM_CHAT_ID_SENTIMENT=
-TELEGRAM_MESSAGE_THREAD_ID_SENTIMENT=
-
-# --- AI & EXTERNAL DATA (WAJIB) ---
-AI_API_KEY=
-CMC_API_KEY=
-```
-
-### Langkah 5: Jalankan Bot
-```bash
-python main.py
-```
-*Tunggu pesan: "🧠 AI Brain Initialized & 👁️ Pattern Recognizer Ready"*
+### Langkah Cepat
+1.  **Clone**: `git clone https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy.git`
+2.  **Install**: `pip install -e .`
+3.  **Config**: Ubah `.env.example` ke `.env` dan isi semua API Key.
+4.  **Run**: `python src/main.py`
 
 ---
 
@@ -134,48 +92,33 @@ python main.py
 
 ```text
 📂 Bot-Trading-Easy-Peasy/
- ├── 📂 backtesting/             # ⏳ Sistem Pengujian Backtest
- │    ├── 📊 backtest.py          # Engine utama simulasi trading
- │    ├── 📈 backtest_runner.py   # Script untuk menjalankan batch backtest
- │    ├── 📥 data_fetcher.py      # Pengambil data historis dari exchange
- │    └── 📂 historical_data/     # Database CSV data market masa lalu
  ├── 📂 src/                     # 🚀 Source Code Utama
  │    ├── 📂 modules/            # Modul Logika Inti
- │    │    ├── 🧠 ai_brain.py           # Otak AI (Strategic decision maker)
- │    │    ├── 👁️ pattern_recognizer.py # Vision AI (Analisis pola chart)
- │    │    ├── ⚙️ executor.py           # Eksekusi order & Management posisi
- │    │    ├── � market_data.py        # Pengolah indikator & price action
- │    │    ├── 🔗 onchain.py            # Analisis data whale & flow money
- │    │    └── 🗞️ sentiment.py          # Analisis News & Fear/Greed Index
- │    ├── 📂 utils/              # Fungsi Pembantu (Common Utils)
- │    │    ├── �️ helper.py             # Fungsi bantuan umum & logger
- │    │    └── �📝 prompt_builder.py    # Konstruktor prompt AI yang kompleks
- │    ├── ⚙️ config.py                 # PUSAT KONFIGURASI (Strategi & API)
- │    ├── 🚀 main.py                   # Titik masuk utama Bot (Prod)
- │    └── 📜 .env                      # konfigurasi environment
- ├── 📂 strategies/              # 📚 Dokumentasi & Blueprint Strategi
- ├── 📂 tests/                   # 🧪 Automated Testing (Unit & Integration)
- └── 📦 requirements.txt         # Daftar dependensi Python
+ │    │    ├── 🧠 ai_brain.py           # Otak Utama AI
+ │    │    ├── 👁️ pattern_recognizer.py # Vision AI Engine
+ │    │    ├── ⚙️ executor.py           # Eksekusi Order & Sync Posisi
+ │    │    ├── 📊 market_data.py        # Pengolah Data & Indikator
+ │    │    └── 🗞️ sentiment.py          # Analisis Berita & RSS
+ │    ├── 📂 utils/              # Fungsi Pembantu
+ │    │    ├── 🧮 calc.py               # Kalkulasi Dual Scenarios & Risk
+ │    │    ├── 📝 prompt_builder.py     # Konstruktor Prompt AI Dinamis
+ │    │    └── 🛠️ helper.py             # Logger & Tele Utils
+ │    ├── ⚙️ config.py                 # PUSAT KONFIGURASI
+ │    └── 🚀 main.py                   # Titik Masuk Bot
+ ├── 📂 backtesting/             # ⏳ Sistem Pengujian Historis
+ ├── 📂 tests/                   # 🧪 Automated Testing
+ └── 📦 pyproject.toml           # Manajemen Dependensi Modern
 ```
 
 ---
 
 ## 🤝 Kontribusi
-Ingin berkontribusi bikin bot ini makin "Easy Peasy"? Gas!
-Silakan baca [CONTRIBUTING.md](CONTRIBUTING.md) untuk pedoman kontribusi, standar kode, dan cara pull request.
-Kita sangat menghargai ide strategi baru, perbaikan bug, atau dokumentasi yang lebih baik.
+Kami terbuka untuk perbaikan strategi, optimasi AI, atau dokumentasi. Silakan ajukan **Pull Request** atau buka **Issue** jika menemukan bug.
 
 ---
 
-## ⚠️ Disclaimer & Resiko
-
-> **Trading Futures Berisiko Tinggi**
-> Bot ini hanyalah alat bantu. Keputusan "Vision AI" dan "Logic AI" berbasis probabilitas, bukan kepastian.
->
-> *   **AI Hallucination**: Model AI (bahkan Llama Vision) bisa salah menginterpretasikan gambar.
-> *   **Financial Loss**: Gunakan fitur **Risk Management** (`RISK_PERCENT_PER_TRADE`) dengan bijak di `config.py`.
-> *   **Latency**: Generate gambar chart membutuhkan waktu 1-3 detik, mungkin tidak cocok untuk HFT (High Frequency Trading) super cepat.
+## ⚠️ Disclaimer
+**Trading crypto futures melibatkan risiko finansial yang besar.** Bot ini adalah alat bantu berbasis AI, bukan jaminan keuntungan. **AI bisa berhalusinasi** atau salah sinyal. Gunakan modal yang siap hilang dan aktifkan fitur risk management di `config.py`.
 
 ---
-
-**Developed with ☕ & 🤖 by Kaleksanan Barqi Aji Massani**
+**Developed with ☕ & 🤖 by [Kaleksanan Barqi Aji Massani](https://github.com/KaleksananBarqi)**

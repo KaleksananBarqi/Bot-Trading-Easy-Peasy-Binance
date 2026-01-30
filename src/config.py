@@ -40,6 +40,7 @@ LOOP_SLEEP_DELAY = 1             # Istirahat antar putaran loop utama (detik)
 ERROR_SLEEP_DELAY = 5            # Istirahat jika terjadi error (detik)
 API_REQUEST_TIMEOUT = 10         # Batas waktu tunggu balasan server (detik)
 API_RECV_WINDOW = 10000          # Toleransi waktu server Binance (ms)
+LOOP_SKIP_DELAY = 2              # Delay saat skip coin karena data tidak lengkap (detik)
 
 # ==============================================================================
 # 🧠 KECERDASAN BUATAN (AI) & STRATEGI
@@ -60,16 +61,21 @@ ENABLE_SENTIMENT_ANALYSIS = False          # Aktifkan analisa sentimen berita?
 AI_SENTIMENT_MODEL = 'xiaomi/mimo-v2-flash' # Model ekonomis untuk baca berita
 SENTIMENT_ANALYSIS_INTERVAL = '2h'         # Seberapa sering cek sentimen (misal: tiap 2 jam)
 SENTIMENT_UPDATE_INTERVAL = '1h'           # Interval update data raw sentimen
-Sentiment_Provider = 'RSS_Feed'            # Sumber: 'RSS_Feed'
+SENTIMENT_PROVIDER = 'RSS_Feed'  # Sumber: 'RSS_Feed'
 
 # Analisa Visual (Chart Pattern)
 USE_PATTERN_RECOGNITION = True
 AI_VISION_MODEL = 'meta-llama/llama-4-maverick' # Model vision
 AI_VISION_TEMPERATURE = 0.0
-AI_VISION_MAX_TOKENS = 150
+AI_VISION_MAX_TOKENS = 300            # Naikkan untuk mencegah output terpotong
+
+# Validasi Pattern Recognition
+PATTERN_MAX_RETRIES = 2               # Berapa kali retry jika output tidak valid
+PATTERN_MIN_ANALYSIS_LENGTH = 80      # Minimal panjang karakter output yang dianggap valid
+PATTERN_REQUIRED_KEYWORDS = ['BULLISH', 'BEARISH', 'NEUTRAL']  # Minimal satu harus ada
 
 # Data OnChain
-OnChain_Provider = 'DefiLlama'     # Sumber data OnChain
+ONCHAIN_PROVIDER = 'DefiLlama'   # Sumber data OnChain
 
 # ==============================================================================
 # 💰 MANAJEMEN RISIKO & MONEY MANAGEMENT
@@ -89,6 +95,9 @@ MAX_POSITIONS_PER_CATEGORY = 5   # Batas maksimal koin aktif per kategori (Layer
 WHALE_THRESHOLD_USDT = 1000000   # Transaksi > $1 Juta ditandai sebagai Whale
 WHALE_HISTORY_LIMIT = 10         # Cek 10 transaksi terakhir
 STABLECOIN_INFLOW_THRESHOLD_PERCENT = 0.05 # Ambang batas aliran masuk stablecoin
+
+# Order Book Analysis
+ORDERBOOK_RANGE_PERCENT = 0.02   # Range depth analysis order book (2%)
 
 # Mekanisme Pendinginan (Anti-FOMO/Anti-Revenge)
 COOLDOWN_IF_PROFIT = 3600        # Jeda trading di koin ini jika PROFIT (detik)
@@ -166,9 +175,10 @@ WS_URL_FUTURES_TESTNET = "wss://stream.binancefuture.com/stream?streams="
 WS_KEEP_ALIVE_INTERVAL = 1800
 
 # Sumber Berita (RSS Feeds)
-NEWS_MAX_PER_SOURCE = 2          # Ambil 2 berita trbaru per web
-NEWS_RETENTION_LIMIT = 15        # Simpan max 15 berita di memori
-NEWS_MAX_AGE_HOURS = 6           # Jangan ambil berita yg > 6 jam lalu
+NEWS_MAX_PER_SOURCE = 3          # Ambil 3 berita terbaru per web
+NEWS_MAX_TOTAL = 30              # Total berita mentah yang disimpan (sebelum filter)
+NEWS_RETENTION_LIMIT = 10        # Max berita relevan yang dikirim ke prompt per koin
+NEWS_MAX_AGE_HOURS = 24           # Jangan ambil berita yg > N jam lalu
 RSS_FEED_URLS = [
     "https://www.theblock.co/rss.xml",
     "https://cryptoslate.com/feed/",
@@ -181,20 +191,42 @@ RSS_FEED_URLS = [
     "https://news.google.com/rss/search?q=federal+reserve+rates+OR+us+inflation+cpi+OR+global+recession+when:24h&hl=en-US&gl=US&ceid=US:en",
 ]
 
+# Keyword Berita Makro (Wajib masuk prompt)
+MACRO_KEYWORDS = ["federal reserve", "fed", "fomc", "inflation", "cpi", "recession", "interest rate", "powell", "sec", "crypto regulation"] 
+MACRO_NEWS_COUNT = 2             # Jumlah berita makro yang dipaksa masuk ke prompt
+
 # ==============================================================================
 # 📋 DAFTAR STRATEGI
 # ==============================================================================
 AVAILABLE_STRATEGIES = {
     'LIQUIDITY_REVERSAL_MASTER': "Mencari pembalikan arah di area Pivot (S1/R1) atau Liquidity Sweep. ",
     'STANDARD_MULTI_CONFIRMATION': "Analisa teknikal seimbang. ",
-    'BB_BOUNCE': "Jika ADX lemah/sideways (< 20), fokus pada setup Reversal di area BB Top (Upper Band) atau BB Bottom (Lower Band). "
+    'BB_BOUNCE': "Jika ADX lemah/sideways (< 20), fokus pada setup Reversal di area BB Top (Upper Band) atau BB Bottom (Lower Band). ",
+    'COUNTER_TREND': "Fade ekstrem RSI/Stoch di zona Overbought (RSI > {config.RSI_OVERBOUGHT}) untuk SELL atau Oversold (RSI < {config.RSI_OVERSOLD}) untuk BUY. Cocok saat trend melemah.",
+    'MEAN_REVERSION': "Entry saat harga kembali ke EMA setelah deviasi besar dari Bollinger Mid. Ideal untuk kondisi sideways/ranging market."
 }
 
 # ==============================================================================
 # 🪙 DAFTAR KOIN (MARKET WATCH)
 # ==============================================================================
-# Format: {"symbol": "KOIN/USDT", "category": "KATEGORI", "leverage": X, "amount": Y}
+# Format: {"symbol": "KOIN/USDT", "category": "KATEGORI", "leverage": X, "amount": Y, "keywords": ["..."]}
 DAFTAR_KOIN = [
-    {"symbol": "BTC/USDT", "category": "KING", "leverage": 15, "margin_type": "isolated", "amount": 25, "btc_corr": False},
-    {"symbol": "SOL/USDT", "category": "LAYER1", "leverage": 15, "margin_type": "isolated", "amount": 25, "btc_corr": True},
+    {
+        "symbol": "BTC/USDT", 
+        "category": "KING", 
+        "leverage": 15, 
+        "margin_type": "isolated", 
+        "amount": 25, 
+        "btc_corr": False,
+        "keywords": ["bitcoin", "btc"]
+    },
+    {
+        "symbol": "SOL/USDT", 
+        "category": "LAYER1", 
+        "leverage": 15, 
+        "margin_type": "isolated", 
+        "amount": 25, 
+        "btc_corr": False,
+        "keywords": ["solana", "sol"]
+    },
 ]

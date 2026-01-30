@@ -1,8 +1,8 @@
-
 import asyncio
 import time
 import json
 import os
+import ccxt.async_support as ccxt
 import config
 from src.utils.helper import logger, kirim_tele
 
@@ -12,6 +12,7 @@ class OrderExecutor:
         self.safety_orders_tracker = {}
         self.position_cache = {}
         self.symbol_cooldown = {}
+        self._safety_lock = asyncio.Lock()  # Prevent race condition on safety orders
         self.load_tracker()
 
     # --- TRACKER MANAGEMENT ---
@@ -21,7 +22,9 @@ class OrderExecutor:
                 with open(config.TRACKER_FILENAME, 'r') as f:
                     self.safety_orders_tracker = json.load(f)
                 logger.info(f"📂 Tracker loaded: {len(self.safety_orders_tracker)} data.")
-            except: self.safety_orders_tracker = {}
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"⚠️ Failed to load tracker, using empty: {e}")
+                self.safety_orders_tracker = {}
         else: self.safety_orders_tracker = {}
 
     def save_tracker(self):
@@ -121,7 +124,10 @@ class OrderExecutor:
             try:
                 await self.exchange.set_leverage(leverage, symbol)
                 await self.exchange.set_margin_mode(config.DEFAULT_MARGIN_TYPE, symbol)
-            except: pass
+            except ccxt.BaseError as e:
+                err_msg = str(e).lower()
+                if "already set" not in err_msg and "no need to change" not in err_msg:
+                    logger.warning(f"⚠️ Leverage/Margin setup skipped for {symbol}: {e}")
 
             # 3. Hitung Qty
             if price is None or price == 0:
@@ -182,72 +188,74 @@ class OrderExecutor:
         """
         Pasang SL dan TP untuk posisi yang sudah terbuka.
         """
-        entry_price = float(pos_data['entryPrice'])
-        quantity = float(pos_data['contracts'])
-        side = pos_data['side']
-        
-        # 1. Cancel Old Orders
-        try:
-            await self.exchange.fapiPrivateDeleteAllOpenOrders({'symbol': symbol.replace('/', '')})
-        except: pass
-        
-        # 2. Hitung Jarak SL/TP
-        # Cek apakah kita punya data ATR dari tracker (saat entry)
-        tracker_data = self.safety_orders_tracker.get(symbol, {})
-        atr_val = tracker_data.get('atr_value', 0)
-        
-        sl_price = 0
-        tp_price = 0
-        
-        if atr_val > 0:
-            # --- DYNAMIC ATR LOGIC (LIQUIDITY HUNT / TREND TRAP) ---
-            # SL = Configured ATR (TRAP_SAFETY_SL)
-            # TP = Configured ATR (ATR_MULTIPLIER_TP1)
-            dist_sl = atr_val * config.TRAP_SAFETY_SL
-            dist_tp = atr_val * config.ATR_MULTIPLIER_TP1
+        async with self._safety_lock:  # Prevent race condition
+            entry_price = float(pos_data['entryPrice'])
+            quantity = float(pos_data['contracts'])
+            side = pos_data['side']
             
-            if side == "LONG":
-                sl_price = entry_price - dist_sl
-                tp_price = entry_price + dist_tp
-            else:
-                sl_price = entry_price + dist_sl
-                tp_price = entry_price - dist_tp
+            # 1. Cancel Old Orders
+            try:
+                await self.exchange.fapiPrivateDeleteAllOpenOrders({'symbol': symbol.replace('/', '')})
+            except ccxt.BaseError as e:
+                logger.debug(f"Cancel old orders for {symbol}: {e}")
+            
+            # 2. Hitung Jarak SL/TP
+            # Cek apakah kita punya data ATR dari tracker (saat entry)
+            tracker_data = self.safety_orders_tracker.get(symbol, {})
+            atr_val = tracker_data.get('atr_value', 0)
+            
+            sl_price = 0
+            tp_price = 0
+            
+            if atr_val > 0:
+                # --- DYNAMIC ATR LOGIC (LIQUIDITY HUNT / TREND TRAP) ---
+                # SL = Configured ATR (TRAP_SAFETY_SL)
+                # TP = Configured ATR (ATR_MULTIPLIER_TP1)
+                dist_sl = atr_val * config.TRAP_SAFETY_SL
+                dist_tp = atr_val * config.ATR_MULTIPLIER_TP1
                 
-            logger.info(f"🛡️ Safety Calc (ATR {atr_val}): SL dist {dist_sl}, TP dist {dist_tp}")
-        
-        else:
-            # --- FALLBACK PERCENTAGE ---
-            sl_percent = config.DEFAULT_SL_PERCENT
-            tp_percent = config.DEFAULT_TP_PERCENT
+                if side == "LONG":
+                    sl_price = entry_price - dist_sl
+                    tp_price = entry_price + dist_tp
+                else:
+                    sl_price = entry_price + dist_sl
+                    tp_price = entry_price - dist_tp
+                    
+                logger.info(f"🛡️ Safety Calc (ATR {atr_val}): SL dist {dist_sl}, TP dist {dist_tp}")
             
-            if side == "LONG":
-                sl_price = entry_price * (1 - sl_percent)
-                tp_price = entry_price * (1 + tp_percent)
             else:
-                sl_price = entry_price * (1 + sl_percent)
-                tp_price = entry_price * (1 - tp_percent)
-        
-        if side == "LONG": side_api = 'sell'
-        else: side_api = 'buy'
-
-        p_sl = self.exchange.price_to_precision(symbol, sl_price)
-        p_tp = self.exchange.price_to_precision(symbol, tp_price)
-
-        try:
-             # A. STOP LOSS (STOP_MARKET)
-            await self.exchange.create_order(symbol, 'STOP_MARKET', side_api, None, None, {
-                'stopPrice': p_sl, 'closePosition': True, 'workingType': 'MARK_PRICE'
-            })
-            # B. TAKE PROFIT (TAKE_PROFIT_MARKET)
-            await self.exchange.create_order(symbol, 'TAKE_PROFIT_MARKET', side_api, None, None, {
-                'stopPrice': p_tp, 'closePosition': True, 'workingType': 'CONTRACT_PRICE'
-            })
+                # --- FALLBACK PERCENTAGE ---
+                sl_percent = config.DEFAULT_SL_PERCENT
+                tp_percent = config.DEFAULT_TP_PERCENT
+                
+                if side == "LONG":
+                    sl_price = entry_price * (1 - sl_percent)
+                    tp_price = entry_price * (1 + tp_percent)
+                else:
+                    sl_price = entry_price * (1 + sl_percent)
+                    tp_price = entry_price * (1 - tp_percent)
             
-            logger.info(f"✅ Safety Orders Installed: {symbol} | SL {p_sl} | TP {p_tp}")
-            return True
-        except Exception as e:
-            logger.error(f"❌ Install Safety Failed {symbol}: {e}")
-            return False
+            if side == "LONG": side_api = 'sell'
+            else: side_api = 'buy'
+
+            p_sl = self.exchange.price_to_precision(symbol, sl_price)
+            p_tp = self.exchange.price_to_precision(symbol, tp_price)
+
+            try:
+                # A. STOP LOSS (STOP_MARKET)
+                await self.exchange.create_order(symbol, 'STOP_MARKET', side_api, None, None, {
+                    'stopPrice': p_sl, 'closePosition': True, 'workingType': 'MARK_PRICE'
+                })
+                # B. TAKE PROFIT (TAKE_PROFIT_MARKET)
+                await self.exchange.create_order(symbol, 'TAKE_PROFIT_MARKET', side_api, None, None, {
+                    'stopPrice': p_tp, 'closePosition': True, 'workingType': 'CONTRACT_PRICE'
+                })
+                
+                logger.info(f"✅ Safety Orders Installed: {symbol} | SL {p_sl} | TP {p_tp}")
+                return True
+            except Exception as e:
+                logger.error(f"❌ Install Safety Failed {symbol}: {e}")
+                return False
 
     def remove_from_tracker(self, symbol):
         """Remove symbol from safety tracker and save."""

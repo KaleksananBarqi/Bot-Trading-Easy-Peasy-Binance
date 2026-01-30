@@ -13,11 +13,50 @@ def format_price(value):
     if value < 50.0: return f"{value:.4f}"
     return f"{value:.2f}"
 
-def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_analysis=None, trade_scenarios=None, show_btc_context=True):
+def get_trend_narrative(price: float, ema_fast: float, ema_slow: float) -> tuple[str, str]:
+    """
+    Menghasilkan narasi trend yang jelas berdasarkan posisi Price terhadap kedua EMA.
+    
+    Returns:
+        tuple: (trend_narrative, ema_alignment)
+        
+    Logic Matrix:
+    | Price vs EMA_Fast | Price vs EMA_Slow | Narrative           |
+    |-------------------|-------------------|---------------------|
+    | Above             | Above             | STRONG BULLISH      |
+    | Below             | Below             | STRONG BEARISH      |
+    | Below             | Above             | BULLISH PULLBACK    |
+    | Above             | Below             | BEARISH BOUNCE      |
+    """
+    price_above_fast = price > ema_fast
+    price_above_slow = price > ema_slow
+    
+    # EMA Alignment (Fast vs Slow)
+    if ema_fast > ema_slow:
+        ema_alignment = "BULLISH ALIGNMENT (Fast > Slow)"
+    else:
+        ema_alignment = "BEARISH ALIGNMENT (Fast < Slow)"
+    
+    # Trend Narrative based on matrix
+    if price_above_fast and price_above_slow:
+        trend_narrative = "STRONG BULLISH - Price above both EMAs"
+    elif not price_above_fast and not price_above_slow:
+        trend_narrative = "STRONG BEARISH - Price below both EMAs"
+    elif not price_above_fast and price_above_slow:
+        trend_narrative = "BULLISH PULLBACK - Price dipping but still in uptrend"
+    elif price_above_fast and not price_above_slow:
+        trend_narrative = "BEARISH BOUNCE - Price recovering but still in downtrend"
+    else:
+        trend_narrative = "UNCLEAR"
+    
+    return trend_narrative, ema_alignment
+
+def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_analysis=None, dual_scenarios=None, show_btc_context=True):
     """
     Menyusun prompt untuk AI berdasarkan data teknikal, sentimen, dan on-chain.
     Struktur Baru: Multi-Timeframe (Macro -> Setup -> Execution).
     Args:
+        dual_scenarios (dict): Result dari calculate_dual_scenarios(), berisi {"long": {...}, "short": {...}}.
         show_btc_context (bool): Jika False, data BTC dan korelasinya akan DISEMBUNYIKAN total dari AI.
     """
     
@@ -50,6 +89,9 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern
     ema_slow = tech_data.get('ema_slow', 0)
     ema_pos = tech_data.get('price_vs_ema', 'UNKNOWN')
     trend_major = tech_data.get('trend_major', 'UNKNOWN')
+    
+    # Generate clear trend narrative for AI
+    trend_narrative, ema_alignment = get_trend_narrative(price, ema_fast, ema_slow)
     
     # Volatility & Momentum
     bb_upper = tech_data.get('bb_upper', 0)
@@ -115,37 +157,39 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern
         btc_instruction = f"IMPORTANT: High BTC Correlation ({btc_corr:.2f}). Do NOT open positions against BTC Trend ({btc_trend})."
 
     # ==========================================
-    # 2.5 TRADE SCENARIOS (Market vs Liquidity Hunt)
+    # 2.5 DUAL TRADE SCENARIOS (Long vs Short)
     # ==========================================
     execution_options_str = "N/A"
-    if trade_scenarios:
-        m = trade_scenarios.get('market', {})
-        h = trade_scenarios.get('liquidity_hunt', {})
+    if dual_scenarios:
+        long_s = dual_scenarios.get('long', {})
+        short_s = dual_scenarios.get('short', {})
+        
+        long_m = long_s.get('market', {})
+        long_h = long_s.get('liquidity_hunt', {})
+        short_m = short_s.get('market', {})
+        short_h = short_s.get('liquidity_hunt', {})
         
         if config.ENABLE_MARKET_ORDERS:
+            # Full Mode: Show both Aggressive (Market) and Passive (Limit) for each direction
             execution_options_str = f"""
-[EXECUTION OPTIONS]
-OPTION A: AGGRESSIVE (MARKET)
-- Entry: Market Price ({format_price(m.get('entry', 0))})
-- Stop Loss: {format_price(m.get('sl', 0))}
-- Take Profit: {format_price(m.get('tp', 0))}
-- Risk:Reward: 1:{m.get('rr', 0)}
+[EXECUTION SCENARIOS]
+SCENARIO A: IF BULLISH (LONG)
+  > Option A1 (Aggressive/Market): Entry={format_price(long_m.get('entry', 0))}, SL={format_price(long_m.get('sl', 0))}, TP={format_price(long_m.get('tp', 0))}, R:R=1:{long_m.get('rr', 0)}
+  > Option A2 (Passive/Limit): Entry={format_price(long_h.get('entry', 0))}, SL={format_price(long_h.get('sl', 0))}, TP={format_price(long_h.get('tp', 0))}, R:R=1:{long_h.get('rr', 0)}
 
-OPTION B: PASSIVE (LIQUIDITY HUNT)
-- Entry: Limit Order at {format_price(h.get('entry', 0))} (Sweeping Standard SLs)
-- Stop Loss: {format_price(h.get('sl', 0))}
-- Take Profit: {format_price(h.get('tp', 0))}
-- Risk:Reward: 1:{h.get('rr', 0)}
+SCENARIO B: IF BEARISH (SHORT)
+  > Option B1 (Aggressive/Market): Entry={format_price(short_m.get('entry', 0))}, SL={format_price(short_m.get('sl', 0))}, TP={format_price(short_m.get('tp', 0))}, R:R=1:{short_m.get('rr', 0)}
+  > Option B2 (Passive/Limit): Entry={format_price(short_h.get('entry', 0))}, SL={format_price(short_h.get('sl', 0))}, TP={format_price(short_h.get('tp', 0))}, R:R=1:{short_h.get('rr', 0)}
 """
         else:
-            # Market Order DISABLED
+            # Passive Only Mode: Show only Liquidity Hunt for each direction
             execution_options_str = f"""
-[EXECUTION PLAN]
-- Mode: PASSIVE (LIQUIDITY HUNT)
-- Entry: Limit Order at {format_price(h.get('entry', 0))} (Sweeping Standard SLs)
-- Stop Loss: {format_price(h.get('sl', 0))}
-- Take Profit: {format_price(h.get('tp', 0))}
-- Risk:Reward: 1:{h.get('rr', 0)}
+[EXECUTION SCENARIOS]
+SCENARIO A: IF BULLISH (LONG)
+  > Entry={format_price(long_h.get('entry', 0))}, SL={format_price(long_h.get('sl', 0))}, TP={format_price(long_h.get('tp', 0))}, R:R=1:{long_h.get('rr', 0)}
+
+SCENARIO B: IF BEARISH (SHORT)
+  > Entry={format_price(short_h.get('entry', 0))}, SL={format_price(short_h.get('sl', 0))}, TP={format_price(short_h.get('tp', 0))}, R:R=1:{short_h.get('rr', 0)}
 """
 
     # ==========================================
@@ -171,7 +215,7 @@ OPTION B: PASSIVE (LIQUIDITY HUNT)
     if raw_stats_str:
         pattern_section_content += f"{raw_stats_str}\n"
     
-    pattern_section_content += "*INSTRUCTION: Use this pattern & raw data to confirm the Macro Bias.*"
+
 
     # ==========================================
     # 3. PROMPT CONSTRUCTION
@@ -188,7 +232,6 @@ OPTION B: PASSIVE (LIQUIDITY HUNT)
         macro_section = f"""
 --------------------------------------------------
 1. MACRO VIEW (TIMEFRAME: {config.TIMEFRAME_TREND})
-> OBJECTIVE: Determine the Major Trend Bias.
 - Global BTC Trend: {btc_trend} (EMA {config.BTC_EMA_PERIOD})
 - BTC Correlation: {btc_corr:.2f}
 - Market Structure: {market_struct} (Swing High/Low Analysis)
@@ -204,7 +247,6 @@ OPTION B: PASSIVE (LIQUIDITY HUNT)
         macro_section = f"""
 --------------------------------------------------
 1. MACRO VIEW (TIMEFRAME: {config.TIMEFRAME_TREND})
-> OBJECTIVE: Determine the Major Trend Bias.
 - Market Structure: {market_struct} (Swing High/Low Analysis)
 - Pivot Points: {pivot_str}
 --------------------------------------------------
@@ -223,9 +265,9 @@ OPTION B: PASSIVE (LIQUIDITY HUNT)
     else:
         # Market Order Disabled -> Force Passive
         strategy_instruction = (
-            "4. EXECUTION PLAN VALIDATION:\n"
+            "4. EXECUTION SCENARIOS VALIDATION:\n"
             "   - Choose the Strategy that aligns with the Bias.\n"
-            "   - VALIDATE the [EXECUTION PLAN] above. If the Liquidity Sweep level is reachable and valid, proceed.\n"
+            "   - VALIDATE the [EXECUTION SCENARIOS] above. If the Liquidity Sweep level is reachable and valid, proceed.\n"
         )
 
     prompt = f"""
@@ -242,16 +284,15 @@ TASK: Analyze market data for {symbol} using the Multi-Timeframe logic below. De
 
 --------------------------------------------------
 3. EXECUTION TRIGGER (TIMEFRAME: {config.TIMEFRAME_EXEC})
-> OBJECTIVE: Pinpoint Entry Timing.
 [MOMENTUM]
 - RSI ({config.RSI_PERIOD}): {rsi:.2f}
 - StochRSI: K={stoch_k:.2f}, D={stoch_d:.2f}
 - ADX ({config.ADX_PERIOD}): {adx:.2f} (Trend Strength)
 
 [TREND]
-- Price: {format_price(price)}
-- EMA Status: {ema_pos} (Fast: {format_price(ema_fast)} vs Slow: {format_price(ema_slow)})
-- Major Trend (EMA {config.EMA_SLOW}): {trend_major}
+- Current Price: {format_price(price)}
+- Trend Signal: {trend_narrative}
+- EMA Details: Fast({config.EMA_FAST})={format_price(ema_fast)} | Slow({config.EMA_SLOW})={format_price(ema_slow)} | {ema_alignment}
 
 [VOLATILITY & VOLUME]
 - Bollinger Bands: Upper={format_price(bb_upper)}, Lower={format_price(bb_lower)}
