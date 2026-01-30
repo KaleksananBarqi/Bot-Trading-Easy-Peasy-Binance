@@ -5,9 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bot-trading-easy-peasy"
 version = "1.0.0"
-description = "AI-Powered Crypto Trading Bot"
+description = "Easy Peasy Trading Bot: AI Vision & Logic Sniper"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "PolyForm Noncommercial License 1.0.0" }
+authors = [
+    { name = "Kaleksanan Barqi Aji Massani" }
+]
+keywords = ["crypto", "trading", "bot", "ai", "vision", "logic-sniper"]
 requires-python = ">=3.10"
 dependencies = [
     "ccxt>=4.0.0",

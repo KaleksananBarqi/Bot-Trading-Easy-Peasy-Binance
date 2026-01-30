@@ -1,7 +1,7 @@
 # 🤖 Easy Peasy Trading Bot: AI Vision & Logic Sniper
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/6a3f3cc2-9367-4444-9c62-5bfaf7b53e9e" width="45%" alt="Bot Trading Banner" />
+  <img width="1380" height="962" alt="Image" src="https://github.com/user-attachments/assets/17b117d9-5747-4170-9380-b2fbfa7169c1" />
 
   <br />
   
@@ -71,10 +71,14 @@ Notifikasi Telegram yang mendetail:
 
 ## 🛠️ Instalasi & Konfigurasi
 
-### Persyaratan
+### Persyaratan Sistem & API
 *   **Python 3.10+** (Wajib)
-*   Akun Binance Futures
-*   API Key dari [OpenRouter](https://openrouter.ai/) (Penyedia model AI)
+*   **Akun Binance Futures**: API Key & Secret Key (Enable Futures Trading & Read)
+*   **Telegram Bot**: Token & Chat ID (Untuk notifikasi real-time)
+*   **AI Provider API**: Key dari [OpenRouter](https://openrouter.ai/) atau DeepSeek
+*   **CoinMarketCap API**: Key untuk analisis data fundamental & berita
+*   *(Opsional)* **Binance Testnet**: API Key khusus jika ingin menggunakan uang monopoli
+*   *(Opsional)* **Telegram Channel Khusus**: Token & Chat ID terpisah untuk log analisis sentimen
 
 ### Langkah Cepat
 1.  **Clone**: `git clone https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy.git`
