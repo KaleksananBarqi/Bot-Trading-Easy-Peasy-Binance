@@ -79,7 +79,7 @@ Notifikasi Telegram yang mendetail:
 ### Langkah Cepat
 1.  **Clone**: `git clone https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy.git`
 2.  **Install**: `pip install -e .`
-3.  **Config**: Salin `.env.example` ke `.env` dan isi semua API Key.
+3.  **Config**: Ubah `.env.example` ke `.env` dan isi semua API Key.
 4.  **Run**: `python src/main.py`
 
 ---
