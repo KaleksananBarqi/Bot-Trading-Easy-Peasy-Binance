@@ -19,3 +19,4 @@ bot_trading_easy_peasy.egg-info/dependency_links.txt
 .gitignore
 bot_trading_easy_peasy.egg-info/top_level.txt
 bot_trading_easy_peasy.egg-info/requires.txt
+/.gemini
