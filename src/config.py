@@ -166,9 +166,9 @@ ORDER_SLTP_RETRY_DELAY = 2       # Jeda percobaan (detik)
 # 🔄 TRAILING STOP LOSS (TSL)
 # ==============================================================================
 ENABLE_TRAILING_STOP = True           # Aktifkan fitur Trailing Stop?
-TRAILING_ACTIVATION_THRESHOLD = 0.80  # Aktif saat harga sudah 80% jalan ke TP
-TRAILING_CALLBACK_RATE = 0.01         # Callback rate 1% (jarak SL dari harga tertinggi)
-TRAILING_MIN_PROFIT_LOCK = 0.005      # Minimal profit yang dikunci (0.5%)
+TRAILING_ACTIVATION_THRESHOLD = 0.75  # Aktif saat harga sudah N% jalan ke TP
+TRAILING_CALLBACK_RATE = 0.01         # Callback rate N% (jarak SL dari harga tertinggi)
+TRAILING_MIN_PROFIT_LOCK = 0.005      # Minimal profit yang dikunci N%
 TRAILING_SL_UPDATE_COOLDOWN = 3       # Minimal interval antara update SL ke exchange (detik)
 
 # ==============================================================================
