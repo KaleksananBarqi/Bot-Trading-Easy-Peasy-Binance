@@ -192,12 +192,12 @@ class SentimentAnalyzer:
                 btc_news.append(f"[BTC-CORR] {news}")
         
         # Warning jika berita koin spesifik kurang dari minimum
-        if len(coin_news) < coin_min:
-            from src.utils.helper import logger
-            logger.warning(
-                f"⚠️ Insufficient coin-specific news for {symbol} "
-                f"(found: {len(coin_news)}, required: {coin_min})"
-            )
+        # if len(coin_news) < coin_min:
+        #     from src.utils.helper import logger
+        #     logger.warning(
+        #         f"⚠️ Insufficient coin-specific news for {symbol} "
+        #         f"(found: {len(coin_news)}, required: {coin_min})"
+        #     )
         
         # Gabungkan dengan urutan prioritas: Macro → Coin → BTC
         result = []
