@@ -37,7 +37,7 @@ Bot tidak lagi menebak arah. Untuk setiap koin, bot menghitung dua skenario seka
 *   **Scenario B (Short Case)**: Jika market bearish, di mana titik entry, SL, dan TP terbaik?
 AI akan memilih skenario yang memiliki probabilitas tertinggi berdasarkan data, menghilangkan bias subjektif.
 
-### 2. �️ Vision AI Pattern Recognition
+### 2. 👁️ Vision AI Pattern Recognition
 Integrasi Computer Vision yang canggih:
 *   **Chart Rendering**: Otomatis mencetak chart teknikal lengkap dengan indikator.
 *   **Validasi Pola**: AI Vision memvalidasi apakah ada pola reversal atau continuation.
@@ -67,12 +67,47 @@ Notifikasi Telegram yang mendetail:
 *   **ROI Calculation**: Menampilkan persentase keuntungan/kerugian berdasarkan modal dan leverage.
 *   **Real-time Updates**: Notifikasi saat order dipasang (Limit), saat terisi (Filled), dan saat menyentuh TP/SL.
 
+### 7. 📰 Smart News Filtering System - **NEW!**
+Sistem filter berita cerdas yang memastikan AI hanya menerima informasi relevan:
+
+**Mekanisme Filtering:**
+*   **Kategori Makro (Prioritas 1)**: Berita tentang Fed, inflasi, regulasi - maksimal 3 berita
+*   **Kategori Koin Spesifik (Prioritas 2)**: Berita langsung tentang koin yang dianalisis - minimal 4 berita
+*   **Kategori BTC Correlation (Prioritas 3)**: Berita Bitcoin untuk non-BTC coins - maksimal 3 berita
+
+**Keunggulan:**
+*   ✅ Menghindari "noise" dari berita tidak relevan
+*   ✅ Mencegah AI berhalusinasi karena informasi campur aduk
+*   ✅ Keyword customizable per koin di `config.py`
+*   ✅ Sumber berita dari 15+ RSS feeds internasional & Indonesia
+
+### 8. 🔄 Intelligent Trailing Stop Loss - **NEW!**
+Sistem trailing stop otomatis yang mengunci profit saat market bergerak menguntungkan:
+
+**Cara Kerja:**
+1. Bot membuka posisi dengan SL & TP awal
+2. Saat harga bergerak 45% menuju TP → Trailing Stop aktif
+3. SL otomatis naik/turun mengikuti harga dengan jarak 0.75%
+4. Minimal profit 0.5% dikunci saat trailing aktif
+
+**Ilustrasi (LONG Position):**
+```
+Entry: $100 | TP: $110 | SL Awal: $97
+Harga naik ke $104.5 (45% ke TP) → Trailing Aktif!
+- SL baru: $103.72 (0.75% di bawah harga tertinggi)
+Harga naik ke $108 → SL naik ke $107.19
+Harga turun ke $107 → SL tetap $107.19 (terkunci!)
+Harga turun ke $107.19 → Posisi ditutup dengan profit ~7%
+```
+
 ---
 
 ## 🛠️ Instalasi & Konfigurasi
 
 ### Persyaratan Sistem & API
 *   **Python 3.10+** (Wajib)
+*   **pip** dan **venv** (tools Python bawaan)
+*   **Git** untuk clone repository
 *   **Akun Binance Futures**: API Key & Secret Key (Enable Futures Trading & Read)
 *   **Telegram Bot**: Token & Chat ID (Untuk notifikasi real-time)
 *   **AI Provider API**: Key dari [OpenRouter](https://openrouter.ai/) atau DeepSeek
@@ -80,11 +115,181 @@ Notifikasi Telegram yang mendetail:
 *   *(Opsional)* **Binance Testnet**: API Key khusus jika ingin menggunakan uang monopoli
 *   *(Opsional)* **Telegram Channel Khusus**: Token & Chat ID terpisah untuk log analisis sentimen
 
-### Langkah Cepat
-1.  **Clone**: `git clone https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy.git`
-2.  **Install**: `pip install -e .`
-3.  **Config**: Ubah `.env.example` ke `.env` dan isi semua API Key.
-4.  **Run**: `python src/main.py`
+---
+
+### 💻 Instalasi di Windows
+
+<details>
+<summary>Klik untuk melihat langkah-langkah Windows</summary>
+
+**1. Install Python 3.10+**
+- Download dari [python.org/downloads](https://www.python.org/downloads/)
+- ⚠️ **PENTING**: Centang "Add Python to PATH" saat instalasi!
+- Verifikasi: Buka PowerShell/CMD, ketik: `python --version`
+
+**2. Clone Repository**
+```powershell
+cd C:\Projects  # atau folder pilihan kamu
+git clone https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy.git
+cd Bot-Trading-Easy-Peasy
+```
+
+**3. Buat Virtual Environment**
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate
+```
+
+**4. Install Dependencies**
+```powershell
+pip install -e .
+```
+
+**5. Setup Konfigurasi**
+- Buat file `.env` di root folder (gunakan `copy .env.example .env`)
+- Isi semua API Key yang diperlukan
+- Ubah pengaturan di `src/config.py` sesuai kebutuhan
+
+**6. Jalankan Bot**
+```powershell
+python src/main.py
+```
+
+</details>
+
+---
+
+### 🍎 Instalasi di macOS
+
+<details>
+<summary>Klik untuk melihat langkah-langkah macOS</summary>
+
+**1. Install Python 3.10+ via Homebrew**
+```bash
+# Install Homebrew (jika belum ada)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Python
+brew install python@3.10
+
+# Verifikasi
+python3 --version
+```
+
+**2. Clone Repository**
+```bash
+cd ~/Projects  # atau folder pilihan kamu
+git clone https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy.git
+cd Bot-Trading-Easy-Peasy
+```
+
+**3. Buat Virtual Environment**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+**4. Install Dependencies**
+```bash
+pip install -e .
+```
+
+**5. Setup Konfigurasi**
+- Buat file `.env` di root folder
+- Isi semua API Key yang diperlukan
+- Ubah pengaturan di `src/config.py` sesuai kebutuhan
+
+**6. Jalankan Bot**
+```bash
+python src/main.py
+```
+
+</details>
+
+---
+
+### 🐧 Instalasi di Linux Server (Ubuntu/Debian)
+
+<details>
+<summary>Klik untuk melihat langkah-langkah Linux Server</summary>
+
+**1. Update Sistem & Install Dependencies**
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install python3.10 python3.10-venv python3-pip git screen -y
+```
+
+**2. Clone Repository**
+```bash
+cd /opt  # atau /home/username
+sudo git clone https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy.git
+sudo chown -R $USER:$USER Bot-Trading-Easy-Peasy
+cd Bot-Trading-Easy-Peasy
+```
+
+**3. Buat Virtual Environment**
+```bash
+python3.10 -m venv venv
+source venv/bin/activate
+```
+
+**4. Install Dependencies**
+```bash
+pip install --upgrade pip
+pip install -e .
+```
+
+**5. Setup Konfigurasi**
+```bash
+# Buat file .env dari template
+cp .env.example .env
+nano .env
+# Isi API Keys, lalu Simpan: Ctrl+X, Y, Enter
+```
+
+**6. Jalankan Bot (Background dengan Screen)**
+```bash
+# Jalankan dalam screen session
+screen -S trading-bot
+python src/main.py
+
+# Lepas dari session: Ctrl+A, D
+# Kembali ke session: screen -r trading-bot
+# Lihat daftar session: screen -ls
+```
+
+**7. (Opsional) Systemd Service untuk Auto-Start**
+```bash
+sudo nano /etc/systemd/system/trading-bot.service
+```
+
+Isi file service (sesuaikan user & path):
+```ini
+[Unit]
+Description=Easy Peasy Trading Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/Bot-Trading-Easy-Peasy
+ExecStart=/opt/Bot-Trading-Easy-Peasy/venv/bin/python src/main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Aktifkan service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable trading-bot
+sudo systemctl start trading-bot
+sudo systemctl status trading-bot
+```
+
+</details>
 
 ---
 
