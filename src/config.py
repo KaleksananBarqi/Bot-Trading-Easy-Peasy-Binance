@@ -225,15 +225,15 @@ RSS_FEED_URLS = [
 MACRO_KEYWORDS = ["federal reserve", "fed", "fomc", "inflation", "cpi", "recession", "interest rate", "powell", "sec", "crypto regulation"] 
 
 
-# ==============================================================================
+# ======	========================================================================
 # 📋 DAFTAR STRATEGI
 # ==============================================================================
 AVAILABLE_STRATEGIES = {
     'LIQUIDITY_REVERSAL_MASTER': "Mencari pembalikan arah di area Pivot (S1/R1) atau Liquidity Sweep. ",
-    'STANDARD_MULTI_CONFIRMATION': "Analisa teknikal seimbang. ",
-    'BB_BOUNCE': "Jika ADX lemah/sideways (< 20), fokus pada setup Reversal di area BB Top (Upper Band) atau BB Bottom (Lower Band). ",
-    'COUNTER_TREND': "Fade ekstrem RSI/Stoch di zona Overbought (RSI > {config.RSI_OVERBOUGHT}) untuk SELL atau Oversold (RSI < {config.RSI_OVERSOLD}) untuk BUY. Cocok saat trend melemah.",
-    'MEAN_REVERSION': "Entry saat harga kembali ke EMA setelah deviasi besar dari Bollinger Mid. Ideal untuk kondisi sideways/ranging market."
+   # 'STANDARD_MULTI_CONFIRMATION': "Analisa teknikal seimbang. ",
+   # 'BB_BOUNCE': "Jika ADX lemah/sideways (< 20), fokus pada setup Reversal di area BB Top (Upper Band) atau BB Bottom (Lower Band). ",
+   # 'COUNTER_TREND': "Fade ekstrem RSI/Stoch di zona Overbought (RSI > {config.RSI_OVERBOUGHT}) untuk SELL atau Oversold (RSI < {config.RSI_OVERSOLD}) untuk BUY. Cocok saat trend melemah.",
+   # 'MEAN_REVERSION': "Entry saat harga kembali ke EMA setelah deviasi besar dari Bollinger Mid. Ideal untuk kondisi sideways/ranging market."
 }
 
 # ==============================================================================
@@ -244,7 +244,7 @@ DAFTAR_KOIN = [
     {
         "symbol": "BTC/USDT", 
         "category": "KING", 
-        "leverage": 30, 
+        "leverage": 15, 
         "margin_type": "isolated", 
         "amount": 25, 
         "btc_corr": False,
@@ -253,7 +253,7 @@ DAFTAR_KOIN = [
     {
         "symbol": "SOL/USDT", 
         "category": "LAYER1", 
-        "leverage": 30, 
+        "leverage": 15, 
         "margin_type": "isolated", 
         "amount": 25, 
         "btc_corr": True,
