@@ -246,7 +246,7 @@ SCENARIO B: Sell/Short Setup
 --------------------------------------------------
 """
         btc_instruction_prompt = f"""
-1. CHECK MACRO BIAS: Is the {config.TIMEFRAME_TREND} Structure & BTC Trend supportive?
+5. CHECK MACRO BIAS: Is the {config.TIMEFRAME_TREND} Structure & BTC Trend supportive?
    {btc_instruction}
 """
     else:
@@ -259,13 +259,13 @@ SCENARIO B: Sell/Short Setup
 --------------------------------------------------
 """
         btc_instruction_prompt = f"""
-1. CHECK MACRO BIAS: Is the {config.TIMEFRAME_TREND} Market Structure supportive?
+5. CHECK MACRO BIAS: Is the {config.TIMEFRAME_TREND} Market Structure supportive?
 """
 
     # [LOGIC: STRATEGY INSTRUCTION - LIQUIDITY HUNT PROTOCOL]
     if config.ENABLE_MARKET_ORDERS:
         strategy_instruction = (
-            "5. SCENARIO & EXECUTION DECISION:\n"
+            "6. SCENARIO & EXECUTION DECISION:\n"
             "   - SCENARIO A (Long) or B (Short): Choose based on active sweep zone.\n"
             "   - Aggressive (Market): Use ONLY if sweep is CONFIRMED and reversal is in progress.\n"
             "   - Passive (Limit): Use if sweep is ANTICIPATED but not yet confirmed.\n"
@@ -273,7 +273,7 @@ SCENARIO B: Sell/Short Setup
     else:
         # Market Order Disabled -> Force Passive
         strategy_instruction = (
-            "5. SCENARIO DECISION:\n"
+            "6. SCENARIO DECISION:\n"
             "   - SCENARIO A (Long): Valid ONLY if price is near/below S1 with sweep rejection.\n"
             "   - SCENARIO B (Short): Valid ONLY if price is near/above R1 with sweep rejection.\n"
             "   - REJECT if no clear sweep is forming at either zone.\n"
@@ -349,7 +349,7 @@ FINAL INSTRUCTIONS (LIQUIDITY HUNT PROTOCOL):
 
 {strategy_instruction}
 
-5. DECISION: Return WAIT if no active sweep confirmed.
+7. DECISION: Return WAIT if no active sweep confirmed.
 
 OUTPUT FORMAT (JSON ONLY):
 {{
