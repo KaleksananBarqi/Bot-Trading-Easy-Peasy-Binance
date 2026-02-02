@@ -231,7 +231,8 @@ class MarketDataManager:
                                 price = float(payload['c']) # Current Close Price
                                 
                                 if callback_trailing:
-                                    await callback_trailing(symbol, price)
+                                    # Use fire-and-forget task
+                                    asyncio.create_task(self._safe_callback_execution(callback_trailing, symbol, price))
                                 
             except Exception as e:
                 logger.warning(f"⚠️ WS Disconnected: {e}. Reconnecting...")
@@ -305,6 +306,13 @@ class MarketDataManager:
                 await self.exchange.fapiPrivatePutListenKey({'listenKey': self.listen_key})
             except ccxt.NetworkError as e:
                 logger.debug(f"Keep alive listen key failed: {e}")
+
+    async def _safe_callback_execution(self, callback, *args):
+        """Helper to safely run callbacks without crashing the loop"""
+        try:
+            await callback(*args)
+        except Exception as e:
+            logger.error(f"Error in trailing callback: {e}")
 
     async def _handle_kline(self, data):
         sym = data['s'].replace('USDT', '/USDT')
