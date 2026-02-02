@@ -46,7 +46,7 @@ def executor():
     
     with patch('src.utils.helper.logger'):
         OrderExecutor.load_tracker = MagicMock()
-        OrderExecutor.save_tracker = MagicMock()
+        OrderExecutor.save_tracker = AsyncMock()
         
         exc = OrderExecutor(exchange)
         exc.safety_orders_tracker = {} 
