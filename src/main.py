@@ -58,7 +58,7 @@ async def safety_monitor_loop():
                             "status": "SECURED",
                             "last_check": time.time()
                         })
-                        executor.save_tracker()
+                        await executor.save_tracker()
 
             # Sleep agak lama karena load utama sudah di WebSocket
             await asyncio.sleep(60) 
@@ -183,7 +183,7 @@ async def main():
                 await kirim_tele(msg)
                 
                 # Clean up tracker immediately
-                executor.remove_from_tracker(symbol)
+                await executor.remove_from_tracker(symbol)
             
             else:
                 # ENTRY FILL (RP = 0)

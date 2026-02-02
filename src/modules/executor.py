@@ -59,11 +59,17 @@ class OrderExecutor:
         if updated:
             self._trailing_last_update[symbol] = now
 
-    def save_tracker(self):
+    async def save_tracker(self):
+        """Non-blocking save tracker ke file."""
         try:
-            with open(config.TRACKER_FILENAME, 'w') as f:
-                json.dump(self.safety_orders_tracker, f, indent=2, sort_keys=True)
-        except Exception as e: logger.error(f"⚠️ Gagal save tracker: {e}")
+            await asyncio.to_thread(self._save_tracker_sync)
+        except Exception as e:
+            logger.error(f"⚠️ Gagal save tracker: {e}")
+
+    def _save_tracker_sync(self):
+        """Sync helper untuk save tracker (dijalankan di thread pool)."""
+        with open(config.TRACKER_FILENAME, 'w') as f:
+            json.dump(self.safety_orders_tracker, f, indent=2, sort_keys=True)
 
     # --- RISK & SIZING HELPERS ---
     async def get_available_balance(self):
@@ -185,7 +191,7 @@ class OrderExecutor:
                     "strategy": strategy_tag,
                     "atr_value": atr_value # Save ATR for Safety Calculation
                 }
-                self.save_tracker()
+                await self.save_tracker()
                 await kirim_tele(f"⏳ <b>LIMIT PLACED ({strategy_tag})</b>\n{symbol} {side} @ {price_exec:.4f}\n(Trap SL set by ATR: {atr_value:.4f})")
 
             else: # MARKET
@@ -198,7 +204,7 @@ class OrderExecutor:
                     "atr_value": atr_value,
                     "created_at": time.time()
                 }
-                self.save_tracker()
+                await self.save_tracker()
 
                 try:
                     order = await self.exchange.create_order(symbol, 'market', side, qty)
@@ -208,7 +214,7 @@ class OrderExecutor:
                     logger.error(f"❌ Market Order Failed {symbol}, rolling back tracker...")
                     if symbol in self.safety_orders_tracker:
                         del self.safety_orders_tracker[symbol]
-                        self.save_tracker()
+                        await self.save_tracker()
                     raise e
 
         except Exception as e:
@@ -295,7 +301,7 @@ class OrderExecutor:
                         "side": side, # LONG/SHORT
                         "trailing_active": False 
                     })
-                    self.save_tracker()
+                    await self.save_tracker()
 
                 return True
             except Exception as e:
@@ -369,7 +375,7 @@ class OrderExecutor:
         # 2. Update Tracker
         tracker['trailing_active'] = True
         tracker['trailing_sl'] = new_sl
-        self.save_tracker()
+        await self.save_tracker()
         
         logger.info(f"🔄 Trailing Mode ACTIVATED for {symbol} @ {current_price} | SL: {new_sl:.4f}")
         await kirim_tele(f"🔄 <b>TRAILING ACTIVE</b>\n{symbol}\nPrice: {current_price}\nInitial SL: {new_sl:.4f} (Locked)")
@@ -423,7 +429,7 @@ class OrderExecutor:
         if need_update:
             # Save Logic
             tracker['trailing_sl'] = new_sl
-            self.save_tracker()
+            await self.save_tracker()
             
             logger.info(f"📈 Trailing SL Updated {symbol}: {current_sl:.4f} -> {new_sl:.4f}")
             # Execute on Exchange
@@ -468,11 +474,11 @@ class OrderExecutor:
         except Exception as e:
             logger.error(f"❌ Failed to Amend SL {symbol}: {e}")
 
-    def remove_from_tracker(self, symbol):
-        """Remove symbol from safety tracker and save."""
+    async def remove_from_tracker(self, symbol):
+        """Async remove symbol from safety tracker and save."""
         if symbol in self.safety_orders_tracker:
             del self.safety_orders_tracker[symbol]
-            self.save_tracker()
+            await self.save_tracker()
             logger.info(f"🗑️ Tracker cleaned for {symbol}")
 
     async def sync_positions(self):
@@ -536,14 +542,14 @@ class OrderExecutor:
                         logger.info(f"✅ Order {symbol} found filled during sync. Queuing for Safety Orders (PENDING).")
                         self.safety_orders_tracker[symbol]['status'] = 'PENDING'
                         self.safety_orders_tracker[symbol]['last_check'] = time.time()
-                        self.save_tracker()
+                        await self.save_tracker()
                     
                     # Case B: Cancelled/Expired?
                     else:
                         # Not active, not in open orders -> Cancelled manually
                         logger.info(f"🗑️ Found Stale/Cancelled Order for {symbol}. Removing from tracker.")
                         del self.safety_orders_tracker[symbol]
-                        self.save_tracker()
+                        await self.save_tracker()
                         
                         await kirim_tele(
                             f"🗑️ <b>ORDER SYNC</b>\n"
