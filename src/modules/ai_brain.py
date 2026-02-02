@@ -16,9 +16,28 @@ class AIBrain:
             )
             self.model_name = config.AI_MODEL_NAME
             logger.info(f"🧠 AI Brain Initialized: {self.model_name} via OpenRouter")
+            if getattr(config, 'AI_REASONING_ENABLED', False):
+                logger.info(f"🧠 Reasoning Feature ENABLED (Effort: {config.AI_REASONING_EFFORT})")
         else:
             self.client = None
             logger.warning("⚠️ AI_API_KEY not found. AI Brain is disabled.")
+
+    def _build_reasoning_config(self):
+        """
+        Build reasoning configuration berdasarkan config.
+        Return None jika reasoning dinonaktifkan.
+        """
+        if not getattr(config, 'AI_REASONING_ENABLED', False):
+            return None
+        
+        reasoning_config = {
+            "reasoning": {
+                "enabled": True, # Explicitly enable
+                "effort": getattr(config, 'AI_REASONING_EFFORT', 'medium'),
+                "exclude": getattr(config, 'AI_REASONING_EXCLUDE', False)
+            }
+        }
+        return reasoning_config
 
     async def analyze_market(self, prompt_text):
         """
@@ -34,8 +53,9 @@ class AIBrain:
                     "HTTP-Referer": config.AI_APP_URL, 
                     "X-Title": config.AI_APP_TITLE, 
                 },
+                extra_body=self._build_reasoning_config(),
                 model=self.model_name,
-                messages=[
+                messages=[ 
                     {
                         "role": "user",
                         "content": prompt_text

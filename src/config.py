@@ -52,6 +52,11 @@ AI_CONFIDENCE_THRESHOLD = 75     # Minimal keyakinan (%) untuk berani eksekusi
 AI_SYSTEM_ROLE = "You are an elite Crypto Trading AI capable of analyzing market conditions across multiple timeframes and selecting the optimal strategy from available methods."
 AI_BASE_URL = "https://openrouter.ai/api/v1"
 
+# Reasoning (Untuk Model yang Support Reasoning Tokens)
+AI_REASONING_ENABLED = True       # Aktifkan fitur reasoning? (True/False)
+AI_REASONING_EFFORT = 'medium'    # Level effort: 'xhigh', 'high', 'medium', 'low', 'minimal', 'none'
+AI_REASONING_EXCLUDE = False      # True = reasoning tidak ditampilkan di response
+
 # Identitas Bot
 AI_APP_URL = "https://github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy"
 AI_APP_TITLE = "Bot Trading Easy Peasy"
