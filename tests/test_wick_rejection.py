@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src'
 import src.config as config
 config.TIMEFRAME_EXEC = '15m'
 config.PAKAI_DEMO = False # Avoid creating CCXT instance
+config.CONCURRENCY_LIMIT = 20 # Ensure int for Semaphore
 
 from src.modules.market_data import MarketDataManager
 

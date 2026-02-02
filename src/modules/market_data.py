@@ -24,6 +24,7 @@ class MarketDataManager:
         
         self.btc_trend = "NEUTRAL"
         self.data_lock = asyncio.Lock()
+        self.sem_slow_data = asyncio.Semaphore(config.CONCURRENCY_LIMIT)
         
         self.ws_url = config.WS_URL_FUTURES_TESTNET if config.PAKAI_DEMO else config.WS_URL_FUTURES_LIVE
         self.listen_key = None
@@ -247,31 +248,55 @@ class MarketDataManager:
         while True:
             await asyncio.sleep(interval)
             try:
-                for coin in config.DAFTAR_KOIN:
-                    symbol = coin['symbol']
-                    try:
-                        # 1. Update Funding Rate
-                        fr = await self.exchange.fetch_funding_rate(symbol)
-                        
-                        # 2. Update Open Interest
-                        oi = await self.exchange.fetch_open_interest(symbol) # Return dict
-                        
-                        # 3. Update Long/Short Ratio (Using Helper)
-                        lsr_val = await self._fetch_lsr(symbol)
-
-                        async with self.data_lock:
-                            self.funding_rates[symbol] = fr.get('fundingRate', 0)
-                            self.open_interest[symbol] = float(oi.get('openInterestAmount', 0))
-                            if lsr_val:
-                                self.lsr_data[symbol] = lsr_val
-                            
-                    except Exception as e:
-
-                        pass # Silent error
-
-                
+                tasks = [self._update_single_coin_slow_data(coin) for coin in config.DAFTAR_KOIN]
+                await asyncio.gather(*tasks)
             except Exception as e:
                 logger.error(f"Slow Data Loop Error: {e}")
+
+    async def _update_single_coin_slow_data(self, coin):
+        """Helper to update slow data for a single coin concurrently"""
+        symbol = coin['symbol']
+        async with self.sem_slow_data:
+            try:
+                # Parallel fetch: Funding Rate, Open Interest, LSR
+                results = await asyncio.gather(
+                    self.exchange.fetch_funding_rate(symbol),
+                    self.exchange.fetch_open_interest(symbol),
+                    self._fetch_lsr(symbol),
+                    return_exceptions=True
+                )
+
+                fr_res, oi_res, lsr_res = results
+
+                # Process results safely
+                fr_val = 0
+                if not isinstance(fr_res, Exception):
+                    fr_val = fr_res.get('fundingRate', 0)
+
+                oi_val = 0.0
+                if not isinstance(oi_res, Exception):
+                    try:
+                        oi_val = float(oi_res.get('openInterestAmount', 0))
+                    except (ValueError, TypeError):
+                        oi_val = 0.0
+
+                lsr_val = None
+                if not isinstance(lsr_res, Exception):
+                    lsr_val = lsr_res
+
+                # Single lock acquisition for updates
+                async with self.data_lock:
+                    if not isinstance(fr_res, Exception):
+                        self.funding_rates[symbol] = fr_val
+                    if not isinstance(oi_res, Exception):
+                        self.open_interest[symbol] = oi_val
+                    if lsr_val:
+                        self.lsr_data[symbol] = lsr_val
+
+            except Exception as e:
+                # Log debug only to avoid spam
+                # logger.debug(f"Failed updating slow data for {symbol}: {e}")
+                pass
 
     async def _keep_alive_listen_key(self):
         while True:
