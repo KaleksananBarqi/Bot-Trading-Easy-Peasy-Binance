@@ -1,8 +1,10 @@
 import requests
 import feedparser
 import random
+import asyncio
+import aiohttp
 import config
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from src.utils.helper import logger
 
@@ -51,26 +53,16 @@ class SentimentAnalyzer:
         except Exception as e:
             logger.warning(f"⚠️ Failed to fetch F&G: {e}")
 
-    def fetch_news(self):
-        """Fetch Top News from RSS Feeds dan simpan ke raw_news"""
-        rss_urls = getattr(config, 'RSS_FEED_URLS', [])
-        if not rss_urls:
-            logger.warning("⚠️ No RSS URLs configured in config.")
-            return
-
-        all_news = []
-        max_per_source = config.NEWS_MAX_PER_SOURCE
-        max_age_hours = getattr(config, 'NEWS_MAX_AGE_HOURS', 24) 
-        max_total = getattr(config, 'NEWS_MAX_TOTAL', 50)
-        
-        for url in rss_urls:
-            try:
-                # logger.info(f"🌐 Fetching RSS: {url}") # Reduced log spam
-                response = requests.get(url, timeout=config.API_REQUEST_TIMEOUT)
-                feed = feedparser.parse(response.content)
+    async def _fetch_single_rss(self, session: aiohttp.ClientSession, url: str, max_per_source: int, max_age_hours: int) -> list:
+        """Fetch single RSS feed secara async."""
+        news_items = []
+        try:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=config.API_REQUEST_TIMEOUT)) as response:
+                content = await response.read()
+                feed = feedparser.parse(content)
                 
                 if not feed.entries:
-                    continue
+                    return []
 
                 source_name = feed.feed.get('title', 'Unknown Source')
                 
@@ -83,7 +75,7 @@ class SentimentAnalyzer:
                     if hasattr(entry, 'published_parsed') and entry.published_parsed:
                         try:
                             published_dt = datetime(*entry.published_parsed[:6])
-                            age_seconds = (datetime.utcnow() - published_dt).total_seconds()
+                            age_seconds = (datetime.now(timezone.utc) - published_dt.replace(tzinfo=timezone.utc)).total_seconds()
                             if age_seconds > (max_age_hours * 3600):
                                 is_recent = False
                         except Exception:
@@ -93,12 +85,40 @@ class SentimentAnalyzer:
                         title = entry.title
                         # Clean title
                         title = title.replace('\n', ' ').strip()
-                        all_news.append(f"{title} ({source_name})")
+                        news_items.append(f"{title} ({source_name})")
                         count += 1
-                    
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to fetch RSS {url}: {e}")
+                        
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to fetch RSS {url}: {e}")
+        
+        return news_items
 
+    async def fetch_news(self):
+        """Fetch Top News dari RSS Feeds secara concurrent dan simpan ke raw_news."""
+        rss_urls = getattr(config, 'RSS_FEED_URLS', [])
+        if not rss_urls:
+            logger.warning("⚠️ No RSS URLs configured in config.")
+            return
+
+        max_per_source = config.NEWS_MAX_PER_SOURCE
+        max_age_hours = getattr(config, 'NEWS_MAX_AGE_HOURS', 24) 
+        max_total = getattr(config, 'NEWS_MAX_TOTAL', 50)
+        
+        # Concurrent fetch dengan aiohttp
+        async with aiohttp.ClientSession() as session:
+            tasks = [
+                self._fetch_single_rss(session, url, max_per_source, max_age_hours) 
+                for url in rss_urls
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Gabungkan hasil dari semua feeds
+        all_news = []
+        for result in results:
+            if isinstance(result, list):
+                all_news.extend(result)
+            # Skip exceptions (sudah di-log di _fetch_single_rss)
+        
         # Shuffle biar variatif sumbernya
         random.shuffle(all_news)
         
@@ -239,6 +259,9 @@ class SentimentAnalyzer:
             "news": news_to_display
         }
 
-    def update_all(self):
-        self.fetch_fng()
-        self.fetch_news()
+    async def update_all(self):
+        """Update semua data sentiment secara concurrent."""
+        await asyncio.gather(
+            asyncio.to_thread(self.fetch_fng),  # FnG tetap sync, di-offload ke thread
+            self.fetch_news()  # RSS sudah async
+        )

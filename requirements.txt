@@ -1,4 +1,5 @@
 ccxt==4.5.30
+aiohttp>=3.9.0
 feedparser==6.0.11
 httpx==0.28.1
 matplotlib==3.10.8

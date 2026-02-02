@@ -1,6 +1,7 @@
 import sys
 import os
 import unittest
+import asyncio
 
 # Add project root and src to path to ensure imports work correctly
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -31,7 +32,7 @@ class TestNewsRetrieval(unittest.TestCase):
         analyzer = SentimentAnalyzer()
         
         print("Fetching news... (this might take a few seconds)")
-        analyzer.fetch_news()
+        asyncio.run(analyzer.fetch_news())  # Async call
         
         # Versi terbaru menggunakan get_latest() untuk mengambil berita yang sudah terfilter/diformalisasi
         sentiment_data = analyzer.get_latest()

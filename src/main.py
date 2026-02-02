@@ -117,7 +117,7 @@ async def main():
 
     # 3. PRELOAD DATA
     await market_data.initialize_data()
-    sentiment.update_all() # Initial Fetch Headline & F&G
+    await sentiment.update_all() # Initial Fetch Headline & F&G
     
     # 4. START BACKGROUND TASKS
     # WebSocket Callback Wrappers
@@ -260,7 +260,7 @@ async def main():
                 logger.info("🔄 Refreshing Sentiment & On-Chain Data (Fetch Only)...")
                 try:
                     # Jalankan di background task agar tidak memblokir main loop (Fire & Forget)
-                    asyncio.create_task(asyncio.to_thread(sentiment.update_all))
+                    asyncio.create_task(sentiment.update_all())
                     asyncio.create_task(asyncio.to_thread(onchain.fetch_stablecoin_inflows))
                     
                     # Schedule Next Update
