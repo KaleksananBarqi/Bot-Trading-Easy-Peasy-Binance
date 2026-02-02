@@ -27,8 +27,8 @@ def run_complete_backtest():
     print("="*60)
     
     # 1. Konfigurasi Backtest
-    START_DATE = "2024-01-01"
-    END_DATE = "2024-04-01"
+    START_DATE = "2026-01-01"
+    END_DATE = "2026-02-01"
     INITIAL_CAPITAL = 1000
     
     print(f"\n1. KONFIGURASI BACKTEST")

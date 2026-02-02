@@ -65,7 +65,7 @@ class BacktestEngine:
         df['ADX'] = adx[f'ADX_{config.ADX_PERIOD}']
         
         # RSI
-        df['RSI'] = ta.rsi(df['close'], length=14)
+        df['RSI'] = ta.rsi(df['close'], length=config.RSI_PERIOD)
         
         # Bollinger Bands
         bb = ta.bbands(df['close'], length=config.BB_LENGTH, std=config.BB_STD)
@@ -88,6 +88,24 @@ class BacktestEngine:
         
         # Menandai volume tinggi
         df['HIGH_VOLUME'] = df['VOL_RATIO'] > 1.2
+        
+        # --- PIVOT POINTS (Daily) untuk Strategi Liquidity Hunt ---
+        # Pivot dihitung dari HLC hari sebelumnya, lalu di-forward fill
+        df_daily = df.resample('D').agg({'high': 'max', 'low': 'min', 'close': 'last'}).dropna()
+        if len(df_daily) > 1:
+            df_daily['PIVOT_P'] = (df_daily['high'].shift(1) + df_daily['low'].shift(1) + df_daily['close'].shift(1)) / 3
+            df_daily['PIVOT_S1'] = (2 * df_daily['PIVOT_P']) - df_daily['high'].shift(1)
+            df_daily['PIVOT_R1'] = (2 * df_daily['PIVOT_P']) - df_daily['low'].shift(1)
+            
+            # Reindex ke timeframe asli dan forward fill
+            df['PIVOT_P'] = df_daily['PIVOT_P'].reindex(df.index, method='ffill')
+            df['PIVOT_S1'] = df_daily['PIVOT_S1'].reindex(df.index, method='ffill')
+            df['PIVOT_R1'] = df_daily['PIVOT_R1'].reindex(df.index, method='ffill')
+        else:
+            # Jika data daily tidak cukup, isi dengan NaN
+            df['PIVOT_P'] = np.nan
+            df['PIVOT_S1'] = np.nan
+            df['PIVOT_R1'] = np.nan
         
         return df
     
@@ -134,19 +152,34 @@ class BacktestEngine:
             if current_idx - self.last_entry_bar < 24:  # 12 Bar = 1 jam
                 return None
         
-        # 1. Prepare Data for AI Simulator
+        # 1. Prepare Data for AI Simulator (Liquidity Hunt Strategy)
+        # Pivot Points diperlukan untuk deteksi S1/R1 Sweep
+        pivot_p = current.get('PIVOT_P', 0)
+        pivot_s1 = current.get('PIVOT_S1', 0)
+        pivot_r1 = current.get('PIVOT_R1', 0)
+        
+        # Skip jika pivot tidak valid
+        if pd.isna(pivot_p) or pivot_p == 0:
+            return None
+        
         tech_data = {
             'symbol': symbol,
-            'price': current['close'],
+            'close': current['close'],
+            'high': current['high'],
+            'low': current['low'],
+            'pivot_P': pivot_p,
+            'pivot_S1': pivot_s1,
+            'pivot_R1': pivot_r1,
             'rsi': current['RSI'],
             'adx': current['ADX'],
             'stoch_k': current['STOCH_K'],
+            'volume_ratio': current['VOL_RATIO'],
             'ema_fast': current['EMA_FAST'],
             'ema_slow': current['EMA_SLOW'],
             'bb_upper': current['BBU'],
             'bb_lower': current['BBL'],
             'btc_trend': btc_trend,
-            'btc_correlation': 0.8 # Simulated High Correlation
+            'btc_correlation': 0.8  # Simulated High Correlation
         }
         
         sentiment_data = {
@@ -165,9 +198,8 @@ class BacktestEngine:
             signal = "LONG" if decision == "BUY" else "SHORT"
             side_api = 'buy' if decision == "BUY" else 'sell'
             
-            # Logic Entry Type (Market vs Limit)
-            if config.USE_LIQUIDITY_HUNT:
-                # Mode Liquidity Hunt: entry di level SL retail
+            # Mode Liquidity Hunt: entry di level SL retail (jika market order disabled)
+            if not config.ENABLE_MARKET_ORDERS:
                 retail_sl_dist = atr * config.ATR_MULTIPLIER_SL
                 if signal == "LONG":
                     entry_price = current['close'] - retail_sl_dist
