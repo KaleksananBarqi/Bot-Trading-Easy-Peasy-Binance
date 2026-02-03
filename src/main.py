@@ -8,7 +8,7 @@ import ccxt.async_support as ccxt
 import config
 from src.utils.helper import logger, kirim_tele, kirim_tele_sync, parse_timeframe_to_seconds, get_next_rounded_time, get_coin_leverage
 from src.utils.prompt_builder import build_market_prompt, build_sentiment_prompt
-from src.utils.calc import calculate_trade_scenarios, calculate_dual_scenarios
+from src.utils.calc import calculate_trade_scenarios, calculate_dual_scenarios, calculate_profit_loss_estimation
 
 # MODULE IMPORTS
 from src.modules.market_data import MarketDataManager
@@ -527,6 +527,16 @@ async def main():
                     position_size_usdt = amt * lev
                     direction_icon = "🟢" if side == 'buy' else "🔴"
                     
+                    # [NEW] Calculate Profit/Loss Estimation
+                    pnl_est = calculate_profit_loss_estimation(
+                        entry_price=entry_price,
+                        tp_price=tp_price,
+                        sl_price=sl_price,
+                        side=side,
+                        amount_usdt=amt,
+                        leverage=lev
+                    )
+                    
                     # [MESSAGE UPDATE] Conditional BTC Lines
                     btc_trend_icon = "🟢" if tech_data['btc_trend'] == "BULLISH" else "🔴"
                     btc_corr_icon = "🔒" if btc_corr >= config.CORRELATION_THRESHOLD_BTC else "🔓"
@@ -552,6 +562,9 @@ async def main():
                            f"• TP: {tp_price:.4f}\n"
                            f"• SL: {sl_price:.4f}\n"
                            f"• R:R: 1:{rr_ratio:.2f}\n\n"
+                           f"📈 <b>Estimasi Hasil:</b>\n"
+                           f"• Jika TP: <b>+${pnl_est['profit_usdt']:.2f}</b> (+{pnl_est['profit_percent']:.2f}%)\n"
+                           f"• Jika SL: <b>-${pnl_est['loss_usdt']:.2f}</b> (-{pnl_est['loss_percent']:.2f}%)\n\n"
                            f"💰 <b>Size & Risk:</b>\n"
                            f"• Margin: ${margin_usdt:.2f}\n"
                            f"• Size: ${position_size_usdt:.2f} (x{lev})\n\n"

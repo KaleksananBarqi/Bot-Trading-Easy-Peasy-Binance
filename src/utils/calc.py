@@ -106,3 +106,68 @@ def calculate_dual_scenarios(price: float, atr: float, precision: int = 4) -> Di
         "long": calculate_trade_scenarios(price, atr, 'BUY', precision),
         "short": calculate_trade_scenarios(price, atr, 'SELL', precision)
     }
+
+
+def calculate_profit_loss_estimation(
+    entry_price: float,
+    tp_price: float,
+    sl_price: float,
+    side: str,
+    amount_usdt: float,
+    leverage: int
+) -> Dict[str, float]:
+    """
+    Menghitung estimasi profit dan loss dalam USDT dan persentase ROI.
+    
+    Args:
+        entry_price (float): Harga entry.
+        tp_price (float): Harga Take Profit.
+        sl_price (float): Harga Stop Loss.
+        side (str): 'buy' atau 'sell'.
+        amount_usdt (float): Margin yang digunakan (USDT).
+        leverage (int): Leverage yang dipakai.
+        
+    Returns:
+        dict: {
+            "profit_usdt": float,     # Estimasi profit jika TP tercapai
+            "loss_usdt": float,       # Estimasi loss jika SL tercapai
+            "profit_percent": float,  # ROI jika profit (terhadap margin)
+            "loss_percent": float     # ROI jika loss (terhadap margin)
+        }
+    """
+    if entry_price <= 0 or amount_usdt <= 0 or leverage <= 0:
+        return {
+            "profit_usdt": 0.0,
+            "loss_usdt": 0.0,
+            "profit_percent": 0.0,
+            "loss_percent": 0.0
+        }
+    
+    # Hitung position size dan quantity
+    position_size_usdt = amount_usdt * leverage
+    qty = position_size_usdt / entry_price
+    
+    # Hitung jarak ke TP dan SL
+    if side.lower() == 'buy':
+        # Long position: profit jika harga naik, loss jika turun
+        profit_distance = tp_price - entry_price
+        loss_distance = entry_price - sl_price
+    else:
+        # Short position: profit jika harga turun, loss jika naik
+        profit_distance = entry_price - tp_price
+        loss_distance = sl_price - entry_price
+    
+    # Hitung profit/loss dalam USDT
+    profit_usdt = qty * abs(profit_distance)
+    loss_usdt = qty * abs(loss_distance)
+    
+    # Hitung persentase ROI (terhadap margin, bukan position size)
+    profit_percent = (profit_usdt / amount_usdt) * 100 if amount_usdt > 0 else 0
+    loss_percent = (loss_usdt / amount_usdt) * 100 if amount_usdt > 0 else 0
+    
+    return {
+        "profit_usdt": round(profit_usdt, 2),
+        "loss_usdt": round(loss_usdt, 2),
+        "profit_percent": round(profit_percent, 2),
+        "loss_percent": round(loss_percent, 2)
+    }
