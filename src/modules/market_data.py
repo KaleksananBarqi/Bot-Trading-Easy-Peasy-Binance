@@ -411,7 +411,8 @@ class MarketDataManager:
                 streams.append(f"{s_clean}@kline_{config.TIMEFRAME_SETUP}")
                 streams.append(f"{s_clean}@aggTrade") # Whale Detector Stream
                 streams.append(f"{s_clean}@miniTicker") # [NEW] Realtime Price for Trailing
-            
+                streams.append(f"{s_clean}@depth20@500ms") # [NEW] Order Book Cache Stream
+
             # Add BTC Stream manual if not exists
             btc_clean = config.BTC_SYMBOL.replace('/', '').lower()
             btc_s = f"{btc_clean}@kline_{config.TIMEFRAME_TREND}"
@@ -472,6 +473,9 @@ class MarketDataManager:
                                 if callback_trailing:
                                     # Use fire-and-forget task
                                     asyncio.create_task(self._safe_callback_execution(callback_trailing, symbol, price))
+
+                            elif evt == 'depthUpdate':
+                                await self._handle_depth_update(payload)
                                 
             except Exception as e:
                 logger.warning(f"⚠️ WS Disconnected: {e}. Reconnecting...")
@@ -488,31 +492,47 @@ class MarketDataManager:
         while True:
             await asyncio.sleep(interval)
             try:
+                # 1. Bulk Update Funding Rates
+                await self._update_funding_rates_bulk()
+
+                # 2. Parallel Update for Open Interest & LSR (No Bulk API available)
                 tasks = [self._update_single_coin_slow_data(coin) for coin in config.DAFTAR_KOIN]
                 await asyncio.gather(*tasks)
             except Exception as e:
                 logger.error(f"Slow Data Loop Error: {e}")
 
+    async def _update_funding_rates_bulk(self):
+        """Fetch all funding rates in a single request (Optimization)"""
+        try:
+            # fetch_funding_rates returns a dict {symbol: {info...}, ...}
+            all_rates = await self.exchange.fetch_funding_rates()
+
+            # Filter only monitored coins
+            monitored_symbols = {c['symbol'] for c in config.DAFTAR_KOIN}
+
+            async with self.data_lock:
+                for symbol, data in all_rates.items():
+                    if symbol in monitored_symbols:
+                        self.funding_rates[symbol] = data.get('fundingRate', 0)
+
+        except Exception as e:
+            logger.error(f"Failed Bulk Funding Rate Update: {e}")
+
     async def _update_single_coin_slow_data(self, coin):
-        """Helper to update slow data for a single coin concurrently"""
+        """Helper to update slow data for a single coin concurrently (OI & LSR)"""
         symbol = coin['symbol']
         async with self.sem_slow_data:
             try:
-                # Parallel fetch: Funding Rate, Open Interest, LSR
+                # Parallel fetch: Open Interest, LSR (Funding Rate moved to bulk)
                 results = await asyncio.gather(
-                    self.exchange.fetch_funding_rate(symbol),
                     self.exchange.fetch_open_interest(symbol),
                     self._fetch_lsr(symbol),
                     return_exceptions=True
                 )
 
-                fr_res, oi_res, lsr_res = results
+                oi_res, lsr_res = results
 
                 # Process results safely
-                fr_val = 0
-                if not isinstance(fr_res, Exception):
-                    fr_val = fr_res.get('fundingRate', 0)
-
                 oi_val = 0.0
                 if not isinstance(oi_res, Exception):
                     try:
@@ -526,8 +546,6 @@ class MarketDataManager:
 
                 # Single lock acquisition for updates
                 async with self.data_lock:
-                    if not isinstance(fr_res, Exception):
-                        self.funding_rates[symbol] = fr_val
                     if not isinstance(oi_res, Exception):
                         self.open_interest[symbol] = oi_val
                     if lsr_val:
@@ -575,6 +593,30 @@ class MarketDataManager:
         # Update BTC Trend Realtime
         if sym == config.BTC_SYMBOL and interval == config.TIMEFRAME_TREND:
             self._update_btc_trend()
+
+    async def _handle_depth_update(self, payload):
+        """
+        Handle WebSocket Partial Depth Update (depth20)
+        Payload: {e: depthUpdate, s: BTCUSDT, b: [[p, q], ...], a: [[p, q], ...]}
+        """
+        try:
+            symbol = payload['s'].replace('USDT', '/USDT')
+
+            # Convert strings to floats
+            # WS sends ["price", "qty"] as strings
+            bids = [[float(p), float(q)] for p, q in payload['b']]
+            asks = [[float(p), float(q)] for p, q in payload['a']]
+
+            # Update Cache (Overwrite is fine for partial depth stream)
+            # No lock needed for simple dict replacement, but good practice if structure is complex.
+            # Here we just replace the reference.
+            self.ob_cache[symbol] = {
+                'bids': bids,
+                'asks': asks,
+                'ts': time.time()
+            }
+        except Exception as e:
+            logger.debug(f"Depth Update Error: {e}")
 
     async def get_btc_correlation(self, symbol, period=config.CORRELATION_PERIOD):
         """Hitung korelasi Close price simbol vs BTC (Timeframe 1H)"""
@@ -681,11 +723,20 @@ class MarketDataManager:
         Return: {bids_vol_usdt, asks_vol_usdt, imbalance_pct}
         """
         try:
-            # Fetch directly from exchange (Live)
-            ob = await self.exchange.fetch_order_book(symbol, limit)
-            
-            bids = ob['bids']
-            asks = ob['asks']
+            bids = []
+            asks = []
+
+            # 1. Try Cache First (Zero Latency)
+            cached = self.ob_cache.get(symbol)
+            if cached:
+                bids = cached['bids']
+                asks = cached['asks']
+            else:
+                # 2. Fallback to API (Network Latency)
+                # This happens only at startup before first WS message arrives
+                ob = await self.exchange.fetch_order_book(symbol, limit)
+                bids = ob['bids']
+                asks = ob['asks']
             
             if not bids or not asks: return None
             
