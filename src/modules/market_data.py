@@ -488,31 +488,47 @@ class MarketDataManager:
         while True:
             await asyncio.sleep(interval)
             try:
+                # 1. Bulk Update Funding Rates
+                await self._update_funding_rates_bulk()
+
+                # 2. Parallel Update for Open Interest & LSR (No Bulk API available)
                 tasks = [self._update_single_coin_slow_data(coin) for coin in config.DAFTAR_KOIN]
                 await asyncio.gather(*tasks)
             except Exception as e:
                 logger.error(f"Slow Data Loop Error: {e}")
 
+    async def _update_funding_rates_bulk(self):
+        """Fetch all funding rates in a single request (Optimization)"""
+        try:
+            # fetch_funding_rates returns a dict {symbol: {info...}, ...}
+            all_rates = await self.exchange.fetch_funding_rates()
+
+            # Filter only monitored coins
+            monitored_symbols = {c['symbol'] for c in config.DAFTAR_KOIN}
+
+            async with self.data_lock:
+                for symbol, data in all_rates.items():
+                    if symbol in monitored_symbols:
+                        self.funding_rates[symbol] = data.get('fundingRate', 0)
+
+        except Exception as e:
+            logger.error(f"Failed Bulk Funding Rate Update: {e}")
+
     async def _update_single_coin_slow_data(self, coin):
-        """Helper to update slow data for a single coin concurrently"""
+        """Helper to update slow data for a single coin concurrently (OI & LSR)"""
         symbol = coin['symbol']
         async with self.sem_slow_data:
             try:
-                # Parallel fetch: Funding Rate, Open Interest, LSR
+                # Parallel fetch: Open Interest, LSR (Funding Rate moved to bulk)
                 results = await asyncio.gather(
-                    self.exchange.fetch_funding_rate(symbol),
                     self.exchange.fetch_open_interest(symbol),
                     self._fetch_lsr(symbol),
                     return_exceptions=True
                 )
 
-                fr_res, oi_res, lsr_res = results
+                oi_res, lsr_res = results
 
                 # Process results safely
-                fr_val = 0
-                if not isinstance(fr_res, Exception):
-                    fr_val = fr_res.get('fundingRate', 0)
-
                 oi_val = 0.0
                 if not isinstance(oi_res, Exception):
                     try:
@@ -526,8 +542,6 @@ class MarketDataManager:
 
                 # Single lock acquisition for updates
                 async with self.data_lock:
-                    if not isinstance(fr_res, Exception):
-                        self.funding_rates[symbol] = fr_val
                     if not isinstance(oi_res, Exception):
                         self.open_interest[symbol] = oi_val
                     if lsr_val:
