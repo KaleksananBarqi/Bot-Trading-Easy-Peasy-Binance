@@ -66,23 +66,30 @@ DECISION FRAMEWORK:
 2. Identify which scenario has ACTIVE sweep conditions
 3. Select the scenario where price is approaching OR has just swept the liquidity zone
 
+TREND FILTER (CRITICAL):
+- If Trend is STRONG BEARISH, disqualifies SCENARIO A (Long) unless strict reversal conditions are met (Deep Oversold + StochRSI Crossover).
+- If Trend is STRONG BULLISH, disqualifies SCENARIO B (Short) unless strict reversal conditions are met (Deep Overbought + StochRSI Crossover).
+
 CHOOSE SCENARIO A (LONG) IF:
 ✓ Price is near/below S1 (approaching retail Long SL zone)
 ✓ Wick penetrates S1 but candle body CLOSES above S1
 ✓ Volume spike on sweep candle (min 1.5x average)
-✓ RSI/Stoch showing oversold divergence
+✓ RSI < 30 (Deep Oversold) AND StochRSI K crosses ABOVE D
+✓ Trend is not STRONG BEARISH (or if it is, confirmation must be perfect)
 
 CHOOSE SCENARIO B (SHORT) IF:
 ✓ Price is near/above R1 (approaching retail Short SL zone)  
 ✓ Wick penetrates R1 but candle body CLOSES below R1
 ✓ Volume spike on sweep candle (min 1.5x average)
-✓ RSI/Stoch showing overbought divergence
+✓ RSI > 70 (Deep Overbought) AND StochRSI K crosses BELOW D
+✓ Trend is not STRONG BULLISH (or if it is, confirmation must be perfect)
 
 REJECT BOTH SCENARIOS IF:
 ✗ Price is in no-man's land (between S1 and R1, no sweep happening)
 ✗ Candle CLOSES beyond Pivot level (true breakout, not a sweep)
 ✗ No volume confirmation (weak/fake sweep)
 ✗ Conflicting signals between timeframes
+✗ Price is sweeping S1 but trend is Bearish and NO Divergence/Crossover (Don't catch a falling knife!)
 """
 AI_BASE_URL = "https://openrouter.ai/api/v1"
 
