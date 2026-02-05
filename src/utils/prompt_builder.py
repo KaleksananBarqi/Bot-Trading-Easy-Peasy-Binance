@@ -259,7 +259,11 @@ SCENARIO B: Sell/Short Setup
 --------------------------------------------------
 """
         btc_instruction_prompt = f"""
-1. CHECK MACRO BIAS: Is the {config.TIMEFRAME_TREND} Market Structure supportive?
+1. ⚠️ CHECK MACRO BIAS FIRST (MANDATORY FILTER - DO NOT SKIP):
+   - Current {config.TIMEFRAME_TREND} Market Structure: {market_struct}
+   - If Structure is BEARISH → REJECT all LONG/BUY signals. Return WAIT.
+   - If Structure is BULLISH → REJECT all SHORT/SELL signals. Return WAIT.
+   - ONLY proceed to step 2 if your signal ALIGNS with structure.
 """
 
     # [LOGIC: STRATEGY INSTRUCTION - LIQUIDITY HUNT PROTOCOL]
