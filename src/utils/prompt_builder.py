@@ -246,7 +246,7 @@ SCENARIO B: Sell/Short Setup
 --------------------------------------------------
 """
         btc_instruction_prompt = f"""
-1. 📊 ASSESS MACRO CONTEXT (TIDAK WAJIB FILTER, TAPI KONTEKS PENTING):
+1. 📊 ASSESS MACRO CONTEXT:
    - Market Structure: {market_struct}
    - BTC Trend: {btc_trend}
    {btc_instruction}
@@ -254,11 +254,9 @@ SCENARIO B: Sell/Short Setup
    🧠 PANDUAN INTERPRETASI:
    | Kondisi | Implikasi untuk LONG | Implikasi untuk SHORT |
    |---------|---------------------|----------------------|
-   | Structure BEARISH + BTC BEARISH | HIGH RISK - butuh sweep S1 + RSI <{config.RSI_OVERSOLD} | Didukung macro, tetap butuh konfirmasi |
-   | Structure BULLISH + BTC BULLISH | Didukung macro, tetap butuh konfirmasi | HIGH RISK - butuh sweep R1 + RSI >{config.RSI_OVERBOUGHT} |
-   | Structure & BTC bertentangan | Ambigu - tunggu konfirmasi lebih kuat | Ambigu - tunggu konfirmasi lebih kuat |
-   
-   → Gunakan konteks ini saat menerapkan TREND FILTER rules dari ROLE instructions.
+   | Structure BEARISH + BTC BEARISH | ⛔ FORBIDDEN - butuh RSI<{config.RSI_DEEP_OVERSOLD} + crossover + sweep | ✅ Didukung macro |
+   | Structure BULLISH + BTC BULLISH | ✅ Didukung macro | ⛔ FORBIDDEN - butuh RSI>{config.RSI_DEEP_OVERBOUGHT} + crossover + sweep |
+   | Structure & BTC bertentangan | Ambigu - WAIT lebih aman | Ambigu - WAIT lebih aman |
 """
     else:
         # Jika BTC Hidden (Independent Move), hanya tampilkan Market Structure & Pivot
@@ -270,23 +268,19 @@ SCENARIO B: Sell/Short Setup
 --------------------------------------------------
 """
         btc_instruction_prompt = f"""
-1. 📊 ASSESS MACRO CONTEXT (STRUKTUR PASAR - KONTEKS, BUKAN FILTER WAJIB):
+1. 📊 ASSESS MACRO CONTEXT:
    - Current {config.TIMEFRAME_TREND} Market Structure: {market_struct}
    
    🧠 PANDUAN INTERPRETASI:
    - Jika Structure BEARISH:
-     • LONG/BUY = HIGHER RISK. Hanya valid jika:
-       a) Price di/bawah S1 dengan sweep confirmation, ATAU
-       b) RSI deeply oversold (<{config.RSI_OVERSOLD}) + StochRSI K cross above D
-     • SHORT/SELL punya dukungan macro, tapi tetap butuh konfirmasi di step selanjutnya.
+     • LONG/BUY = ⛔ FORBIDDEN kecuali:
+       RSI < {config.RSI_DEEP_OVERSOLD} + StochRSI K cross above D + sweep S1 + volume > {config.VOLUME_SPIKE_MULTIPLIER}x avg
+     • SHORT/SELL = ✅ Didukung macro
    
    - Jika Structure BULLISH:
-     • SHORT/SELL = HIGHER RISK. Hanya valid jika:
-       a) Price di/atas R1 dengan sweep confirmation, ATAU
-       b) RSI deeply overbought (>{config.RSI_OVERBOUGHT}) + StochRSI K cross below D
-     • LONG/BUY punya dukungan macro, tapi tetap butuh konfirmasi di step selanjutnya.
-   
-   → Gunakan konteks ini saat menerapkan TREND FILTER rules dari ROLE instructions.
+     • SHORT/SELL = ⛔ FORBIDDEN kecuali:
+       RSI > {config.RSI_DEEP_OVERBOUGHT} + StochRSI K cross below D + sweep R1 + volume > {config.VOLUME_SPIKE_MULTIPLIER}x avg
+     • LONG/BUY = ✅ Didukung macro
 """
 
     # [LOGIC: STRATEGY INSTRUCTION - LIQUIDITY HUNT PROTOCOL]
@@ -366,16 +360,27 @@ TASK: Analyze market data for {symbol} using the Multi-Timeframe logic below. De
 
 FINAL INSTRUCTIONS (LIQUIDITY HUNT PROTOCOL):
 {btc_instruction_prompt}
-2. LOCATE SWEEP ZONE: Check if price is near Pivot S1 (for SCENARIO A/Long) or R1 (for SCENARIO B/Short).
+
+🔒 TREND LOCK GATE (WAJIB CEK PERTAMA!):
+   IF Trend = "STRONG BEARISH":
+     → SCENARIO A (Long) = ⛔ FORBIDDEN (default)
+       Exception HANYA jika: RSI < {config.RSI_DEEP_OVERSOLD} + StochRSI crossover UP + sweep S1 + volume > {config.VOLUME_SPIKE_MULTIPLIER}x
+   IF Trend = "STRONG BULLISH":
+     → SCENARIO B (Short) = ⛔ FORBIDDEN (default)  
+       Exception HANYA jika: RSI > {config.RSI_DEEP_OVERBOUGHT} + StochRSI crossover DOWN + sweep R1 + volume > {config.VOLUME_SPIKE_MULTIPLIER}x
+
+2. LOCATE SWEEP ZONE: Check if price is near Pivot S1 (SCENARIO A) or R1 (SCENARIO B).
 3. VALIDATE SWEEP CONFIRMATION:
    - Wick penetrates S1/R1 level but candle body CLOSES on the opposite side?
-   - Volume spike present (>1.5x average)?
-   - RSI/Stoch at extreme levels (oversold for Long, overbought for Short)?
-4. TREND FILTER (CRITICAL):
-   - If Trend is STRONG BEARISH → DISQUALIFY Scenario A (Long), UNLESS deep oversold + StochRSI K crosses ABOVE D.
-   - If Trend is STRONG BULLISH → DISQUALIFY Scenario B (Short), UNLESS deep overbought + StochRSI K crosses BELOW D.
-5. SCENARIO SELECTION: Choose A or B based on which zone shows ACTIVE sweep with confirmation AND passes Trend Filter.
-6. NO-TRADE ZONE: Return WAIT if price is strictly between S1 and R1 (no sweep opportunity).
+   - Volume spike present (>{config.VOLUME_SPIKE_MULTIPLIER}x average)?
+   - RSI/Stoch at extreme levels?
+4. STRATEGY SELECTION:
+   - If sweep + reversal conditions met AND passed Trend Lock → use LIQUIDITY_REVERSAL_MASTER
+   - If trend strong but no sweep → consider PULLBACK_CONTINUATION
+   - If breakout confirmed (close beyond S1/R1 with volume) → consider BREAKDOWN_FOLLOW
+5. NO-TRADE ZONE: Return WAIT if:
+   - Price strictly between S1 and R1 (no sweep opportunity)
+   - Trend Lock blocks scenario AND exception conditions NOT met
 
 {strategy_instruction}
 

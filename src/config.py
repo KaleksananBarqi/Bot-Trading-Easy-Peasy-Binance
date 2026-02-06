@@ -79,6 +79,10 @@ RSI_PERIOD = 14                  # RSI standard
 RSI_OVERSOLD = 35                # Batas bawah RSI (Jenuh Jual)
 RSI_OVERBOUGHT = 65              # Batas atas RSI (Jenuh Beli)
 
+# Deep Extreme Levels (untuk reversal counter-trend yang ketat)
+RSI_DEEP_OVERSOLD = 25           # RSI sangat oversold (lebih ketat dari RSI_OVERSOLD)
+RSI_DEEP_OVERBOUGHT = 75         # RSI sangat overbought (lebih ketat dari RSI_OVERBOUGHT)
+
 STOCHRSI_LEN = 14                # Stochastic RSI
 STOCHRSI_K = 3
 STOCHRSI_D = 3
@@ -89,6 +93,7 @@ BB_STD = 2.0                     # Bollinger Bands Deviasi
 
 # Volume
 VOL_MA_PERIOD = 20               # Rata-rata Volume
+VOLUME_SPIKE_MULTIPLIER = 2.0    # Volume harus N kali dari average untuk konfirmasi sweep
 
 # ------------------------------------------------------------------------------
 # 4. GROUP 4: BITCOIN KING EFFECT (Korelasi Tren)
@@ -115,39 +120,58 @@ CORE CONCEPT:
 - Entry prices in EXECUTION SCENARIOS are pre-calculated at the SWEEP ZONE (retail SL area)
 
 YOUR TASK:
-You will receive TWO execution scenarios:
+Analyze market data and select between:
 - SCENARIO A (Long): Entry is placed BELOW S1 (waiting for price to sweep down)
 - SCENARIO B (Short): Entry is placed ABOVE R1 (waiting for price to sweep up)
 
-DECISION FRAMEWORK:
-1. Analyze current price position relative to Pivot levels
-2. Identify which scenario has ACTIVE sweep conditions
-3. Select the scenario where price is approaching OR has just swept the liquidity zone
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔒 TREND LOCK GATE (HARD FILTER - CHECK FIRST!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IF Trend Signal = "STRONG BEARISH - Price below both EMAs":
+  → DEFAULT MODE: SHORT-Only atau WAIT
+  → SCENARIO A (Long) = FORBIDDEN ⛔
+    EXCEPTION: Semua kondisi ini harus terpenuhi:
+    ✅ RSI < {RSI_DEEP_OVERSOLD} (deeply oversold)
+    ✅ StochRSI K crosses ABOVE D (bullish crossover confirmed)
+    ✅ Wick penetrates S1 BUT body closes ABOVE S1 (sweep rejection)
+    ✅ Volume > {VOLUME_SPIKE_MULTIPLIER}x average (strong absorption)
+    → Jika SALAH SATU gagal → WAIT, jangan paksa LONG
 
-TREND FILTER (CRITICAL):
-- If Trend is STRONG BEARISH, disqualifies SCENARIO A (Long) unless strict reversal conditions are met (Deep Oversold + StochRSI Crossover).
-- If Trend is STRONG BULLISH, disqualifies SCENARIO B (Short) unless strict reversal conditions are met (Deep Overbought + StochRSI Crossover).
+IF Trend Signal = "STRONG BULLISH - Price above both EMAs":
+  → DEFAULT MODE: LONG-Only atau WAIT
+  → SCENARIO B (Short) = FORBIDDEN ⛔
+    EXCEPTION: Semua kondisi ini harus terpenuhi:
+    ✅ RSI > {RSI_DEEP_OVERBOUGHT} (deeply overbought)
+    ✅ StochRSI K crosses BELOW D (bearish crossover confirmed)
+    ✅ Wick penetrates R1 BUT body closes BELOW R1 (sweep rejection)
+    ✅ Volume > {VOLUME_SPIKE_MULTIPLIER}x average (strong absorption)
+    → Jika SALAH SATU gagal → WAIT, jangan paksa SHORT
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ SCENARIO VALIDATION (After passing Trend Lock)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CHOOSE SCENARIO A (LONG) IF:
 ✓ Price is near/below S1 (approaching retail Long SL zone)
 ✓ Wick penetrates S1 but candle body CLOSES above S1
-✓ Volume spike on sweep candle (min 1.5x average)
-✓ RSI < {RSI_OVERSOLD} (Deep Oversold) AND StochRSI K crosses ABOVE D
-✓ Trend is not STRONG BEARISH (or if it is, confirmation must be perfect)
+✓ Volume spike on sweep candle (min {VOLUME_SPIKE_MULTIPLIER}x average)
+✓ RSI < {RSI_OVERSOLD} AND StochRSI K crosses ABOVE D
+✓ Passed Trend Lock Gate above
 
 CHOOSE SCENARIO B (SHORT) IF:
-✓ Price is near/above R1 (approaching retail Short SL zone)  
+✓ Price is near/above R1 (approaching retail Short SL zone)
 ✓ Wick penetrates R1 but candle body CLOSES below R1
-✓ Volume spike on sweep candle (min 1.5x average)
-✓ RSI > {RSI_OVERBOUGHT} (Deep Overbought) AND StochRSI K crosses BELOW D
-✓ Trend is not STRONG BULLISH (or if it is, confirmation must be perfect)
+✓ Volume spike on sweep candle (min {VOLUME_SPIKE_MULTIPLIER}x average)
+✓ RSI > {RSI_OVERBOUGHT} AND StochRSI K crosses BELOW D
+✓ Passed Trend Lock Gate above
 
-REJECT BOTH SCENARIOS IF:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ REJECT BOTH SCENARIOS IF:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✗ Price is in no-man's land (between S1 and R1, no sweep happening)
 ✗ Candle CLOSES beyond Pivot level (true breakout, not a sweep)
 ✗ No volume confirmation (weak/fake sweep)
 ✗ Conflicting signals between timeframes
-✗ Price is sweeping S1 but trend is Bearish and NO Divergence/Crossover (Don't catch a falling knife!)
+✗ Trend Lock Gate blocks the scenario AND exception conditions NOT met
 """
 AI_BASE_URL = "https://openrouter.ai/api/v1"
 
@@ -297,7 +321,23 @@ MACRO_KEYWORDS = ["federal reserve", "fed", "fomc", "inflation", "cpi", "recessi
 # 📋 DAFTAR STRATEGI
 # ==============================================================================
 AVAILABLE_STRATEGIES = {
-    'LIQUIDITY_REVERSAL_MASTER': "Mencari pembalikan arah di area Pivot (S1/R1) atau Liquidity Sweep. ",
+    'LIQUIDITY_REVERSAL_MASTER': (
+        "Mencari pembalikan arah di area Pivot (S1/R1) atau Liquidity Sweep. "
+        "⚠️ HANYA VALID jika MELAWAN tren dengan konfirmasi reversal SEMPURNA "
+        "(RSI extreme + StochRSI crossover + volume spike + wick rejection)."
+    ),
+    'PULLBACK_CONTINUATION': (
+        "Mengikuti tren yang berlaku dengan entry saat pullback ke EMA. "
+        "BUY saat pullback di uptrend (price dip ke EMA Support). "
+        "SELL saat bounce di downtrend (price rally ke EMA Resistance). "
+        "Cocok saat trend kuat tapi tanpa sweep condition."
+    ),
+    'BREAKDOWN_FOLLOW': (
+        "Mengikuti breakdown/breakout dari S1/R1 dengan konfirmasi volume. "
+        "SHORT jika price BREAK S1 dengan volume tinggi (bukan sweep). "
+        "LONG jika price BREAK R1 dengan volume tinggi (bukan sweep). "
+        "JANGAN melawan arah breakout hingga reversal terkonfirmasi."
+    ),
 }
 
 # ==============================================================================
