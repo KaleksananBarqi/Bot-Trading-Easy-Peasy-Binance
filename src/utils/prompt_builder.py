@@ -404,18 +404,25 @@ FINAL INSTRUCTIONS (STRATEGY SELECTION PROTOCOL):
 
 REMINDER: Adhere strictly to the TREND LOCK GATE defined in your system role.
 
-2. LOCATE SWEEP ZONE: Check if price is near Pivot S1 (SCENARIO A) or R1 (SCENARIO B).
-3. VALIDATE SWEEP CONFIRMATION:
-   - Wick penetrates S1/R1 level but candle body CLOSES on the opposite side?
-   - Volume spike present (>{config.VOLUME_SPIKE_MULTIPLIER}x average)?
-   - RSI/Stoch at extreme levels?
-4. STRATEGY SELECTION:
-   - If sweep + reversal conditions met AND passed Trend Lock → use LIQUIDITY_REVERSAL_MASTER
-   - If trend strong but no sweep → consider PULLBACK_CONTINUATION
-   - If breakout confirmed (close beyond S1/R1 with volume) → consider BREAKDOWN_FOLLOW
-5. NO-TRADE ZONE: Return WAIT if:
-   - Price strictly between S1 and R1 (no sweep opportunity)
-   - Trend Lock blocks scenario AND exception conditions NOT met
+2. ZONE ANALYSIS:
+   - Identify if Price is testing key levels (Pivot S1 or R1).
+   - If Price is strictly between S1 and R1 -> "MID_RANGE" (INSIDE_RANGE).
+
+3. INTERPRET REACTION (Zone Reaction):
+   - WICK_REJECTION: Wick penetrates level, Body closes back inside range. (Signal: Reversal)
+   - BREAKOUT_CLOSE: Candle Body closes BEYOND the level with volume. (Signal: Breakout/Continuation)
+   - TESTING: Price hovering at level without clear resolution. (Signal: Wait)
+
+4. STRATEGY MAPPING:
+   - REJECTION at S1 -> Validates LIQUIDITY_REVERSAL_MASTER (Long)
+   - REJECTION at R1 -> Validates LIQUIDITY_REVERSAL_MASTER (Short)
+   - BREAKOUT below S1 -> Validates BREAKDOWN_FOLLOW (Short)
+   - BREAKOUT above R1 -> Validates BREAKDOWN_FOLLOW (Long)
+   - STRONG TREND + PULLBACK in MID_RANGE -> Validates PULLBACK_CONTINUATION
+
+5. NO-TRADE CONDITIONS:
+   - MID_RANGE with no clear trend or pullback.
+   - Trend Lock active and Setup contradicts major trend (and no exception met).
 
 {strategy_instruction}
 
@@ -424,9 +431,9 @@ REMINDER: Adhere strictly to the TREND LOCK GATE defined in your system role.
 OUTPUT FORMAT (JSON ONLY):
 {{
   "analysis": {{
-    "sweep_zone": "S1 (Long Setup) / R1 (Short Setup) / NONE (No Sweep)",
-    "sweep_confirmation": "YES (wick rejection + volume) / NO (waiting for confirmation)",
-    "price_vs_pivot": "Below S1 / Above R1 / Between S1-R1 (No-Mans Land)"
+    "interaction_zone": "TESTING_S1 / TESTING_R1 / MID_RANGE",
+    "zone_reaction": "WICK_REJECTION (Reversal) / BREAKOUT_CLOSE (Continuation) / TESTING (Indecisive)",
+    "price_vs_pivot": "BELOW_S1 / ABOVE_R1 / INSIDE_RANGE"
   }},
   "selected_strategy": "NAME OF STRATEGY",
   "execution_mode": { '"MARKET" | "LIMIT"' if config.ENABLE_MARKET_ORDERS else '"LIMIT"' },
