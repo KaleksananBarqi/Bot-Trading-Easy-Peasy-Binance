@@ -359,38 +359,49 @@ async def main():
             is_interesting = False
             
             # Filter 1: Trend Alignment (King Filter) & Correlation Check
-            btc_corr = await market_data.get_btc_correlation(symbol)
-            
-            # [LOGIC UPDATE] Cek Konfigurasi BTC Correlation Per-Koin
-            use_btc_corr_config = coin_cfg.get('btc_corr', True) # Default True
-            show_btc_context = False
-
-            if use_btc_corr_config:
-                if btc_corr >= config.CORRELATION_THRESHOLD_BTC:
-                    # High Correlation: Show BTC Data & Enforce Trend Following
-                    show_btc_context = True # Allow AI to see BTC
-                    
-                    if tech_data['btc_trend'] == "BULLISH" and tech_data['price_vs_ema'] == "Above":
-                         is_interesting = True
-                    elif tech_data['btc_trend'] == "BEARISH" and tech_data['price_vs_ema'] == "Below":
-                         is_interesting = True
-                    else:
-                        pass # Conflicting signal (e.g. BTC Bullish but Altcoin Below EMA) -> Skip
-                else:
-                    # Low Correlation: Hide BTC Data (Prevent Hallucination)
-                    show_btc_context = False
-                    # Allow entry based on independent structure
-                    is_interesting = True
-            else:
-                # [BTC CORRELATION OFF BY CONFIG]
-                # Hide BTC Data completely
-                show_btc_context = False
+            # [KING EXCEPTION] BTC tidak perlu cek korelasi (pasti 1.0, tidak bermakna)
+            if symbol == config.BTC_SYMBOL:
+                # BTC adalah "The King" - selalu independent
+                btc_corr = 1.0  # Hardcoded, tidak perlu panggil fungsi
+                show_btc_context = False  # Tidak perlu menampilkan BTC context untuk BTC sendiri
                 
-                # Anggap independent, cek teknikal internal saja
+                # Trend following logic untuk BTC
                 if tech_data['price_vs_ema'] in ["Above", "Below"]:
                     is_interesting = True
+            else:
+                # Non-BTC: Cek korelasi dan config seperti biasa
+                btc_corr = await market_data.get_btc_correlation(symbol)
+                
+                # [LOGIC UPDATE] Cek Konfigurasi BTC Correlation Per-Koin
+                use_btc_corr_config = coin_cfg.get('btc_corr', True)  # Default True
+                show_btc_context = False
+
+                if use_btc_corr_config:
+                    if btc_corr >= config.CORRELATION_THRESHOLD_BTC:
+                        # High Correlation: Show BTC Data & Enforce Trend Following
+                        show_btc_context = True  # Allow AI to see BTC
+                        
+                        if tech_data['btc_trend'] == "BULLISH" and tech_data['price_vs_ema'] == "Above":
+                            is_interesting = True
+                        elif tech_data['btc_trend'] == "BEARISH" and tech_data['price_vs_ema'] == "Below":
+                            is_interesting = True
+                        else:
+                            pass  # Conflicting signal (e.g. BTC Bullish but Altcoin Below EMA) -> Skip
+                    else:
+                        # Low Correlation: Hide BTC Data (Prevent Hallucination)
+                        show_btc_context = False
+                        # Allow entry based on independent structure
+                        is_interesting = True
                 else:
-                    pass
+                    # [BTC CORRELATION OFF BY CONFIG]
+                    # Hide BTC Data completely
+                    show_btc_context = False
+                    
+                    # Anggap independent, cek teknikal internal saja
+                    if tech_data['price_vs_ema'] in ["Above", "Below"]:
+                        is_interesting = True
+                    else:
+                        pass
 
             
             # Filter 2: RSI Extremes (Reversal)
@@ -493,26 +504,26 @@ async def main():
                     final_setup = {}
                     order_type = 'market'
                     
-                    if exec_mode == 'LIQUIDITY_HUNT' and params.get('liquidity_hunt'):
-                        # Apply Liquidity Hunt Logic
+                    if exec_mode == 'LIMIT' and params.get('liquidity_hunt'):
+                        # Apply Liquidity Hunt (Limit Order) Logic
                         order_type = 'limit'
                         mode_data = params['liquidity_hunt']
                         entry_price = mode_data['entry']
                         sl_price = mode_data['sl']
                         tp_price = mode_data['tp']
-                        logger.info(f"🔫 Liquidity Hunt Selected. Limit Order @ {entry_price:.4f}")
+                        logger.info(f"🔫 Limit Setup Selected. Entry @ {entry_price:.4f}")
                     else:
                         # Default / Market Logic
                         # [MODIFIED] Check Config First
                         if not config.ENABLE_MARKET_ORDERS:
-                             # FORCE FALLBACK TO LIQUIDITY HUNT
+                             # FORCE FALLBACK TO LIMIT
                              order_type = 'limit'
                              mode_data = params.get('liquidity_hunt', params['market'])
                              entry_price = mode_data.get('entry', tech_data['price'])
                              sl_price = mode_data['sl']
                              tp_price = mode_data['tp']
                              logger.info(f"🛡️ Market Order Disabled. Forcing Limit Order @ {entry_price:.4f}")
-                             exec_mode = 'LIQUIDITY_HUNT (FORCED)'
+                             exec_mode = 'LIMIT (FORCED)'
                         else:
                              order_type = 'market'
                              mode_data = params['market']

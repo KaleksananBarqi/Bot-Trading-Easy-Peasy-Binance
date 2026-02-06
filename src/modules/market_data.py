@@ -235,7 +235,14 @@ def _calculate_tech_data_threaded(bars_exec, bars_trend, symbol):
             "pivots": pivots,
             "market_structure": structure,
             "wick_rejection": wick_rejection,
-            "candle_timestamp": int(cur['timestamp'])
+            "candle_timestamp": int(cur['timestamp']),
+            "last_candle": {
+                "open": cur['open'],
+                "high": cur['high'],
+                "low": cur['low'],
+                "close": cur['close'],
+                "timestamp": int(cur['timestamp'])
+            }
         }
 
         return tech_data

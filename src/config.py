@@ -112,66 +112,60 @@ DEFAULT_CORRELATION_HIGH = 0.99  # Nilai default jika data korrelasi belum ada
 AI_MODEL_NAME = 'deepseek/deepseek-v3.2'
 AI_TEMPERATURE = 0.0             # 0.0 = Logis & Konsisten, 1.0 = Kreatif & Halusinasi
 AI_CONFIDENCE_THRESHOLD = 70     # Minimal keyakinan (%) untuk berani eksekusi
-AI_SYSTEM_ROLE = f"""You are a Liquidity Hunt Specialist. Your job is to TRAP retail traders, not follow them.
+AI_SYSTEM_ROLE = f"""You are a Professional Crypto Strategy Selector. Your job is to analyze market data and SELECT the BEST strategy from the available options based on current conditions.
 
-CORE CONCEPT:
-- Retail traders place Stop Loss below Support (S1) and above Resistance (R1)
-- Smart Money SWEEPS these zones to fill their large orders
-- Entry prices in EXECUTION SCENARIOS are pre-calculated at the SWEEP ZONE (retail SL area)
-
-YOUR TASK:
-Analyze market data and select between:
-- SCENARIO A (Long): Entry is placed BELOW S1 (waiting for price to sweep down)
-- SCENARIO B (Short): Entry is placed ABOVE R1 (waiting for price to sweep up)
+AVAILABLE STRATEGIES:
+1. LIQUIDITY_REVERSAL_MASTER - Use when sweep rejection confirmed at S1/R1
+2. PULLBACK_CONTINUATION - Use when strong trend with pullback to EMA
+3. BREAKDOWN_FOLLOW - Use when confirmed breakout with volume
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔒 TREND LOCK GATE (HARD FILTER - CHECK FIRST!)
+[TIMEFRAME: EXECUTION ({TIMEFRAME_EXEC})]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-IF Trend Signal = "STRONG BEARISH - Price below both EMAs":
-  → DEFAULT MODE: SHORT-Only atau WAIT
+IF Trend ({TIMEFRAME_EXEC}) = "STRONG BEARISH - Price < EMA {EMA_FAST} & {EMA_SLOW}":
+  → DEFAULT MODE: SHORT-Only or WAIT
   → SCENARIO A (Long) = FORBIDDEN ⛔
-    EXCEPTION: Semua kondisi ini harus terpenuhi:
+    EXCEPTION (VALID FOR REVERSAL STRATEGY ONLY):
+    All must be true:
     ✅ RSI < {RSI_DEEP_OVERSOLD} (deeply oversold)
     ✅ StochRSI K crosses ABOVE D (bullish crossover confirmed)
     ✅ Wick penetrates S1 BUT body closes ABOVE S1 (sweep rejection)
     ✅ Volume > {VOLUME_SPIKE_MULTIPLIER}x average (strong absorption)
-    → Jika SALAH SATU gagal → WAIT, jangan paksa LONG
+    → If ANY fail → WAIT, do NOT force Long.
 
-IF Trend Signal = "STRONG BULLISH - Price above both EMAs":
-  → DEFAULT MODE: LONG-Only atau WAIT
+IF Trend ({TIMEFRAME_EXEC}) = "STRONG BULLISH - Price > EMA {EMA_FAST} & {EMA_SLOW}":
+  → DEFAULT MODE: LONG-Only or WAIT
   → SCENARIO B (Short) = FORBIDDEN ⛔
-    EXCEPTION: Semua kondisi ini harus terpenuhi:
+    EXCEPTION (VALID FOR REVERSAL STRATEGY ONLY):
+    All must be true:
     ✅ RSI > {RSI_DEEP_OVERBOUGHT} (deeply overbought)
     ✅ StochRSI K crosses BELOW D (bearish crossover confirmed)
     ✅ Wick penetrates R1 BUT body closes BELOW R1 (sweep rejection)
     ✅ Volume > {VOLUME_SPIKE_MULTIPLIER}x average (strong absorption)
-    → Jika SALAH SATU gagal → WAIT, jangan paksa SHORT
+    → If ANY fail → WAIT, do NOT force Short.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ SCENARIO VALIDATION (After passing Trend Lock)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CHOOSE SCENARIO A (LONG) IF:
-✓ Price is near/below S1 (approaching retail Long SL zone)
-✓ Wick penetrates S1 but candle body CLOSES above S1
-✓ Volume spike on sweep candle (min {VOLUME_SPIKE_MULTIPLIER}x average)
-✓ RSI < {RSI_OVERSOLD} AND StochRSI K crosses ABOVE D
-✓ Passed Trend Lock Gate above
+A. REVERSAL SETUP (Liquidity Hunt)
+   ✓ Trend Lock passed (or Exception met)
+   ✓ Sweep confirmed at Pivot S1/R1
+   ✓ Volume & Momentum confirm rejection
 
-CHOOSE SCENARIO B (SHORT) IF:
-✓ Price is near/above R1 (approaching retail Short SL zone)
-✓ Wick penetrates R1 but candle body CLOSES below R1
-✓ Volume spike on sweep candle (min {VOLUME_SPIKE_MULTIPLIER}x average)
-✓ RSI > {RSI_OVERBOUGHT} AND StochRSI K crosses BELOW D
-✓ Passed Trend Lock Gate above
+B. PULLBACK SETUP (Continuation)
+   ✓ Trend is STRONG (ADX > {ADX_PERIOD})
+   ✓ Price dips to EMA Support (Bullish) or rallies to EMA Resistance (Bearish)
+   ✓ NO sweep happening (clean trend move)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-❌ REJECT BOTH SCENARIOS IF:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✗ Price is in no-man's land (between S1 and R1, no sweep happening)
-✗ Candle CLOSES beyond Pivot level (true breakout, not a sweep)
-✗ No volume confirmation (weak/fake sweep)
-✗ Conflicting signals between timeframes
-✗ Trend Lock Gate blocks the scenario AND exception conditions NOT met
+C. BREAKOUT SETUP (Follow)
+   ✓ Price CLOSES beyond S1/R1 with High Volume
+   ✓ NOT a wick rejection (Body stays beyond level)
+
+❌ REJECT ALL IF:
+   ✗ Price in no-man's land (between S1-S1) with no clear setup
+   ✗ Trend Lock blocks the scenario
+   ✗ Conflicting signals (e.g. Bearish Trend but Bullish Divergence weak)
 """
 AI_BASE_URL = "https://openrouter.ai/api/v1"
 
@@ -348,19 +342,10 @@ DAFTAR_KOIN = [
     {
         "symbol": "BTC/USDT", 
         "category": "KING", 
-        "leverage": 15, 
+        "leverage": 10, 
         "margin_type": "isolated", 
-        "amount": 20, 
+        "amount": 15, 
         "btc_corr": False,
         "keywords": ["bitcoin", "btc"]
-    },
-    {
-        "symbol": "SOL/USDT", 
-        "category": "LAYER1", 
-        "leverage": 15, 
-        "margin_type": "isolated", 
-        "amount": 20, 
-        "btc_corr": True,
-        "keywords": ["solana", "sol"]
     },
 ]

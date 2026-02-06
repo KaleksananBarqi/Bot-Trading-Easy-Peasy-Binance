@@ -47,39 +47,19 @@ class TestLimitMarketConfig(unittest.TestCase):
             self.assertIsNone(result, "Should return None when Dynamic Size is DISABLED")
             print("\n[TEST] Dynamic Size OFF -> Result: None (PASSED)")
 
-    def test_liquidity_hunt_disabled_in_prompt(self):
+    def test_strategy_protocol_present(self):
         """
-        Test that when USE_LIQUIDITY_HUNT is False,
-        the Prompt Builder does NOT include 'LIQUIDITY HUNT ACTIVE' instructions.
-        """
-        # Mock data
-        tech_data = {
-            'price': 50000,
-            'rsi': 50,
-            'adx': 25,
-            'atr': 100
-        }
-        sentiment_data = {'fng_value': 50}
-        onchain_data = {}
-
-        with patch('config.USE_LIQUIDITY_HUNT', False):
-            prompt = build_market_prompt("BTC/USDT", tech_data, sentiment_data, onchain_data)
-            
-            self.assertNotIn("LIQUIDITY HUNT ACTIVE", prompt, "Prompt should NOT contain Liquidity Hunt when disabled")
-            print("[TEST] Liquidity Hunt OFF -> Prompt Clean (PASSED)")
-
-    def test_liquidity_hunt_enabled_in_prompt(self):
-        """
-        Counter-test: Ensure it DOES appear when True.
+        Verify that the new prompt always contains the Strategy Selection Protocol.
         """
         tech_data = {'price': 50000, 'atr': 100}
         sentiment_data = {}
         onchain_data = {}
-
-        with patch('config.USE_LIQUIDITY_HUNT', True):
-            prompt = build_market_prompt("BTC/USDT", tech_data, sentiment_data, onchain_data)
-            self.assertIn("LIQUIDITY HUNT ACTIVE", prompt, "Prompt SHOULD contain Liquidity Hunt when enabled")
-            print("[TEST] Liquidity Hunt ON -> Prompt Has Instructions (PASSED)")
+        
+        # No patch needed, strategy protocol is always standard now
+        prompt = build_market_prompt("BTC/USDT", tech_data, sentiment_data, onchain_data)
+        
+        self.assertIn("FINAL INSTRUCTIONS (STRATEGY SELECTION PROTOCOL)", prompt, "Prompt should contain standard Strategy Selection Protocol")
+        print("[TEST] Strategy Selection Protocol Present (PASSED)")
 
 if __name__ == '__main__':
     unittest.main()
