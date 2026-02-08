@@ -99,7 +99,8 @@ class AIBrain:
             if "decision" not in decision_json: decision_json["decision"] = "WAIT"
             if "confidence" not in decision_json: decision_json["confidence"] = 0
             
-            logger.info(f"🧠 AI Response: {decision_json['decision']} ({decision_json['confidence']}%) - {decision_json.get('reason','')}")
+            # Log full response dengan indentasi agar rapi
+            logger.info(f"🧠 FULL AI RESPONSE:\n{json.dumps(decision_json, indent=2, ensure_ascii=False)}")
             return decision_json
 
         except Exception as e:
