@@ -54,7 +54,7 @@ class OnChainAnalyzer:
             if len(self.whale_transactions[symbol]) > limit:
                 self.whale_transactions[symbol].pop(0)
             
-            logger.info(f"🐋 Whale detected: {msg}")
+            #logger.info(f"🐋 Whale detected: {msg}")
 
 
 

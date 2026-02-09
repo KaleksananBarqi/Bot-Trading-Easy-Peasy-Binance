@@ -342,9 +342,9 @@ DAFTAR_KOIN = [
     {
         "symbol": "BTC/USDT", 
         "category": "KING", 
-        "leverage": 10, 
+        "leverage": 20, 
         "margin_type": "isolated", 
-        "amount": 15, 
+        "amount": 20, 
         "btc_corr": False,
         "keywords": ["bitcoin", "btc"]
     },

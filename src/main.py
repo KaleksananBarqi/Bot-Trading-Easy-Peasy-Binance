@@ -126,11 +126,52 @@ async def main():
         await executor.sync_positions()
 
     async def order_update_cb(payload):
-        # Handle filled orders (e.g., detect Whale execution if needed, or simply log)
+        # Handle order updates from WebSocket (FILLED, CANCELED, EXPIRED)
         o = payload['o']
         sym = o['s'].replace('USDT', '/USDT')
         status = o['X']
-        if status == 'FILLED':
+        
+        # --- [NEW] Handle CANCELED/EXPIRED Orders (Realtime) ---
+        if status == 'CANCELED':
+            order_id = str(o.get('i', ''))
+            client_order_id = o.get('c', '')
+            
+            # Check if this is our tracked order
+            tracker = executor.safety_orders_tracker.get(sym, {})
+            tracked_id = str(tracker.get('entry_id', ''))
+            
+            if tracked_id == order_id:
+                # This is our limit entry order - was cancelled manually
+                logger.info(f"🗑️ Order CANCELED manually: {sym} (ID: {order_id})")
+                await executor.remove_from_tracker(sym)
+                await kirim_tele(
+                    f"🗑️ <b>ORDER CANCELED</b>\n"
+                    f"Order {sym} dibatalkan secara manual.\n"
+                    f"Tracker cleaned."
+                )
+            else:
+                # Not our tracked order (could be SL/TP or other) - just log
+                logger.debug(f"🔔 Order canceled (non-entry): {sym} ID {order_id}")
+        
+        elif status == 'EXPIRED':
+            order_id = str(o.get('i', ''))
+            
+            # Check if this is our tracked order
+            tracker = executor.safety_orders_tracker.get(sym, {})
+            tracked_id = str(tracker.get('entry_id', ''))
+            
+            if tracked_id == order_id:
+                logger.info(f"⏰ Order EXPIRED/TIMEOUT: {sym} (ID: {order_id})")
+                await executor.remove_from_tracker(sym)
+                await kirim_tele(
+                    f"⏰ <b>ORDER EXPIRED</b>\n"
+                    f"Limit Order {sym} kadaluarsa (timeout).\n"
+                    f"Tracker cleaned."
+                )
+            else:
+                logger.debug(f"🔔 Order expired (non-entry): {sym} ID {order_id}")
+        
+        elif status == 'FILLED':
             rp = float(o.get('rp', 0))
             logger.info(f"⚡ Order Filled: {sym} {o['S']} @ {o['ap']} | RP: {rp}")
             
