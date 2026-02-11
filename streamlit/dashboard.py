@@ -109,9 +109,14 @@ col1, col2, col3, col4 = st.columns(4)
 
 # Calculations
 total_trades = len(df_filtered)
-win_trades = df_filtered[df_filtered['pnl_usdt'] > 0]
-loss_trades = df_filtered[df_filtered['pnl_usdt'] <= 0]
-win_rate = (len(win_trades) / total_trades * 100) if total_trades > 0 else 0
+win_trades = df_filtered[df_filtered['result'] == 'WIN']
+loss_trades = df_filtered[df_filtered['result'] == 'LOSS']
+canceled_trades_count = len(df_filtered[df_filtered['result'] == 'CANCELLED'])
+expired_trades_count = len(df_filtered[df_filtered['result'] == 'EXPIRED'])
+
+# Win Rate calculated only from WIN and LOSS
+completed_trades_count = len(win_trades) + len(loss_trades)
+win_rate = (len(win_trades) / completed_trades_count * 100) if completed_trades_count > 0 else 0
 
 total_pnl = df_filtered['pnl_usdt'].sum()
 gross_profit = win_trades['pnl_usdt'].sum()
@@ -130,6 +135,24 @@ with col3:
     st.metric("Net PnL (USDT)", f"${total_pnl:.2f}", delta=f"PF: {profit_factor:.2f}")
 with col4:
     st.metric("Avg Win / Loss", f"${avg_win:.2f}", f"${avg_loss:.2f}")
+
+# Additional Stats row for Canceled and Expired
+st.markdown(f"""
+<div style="display: flex; justify-content: space-around; padding: 10px; background-color: #1E1E1E; border-radius: 10px; margin-top: 10px; border: 1px solid #333;">
+    <div style="text-align: center;">
+        <span style="color: #888; font-size: 0.8rem;">Canceled Trades</span><br>
+        <span style="font-size: 1.2rem; font-weight: bold;">{canceled_trades_count}</span>
+    </div>
+    <div style="text-align: center; border-left: 1px solid #444; padding-left: 20px;">
+        <span style="color: #888; font-size: 0.8rem;">Expired Trades</span><br>
+        <span style="font-size: 1.2rem; font-weight: bold;">{expired_trades_count}</span>
+    </div>
+    <div style="text-align: center; border-left: 1px solid #444; padding-left: 20px;">
+        <span style="color: #888; font-size: 0.8rem;">Completed Trades (W+L)</span><br>
+        <span style="font-size: 1.2rem; font-weight: bold;">{completed_trades_count}</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
