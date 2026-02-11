@@ -138,7 +138,7 @@ class OrderExecutor:
         return False
 
     # --- EXECUTION LOGIC ---
-    async def execute_entry(self, symbol, side, order_type, price, amount_usdt, leverage, strategy_tag, atr_value=0):
+    async def execute_entry(self, symbol, side, order_type, price, amount_usdt, leverage, strategy_tag, atr_value=0, ai_prompt=None, ai_reason=None):
         """
         Eksekusi open posisi (Market/Limit).
         """
@@ -180,7 +180,9 @@ class OrderExecutor:
                     "created_at": time.time(),
                     "expires_at": time.time() + config.LIMIT_ORDER_EXPIRY_SECONDS,
                     "strategy": strategy_tag,
-                    "atr_value": atr_value # Save ATR for Safety Calculation
+                    "atr_value": atr_value, # Save ATR for Safety Calculation
+                    "ai_prompt": ai_prompt,
+                    "ai_reason": ai_reason
                 }
                 await self.save_tracker()
                 await kirim_tele(f"⏳ <b>LIMIT PLACED ({strategy_tag})</b>\n{symbol} {side} @ {price_exec:.4f}\n(Trap SL set by ATR: {atr_value:.4f})")
@@ -193,7 +195,9 @@ class OrderExecutor:
                     "status": "PENDING", 
                     "strategy": strategy_tag,
                     "atr_value": atr_value,
-                    "created_at": time.time()
+                    "created_at": time.time(),
+                    "ai_prompt": ai_prompt,
+                    "ai_reason": ai_reason
                 }
                 await self.save_tracker()
 

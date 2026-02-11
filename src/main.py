@@ -17,6 +17,7 @@ from src.modules.onchain import OnChainAnalyzer
 from src.modules.ai_brain import AIBrain
 from src.modules.executor import OrderExecutor
 from src.modules.pattern_recognizer import PatternRecognizer
+from src.modules.journal import TradeJournal
 
 # GLOBAL INSTANCES
 market_data = None
@@ -25,6 +26,7 @@ onchain = None
 ai_brain = None
 executor = None
 pattern_recognizer = None
+journal = None
 
 async def safety_monitor_loop():
     """
@@ -77,7 +79,7 @@ async def trailing_price_handler(symbol, price):
         await executor.check_trailing_on_price(symbol, price)
 
 async def main():
-    global market_data, sentiment, onchain, ai_brain, executor, pattern_recognizer
+    global market_data, sentiment, onchain, ai_brain, executor, pattern_recognizer, journal
     
     # Track AI Query Timestamp (Candle ID)
     analyzed_candle_ts = {}
@@ -114,6 +116,7 @@ async def main():
     ai_brain = AIBrain()
     executor = OrderExecutor(exchange)
     pattern_recognizer = PatternRecognizer(market_data)
+    journal = TradeJournal()
 
     # 3. PRELOAD DATA
     await market_data.initialize_data()
@@ -222,6 +225,31 @@ async def main():
                         f"{roi_icon} ROI: <b>{roi_percent:+.2f}%</b>"
                     )
                 await kirim_tele(msg)
+
+                # --- [NEW] RECORD TRADE TO JOURNAL ---
+                # Ambil data tambahan dari tracker sebelum dihapus
+                tracker = executor.safety_orders_tracker.get(symbol, {})
+                strategy_tag = tracker.get('strategy_tag', 'UNKNOWN')
+                prompt_text = tracker.get('ai_prompt', '-') # Perlu disimpan saat entry
+                reason_text = tracker.get('ai_reason', '-') # Perlu disimpan saat entry
+                
+                trade_data = {
+                    'symbol': symbol,
+                    'side': order_info['S'], # BUY/SELL (Closing side)
+                    'type': order_type,
+                    'entry_price': tracker.get('entry_price', 0), # Ambil dari tracker
+                    'exit_price': price,
+                    'size_usdt': size_closed_usdt,
+                    'pnl_usdt': pnl,
+                    'roi_percent': roi_percent,
+                    'fee': float(order_info.get('n', 0)), # Commission Asset
+                    'strategy_tag': strategy_tag,
+                    'prompt': prompt_text,
+                    'reason': reason_text
+                }
+                
+                if journal:
+                    journal.log_trade(trade_data)
                 
                 # Clean up tracker immediately
                 await executor.remove_from_tracker(symbol)
@@ -639,7 +667,9 @@ async def main():
                         amount_usdt=amt,
                         leverage=lev,
                         strategy_tag=f"AI_{strategy_mode}_{exec_mode}",
-                        atr_value=atr_val 
+                        atr_value=atr_val,
+                        ai_prompt=prompt,
+                        ai_reason=reason
                     )
                 else:
                     logger.info(f"🛑 AI Vote Low Confidence: {confidence}% (Need {config.AI_CONFIDENCE_THRESHOLD}%)")

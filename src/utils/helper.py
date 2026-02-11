@@ -5,7 +5,7 @@ import os
 import requests
 import asyncio
 from datetime import datetime, timedelta, timezone
-import config
+from src import config
 
 # ==========================================
 # CUSTOM LOGGER (WIB TIME)
