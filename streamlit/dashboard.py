@@ -219,12 +219,19 @@ def calc_duration(start, end):
         diff = e - s
         total_seconds = int(diff.total_seconds())
         
-        if total_seconds < 60:
-            return f"{total_seconds}s"
-        elif total_seconds < 3600:
-            return f"{total_seconds // 60}m"
+        if total_seconds < 0:
+            return None
+            
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        
+        if hours > 0:
+            return f"{hours}j {minutes}m"
+        elif minutes > 0:
+            return f"{minutes}m {seconds}s"
         else:
-            return f"{total_seconds // 3600}h {(total_seconds % 3600) // 60}m"
+            return f"{seconds}s"
     except:
         return None
 
