@@ -1,0 +1,51 @@
+{
+    "user": {
+        "username": "arthex1204",
+        "profile_picture_path": "assets/ts.jpg",
+        "show_qr": true,
+        "qr_data": "https://www.binance.com/en/futures/ref/1172857150",
+        "referral_code": "1172857150",
+        "referral_title": "Referral Code",
+        "base_currency": "USDT"
+    },
+    "images": {
+        "exchange_logo_path": "assets/icons/download.png",
+        "exchange_logo_max_width": 250,
+        "exchange_logo_max_height": 100,
+        "watermark_path": "assets/icons/download.png",
+        "show_watermark": true,
+        "right_panel_image_path": "assets/What's Taylor-Nomics Anyway_ 4 Ways Taylor Swift___.jpg",
+        "right_panel_image_opacity": 0.45
+    },
+    "style": {
+        "theme": "dark",
+        "layout_mode": "landscape",
+        "bg_gradient_colors": [
+            "#030201",
+            "#030201",
+            "#2f3c58"
+        ],
+        "card_bg_color": "#1E2329",
+        "right_panel_bg_color": "#1E232966",
+        "text_primary": "#EAECEF",
+        "text_secondary": "#848E9C",
+        "text_tertiary": "#5E6673",
+        "accent_color": "#F0B90B",
+        "up_color": "#2EBD85",
+        "down_color": "#F6465D",
+        "leverage_bg_color": "#2B3139",
+        "font_family": "Inter"
+    },
+    "fonts": {
+        "regular": "assets/fonts/Inter_24pt-Regular.ttf",
+        "bold": "assets/fonts/Inter_24pt-Bold.ttf",
+        "data_regular": "assets/fonts/Electrolize-Regular.ttf",
+        "data_bold": "assets/fonts/Electrolize-Regular.ttf"
+    },
+    "card_settings": {
+        "width": 1920,
+        "height": 1080,
+        "margin": 60,
+        "border_radius": 40
+    }
+}

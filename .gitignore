@@ -30,6 +30,7 @@ bot_trading_easy_peasy.egg-info/
 
 # Project specific
 config.json
+!src/utils/pnl_config.json
 user_data/
 backtesting/backtest_results/*.json
 src/safety_tracker.json

@@ -71,8 +71,11 @@ class CryptoPnLGenerator:
         self.font_loader = load_font
 
     def _hex_to_rgb(self, hex_color):
-        """Konversi HEX ke RGB/RGBA. Supports #RRGGBB and #RRGGBBAA"""
+        """Konversi HEX ke RGB/RGBA. Supports #RGB, #RGBA, #RRGGBB and #RRGGBBAA"""
         hex_color = hex_color.lstrip('#')
+        # Expand shorthand: #RGB → #RRGGBB, #RGBA → #RRGGBBAA
+        if len(hex_color) in (3, 4):
+            hex_color = ''.join(c * 2 for c in hex_color)
         if len(hex_color) == 8:
             return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4, 6))
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
