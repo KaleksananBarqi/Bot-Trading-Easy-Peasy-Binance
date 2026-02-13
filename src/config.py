@@ -34,6 +34,10 @@ PAKAI_DEMO = True               # False = Real Money, True = Testnet (Uang Monop
 LOG_FILENAME = 'bot_trading.log'
 TRACKER_FILENAME = 'safety_tracker.json'
 
+# MongoDB Configuration
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "bot_trading_easy_peasy")
+
 # Performa Loop & Request
 CONCURRENCY_LIMIT = 20           # Maksimal pair yang diproses bersamaan (multithreading)
 LOOP_SLEEP_DELAY = 1             # Istirahat antar putaran loop utama (detik)

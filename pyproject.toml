@@ -32,7 +32,8 @@ dependencies = [
     "scipy>=1.15.3",
     "seaborn>=0.13.2",
     "streamlit>=1.30.0",
-    "websockets>=16.0"
+    "websockets>=16.0",
+    "pymongo>=4.6.1"
 ]
 
 [project.optional-dependencies]

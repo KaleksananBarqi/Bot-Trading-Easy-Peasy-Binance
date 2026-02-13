@@ -10,6 +10,7 @@ pandas>=2.3.3
 pandas_ta>=0.4.19b0
 Pillow>=12.1.1
 plotly>=5.18.0
+pymongo>=4.6.1
 python-dotenv>=1.2.1
 python-telegram-bot>=22.6
 requests>=2.32.5

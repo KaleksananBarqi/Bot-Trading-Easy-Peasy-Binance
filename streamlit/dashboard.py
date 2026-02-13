@@ -754,8 +754,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-display_cols = ['timestamp', 'symbol', 'side', 'type', 'entry_price', 'exit_price', 'pnl_usdt', 'roi_percent', 'strategy_tag', 'prompt', 'reason', 'setup_at', 'filled_at']
-for col in ['setup_at', 'filled_at']:
+display_cols = ['timestamp', 'symbol', 'side', 'type', 'entry_price', 'exit_price', 'pnl_usdt', 'roi_percent', 'strategy_tag', 'prompt', 'reason', 'setup_at', 'filled_at', 'technical_data', 'config_snapshot']
+for col in ['setup_at', 'filled_at', 'technical_data', 'config_snapshot']:
     if col not in df_filtered.columns:
         df_filtered[col] = None
 
@@ -798,11 +798,21 @@ st.dataframe(
         "pnl_usdt": st.column_config.NumberColumn("PnL ($)", format="$%.2f"),
         "roi_percent": st.column_config.NumberColumn("ROI (%)", format="%.2f%%"),
         "strategy_tag": st.column_config.Column("Strategy"),
-        "prompt": st.column_config.TextColumn("AI Prompt", width="small"),
+        "symbol": st.column_config.Column("Symbol"),
+        "side": st.column_config.Column("Side"),
+        "type": st.column_config.Column("Type"),
+        "entry_price": st.column_config.NumberColumn("Entry Price", format="$%.4f"),
+        "exit_price": st.column_config.NumberColumn("Exit Price", format="$%.4f"),
+        "prompt": st.column_config.TextColumn("AI Prompt", width="medium"),
         "reason": st.column_config.TextColumn("AI Reason", width="medium"),
+        "Setup->Fill": st.column_config.Column("Setup ➝ Fill"),
+        "Trade Duration": st.column_config.Column("Duration"),
+        "technical_data": st.column_config.TextColumn("Technical Snapshot", width="large"),
+        "config_snapshot": st.column_config.TextColumn("Config Snapshot", width="large"),
     },
     use_container_width=True,
     hide_index=True,
+    height=500
 )
 
 

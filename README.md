@@ -11,6 +11,7 @@
   
   ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)
   ![Binance](https://img.shields.io/badge/Binance-Futures-yellow?style=for-the-badge&logo=binance)
+  ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
   ![DeepSeek](https://img.shields.io/badge/Brain-DeepSeek%20V3.2-blueviolet?style=for-the-badge)
   ![Vision AI](https://img.shields.io/badge/Vision-Llama%20Vision-ff69b4?style=for-the-badge)
   ![Sentiment AI](https://img.shields.io/badge/Sentiment-Xiaomi%20Mimo-orange?style=for-the-badge)
@@ -164,12 +165,13 @@ Otomatis membuat kartu PnL (Profit & Loss) yang siap dipamerkan:
 *   **User Branding**: Foto profil dan username kustom yang diambil dari `pnl_config.json`.
 *   **Watermark Support**: Opsi untuk menambahkan logo komunitas atau watermark transparan.
 
-### 16. 📓 Automated Trade Journaling
-Sistem pencatatan jurnal trading profesional ke format CSV:
+### 16. 📓 Automated Trade Journaling (MongoDB Powered)
+Sistem pencatatan jurnal trading profesional yang kini didukung oleh **MongoDB**:
+*   **Database Storage**: Menyimpan ribuan history trade tanpa lag menggunakan NoSQL Database.
 *   **Data Lengkap**: Mencatat Entry, Exit, PnL, ROI, Fee, dan Durasi Trade.
 *   **AI Rationale**: Menyimpan alasan entry dan prompt yang digunakan AI untuk evaluasi strategi.
 *   **Technical Snapshot**: Menyimpan nilai indikator (RSI, MACD, EMA) saat entry untuk analisis post-trade.
-*   **Auto-Export**: Data tersimpan otomatis di `streamlit/data/trade_history.csv` yang terhubung langsung ke dashboard.
+*   **Seamless Integration**: Terhubung langsung ke Dashboard Streamlit via koneksi database real-time.
 
 ---
 
@@ -179,6 +181,7 @@ Sistem pencatatan jurnal trading profesional ke format CSV:
 *   **Python 3.10+** (Wajib)
 *   **pip** dan **venv** (tools Python bawaan)
 *   **Git** untuk clone repository
+*   **MongoDB Database**: Connection URI (Localhost atau MongoDB Atlas)
 *   **Akun Binance Futures**: API Key & Secret Key (Enable Futures Trading & Read)
 *   **Telegram Bot**: Token & Chat ID (Untuk notifikasi real-time)
 *   **AI Provider API**: Key dari [OpenRouter](https://openrouter.ai/) atau DeepSeek
@@ -216,9 +219,15 @@ python -m venv venv
 pip install -e .
 ```
 
-**5. Setup Konfigurasi**
+**5. Setup MongoDB & Konfigurasi**
+- Install MongoDB Community Server atau siapkan cluster MongoDB Atlas.
 - Buat file `.env` di root folder (gunakan `copy .env.example .env`)
-- Isi semua API Key yang diperlukan
+- Isi `MONGO_URI` dan `MONGO_DB_NAME` di file `.env`.
+- (Opsional) Jika punya data lama di CSV, jalankan migrasi:
+  ```powershell
+  python scripts/migrate_history.py
+  ```
+- Isi semua API Key yang diperlukan lainnya.
 - Ubah pengaturan di `src/config.py` sesuai kebutuhan
 
 **6. Jalankan Bot**
@@ -268,8 +277,19 @@ source venv/bin/activate
 pip install -e .
 ```
 
-**5. Setup Konfigurasi**
+**5. Setup MongoDB & Konfigurasi**
+- Install MongoDB Community Server via Homebrew:
+  ```bash
+  brew tap mongodb/brew
+  brew install mongodb-community@7.0
+  brew services start mongodb/brew/mongodb-community
+  ```
 - Buat file `.env` di root folder
+- Isi `MONGO_URI` dan `MONGO_DB_NAME` di file `.env`.
+- (Opsional) Migrasi data CSV lama:
+  ```bash
+  python scripts/migrate_history.py
+  ```
 - Isi semua API Key yang diperlukan
 - Ubah pengaturan di `src/config.py` sesuai kebutuhan
 
@@ -316,13 +336,24 @@ pip install --upgrade pip
 pip install -e .
 ```
 
-**5. Setup Konfigurasi**
-```bash
-# Buat file .env dari template
-cp .env.example .env
-nano .env
-# Isi API Keys, lalu Simpan: Ctrl+X, Y, Enter
-```
+**5. Setup MongoDB & Konfigurasi**
+- Install MongoDB Server:
+  ```bash
+  sudo apt install -y mongodb
+  sudo systemctl start mongodb
+  sudo systemctl enable mongodb
+  ```
+- Buat file `.env` dari template:
+  ```bash
+  cp .env.example .env
+  nano .env
+  ```
+- Isi `MONGO_URI` (biasanya `mongodb://localhost:27017/`) dan parameter lain.
+- (Opsional) Migrasi data CSV:
+  ```bash
+  python scripts/migrate_history.py
+  ```
+- Simpan: Ctrl+X, Y, Enter
 
 **6. Jalankan Bot (Background dengan Screen)**
 ```bash
@@ -395,6 +426,8 @@ sudo systemctl status trading-bot
  ├── 📂 streamlit/               # 📊 Dashboard Analytics
  │    ├── 📂 data/               # Penyimpanan Data CSV & JSON
  │    └── 📊 dashboard.py        # Source Code Dashboard
+ ├── 📂 scripts/                 # 🛠️ Script Utilitas
+ │    └── 📜 migrate_history.py  # Migrasi Data CSV ke MongoDB
  ├── 📂 assets/                  # 🖼️ Aset Statis
  │    ├── 📂 fonts/              # Font Kustom untuk PnL Card
  │    └── 📂 icons/              # Ikon & Logo Exchange
