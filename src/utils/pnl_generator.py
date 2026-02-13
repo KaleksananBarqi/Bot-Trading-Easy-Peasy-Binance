@@ -140,6 +140,9 @@ class CryptoPnLGenerator:
             self._draw_stats(img, draw, width, height, margin, trade_data)
             self._draw_footer(img, draw, width, height, margin)
         
+        # Watermark (layer terakhir, di atas semua konten)
+        self._draw_watermark(img, width, height)
+        
         # Return as BytesIO
         img_buffer = BytesIO()
         img.save(img_buffer, format='PNG')
@@ -241,8 +244,17 @@ class CryptoPnLGenerator:
         
         # Strategy Name
         strategy_name = data.get('strategy', 'Unknown Strategy').replace('_', ' ')
-        font_strat = self.font_loader('regular', 30, fallback_key='regular')
-        draw.text((margin, 760), strategy_name, font=font_strat, fill=text_secondary)
+        font_strat = self.font_loader('regular', 32, fallback_key='regular')
+        draw.text((margin, 755), strategy_name, font=font_strat, fill=text_secondary)
+        
+        # Tagline - Bot Trading with AI Integration (hardcoded, standout)
+        accent_color = self._hex_to_rgb(style.get('accent_color', '#F0B90B'))
+        font_tagline = self.font_loader('bold', 28, fallback_key='bold')
+        draw.text((margin, 800), "Bot Trading with AI Integration", font=font_tagline, fill=accent_color)
+        
+        # GitHub URL (hardcoded)
+        font_url = self.font_loader('regular', 24, fallback_key='regular')
+        draw.text((margin, 838), "github.com/KaleksananBarqi/Bot-Trading-Easy-Peasy", font=font_url, fill=text_secondary)
         
         # --- 4. Horizontal Footer (Entry, Last, Referral, QR) ---
         entry = float(data.get('entry_price', 0))
@@ -439,19 +451,13 @@ class CryptoPnLGenerator:
         text_y = y + 10
         
         font_name = self.font_loader('bold', 40, fallback_key='bold')
-        font_tagline = self.font_loader('regular', 22, fallback_key='regular')
         font_date = self.font_loader('regular', 24, fallback_key='regular')
-        
-        accent_color = self._hex_to_rgb(style.get('accent_color', '#F0B90B'))
         
         username = user_cfg.get('username', 'Trader')
         draw.text((text_x, text_y), username, font=font_name, fill=text_primary)
         
-        # Tagline hardcoded
-        draw.text((text_x, text_y + 48), "Bot Trading with AI Integration", font=font_tagline, fill=accent_color)
-        
         date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-        draw.text((text_x, text_y + 78), date_str, font=font_date, fill=text_secondary)
+        draw.text((text_x, text_y + 50), date_str, font=font_date, fill=text_secondary)
 
     def _draw_logo(self, img, right_x, y):
         """Menggambar logo exchange (ukuran configurable dari JSON)."""
@@ -469,6 +475,45 @@ class CryptoPnLGenerator:
                 img.paste(logo, (real_x, y), logo)
             except Exception as e:
                 print(f"Error loading logo: {e}")
+
+    def _draw_watermark(self, img, width, height):
+        """Menggambar watermark semi-transparan di tengah card."""
+        images_cfg = self.config.get('images', {})
+        
+        if not images_cfg.get('show_watermark', False):
+            return
+        
+        wm_path = self._get_asset_path(images_cfg.get('watermark_path'))
+        if not wm_path or not os.path.exists(wm_path):
+            return
+        
+        try:
+            wm_img = Image.open(wm_path).convert("RGBA")
+            
+            # Scale watermark: max 40% lebar card, proporsional
+            max_wm_w = int(width * 0.4)
+            max_wm_h = int(height * 0.4)
+            wm_img.thumbnail((max_wm_w, max_wm_h), Image.Resampling.LANCZOS)
+            
+            # Terapkan opacity rendah (15%) agar tidak menutupi konten
+            opacity = 38  # ~15% dari 255
+            wm_w, wm_h = wm_img.size
+            alpha = wm_img.split()[3]
+            alpha = alpha.point(lambda p: min(p, opacity))
+            wm_img.putalpha(alpha)
+            
+            # Posisi: tengah card
+            paste_x = (width - wm_w) // 2
+            paste_y = (height - wm_h) // 2
+            
+            # Composite ke gambar utama
+            img_rgba = img.convert('RGBA')
+            temp = Image.new('RGBA', img_rgba.size, (0, 0, 0, 0))
+            temp.paste(wm_img, (paste_x, paste_y))
+            result = Image.alpha_composite(img_rgba, temp)
+            img.paste(result, (0, 0))
+        except Exception as e:
+            print(f"Error drawing watermark: {e}")
 
     def _draw_qr(self, img, x, y, size):
         """Menggambar QR code."""

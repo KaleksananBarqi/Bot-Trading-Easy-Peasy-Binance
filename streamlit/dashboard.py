@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import json
 import sys
 import os
 
@@ -803,6 +804,137 @@ st.dataframe(
     use_container_width=True,
     hide_index=True,
 )
+
+
+# =============================================================================
+# TRADE TECHNICAL DETAILS (NEW)
+# =============================================================================
+# Check if new columns exist in the data
+has_tech_data = 'technical_data' in df_filtered.columns
+has_config_snap = 'config_snapshot' in df_filtered.columns
+
+if has_tech_data or has_config_snap:
+    st.markdown("""
+    <div class="section-header">
+        <div class="section-icon">🔧</div>
+        <div>
+            <h3>Detail Teknikal & Konfigurasi</h3>
+            <p class="section-desc">Snapshot indikator dan setting yang digunakan saat entry trade</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Build trade selector for detail view (completed trades only)
+    completed_df = df_filtered[df_filtered['result'].isin(['WIN', 'LOSS', 'BREAKEVEN'])].sort_values('timestamp', ascending=False)
+
+    if not completed_df.empty:
+        detail_choices = {}
+        for idx, row in completed_df.iterrows():
+            sym = row.get('symbol', '?')
+            pnl_val = row.get('pnl_usdt', 0)
+            res = row.get('result', '?')
+            ts = row['timestamp'].strftime('%d/%m %H:%M') if pd.notna(row['timestamp']) else '?'
+            label = f"{ts} — {sym} ({res}) ${pnl_val:.2f}"
+            detail_choices[label] = row
+
+        selected_detail = st.selectbox("🔍 Pilih Trade untuk Detail:", list(detail_choices.keys()), key="tech_detail_select")
+
+        if selected_detail:
+            detail_row = detail_choices[selected_detail]
+
+            # Parse JSON columns safely
+            def safe_parse_json(val):
+                if pd.isna(val) or val == '' or val is None:
+                    return {}
+                if isinstance(val, dict):
+                    return val
+                try:
+                    return json.loads(str(val))
+                except (json.JSONDecodeError, TypeError):
+                    return {}
+
+            tech_info = safe_parse_json(detail_row.get('technical_data', '{}')) if has_tech_data else {}
+            config_info = safe_parse_json(detail_row.get('config_snapshot', '{}')) if has_config_snap else {}
+
+            col_tech, col_cfg = st.columns(2)
+
+            with col_tech:
+                st.markdown("""
+                <div class="card-container">
+                    <div class="card-title">📊 Technical Snapshot</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                if tech_info:
+                    # Display key indicators
+                    t_col1, t_col2, t_col3 = st.columns(3)
+                    with t_col1:
+                        rsi_val = tech_info.get('rsi', 0)
+                        rsi_color = "🟢" if 40 <= rsi_val <= 60 else ("🔴" if rsi_val > 70 else "🟡")
+                        st.metric("RSI", f"{rsi_val:.1f}", delta=None)
+                        st.metric("ATR", f"{tech_info.get('atr', 0):.4f}")
+                    with t_col2:
+                        st.metric("ADX", f"{tech_info.get('adx', 0):.1f}")
+                        st.metric("Price", f"${tech_info.get('price', 0):.2f}")
+                    with t_col3:
+                        st.metric("StochRSI K", f"{tech_info.get('stoch_rsi_k', 0):.1f}")
+                        st.metric("StochRSI D", f"{tech_info.get('stoch_rsi_d', 0):.1f}")
+
+                    # Additional info
+                    st.markdown(f"""
+                    <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                        <span style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; color: #94a3b8;">
+                            EMA: <b style="color:#f1f5f9">{tech_info.get('price_vs_ema', '-')}</b>
+                        </span>
+                        <span style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; color: #94a3b8;">
+                            BTC: <b style="color:#f1f5f9">{tech_info.get('btc_trend', '-')}</b>
+                        </span>
+                        <span style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; color: #94a3b8;">
+                            Corr: <b style="color:#f1f5f9">{tech_info.get('btc_correlation', 0):.2f}</b>
+                        </span>
+                        <span style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; color: #94a3b8;">
+                            OB Imb: <b style="color:#f1f5f9">{tech_info.get('order_book_imbalance', 0):.1f}%</b>
+                        </span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.info("Data teknikal belum tersedia untuk trade ini.")
+
+            with col_cfg:
+                st.markdown("""
+                <div class="card-container">
+                    <div class="card-title">⚙️ Config Snapshot</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                if config_info:
+                    c_col1, c_col2 = st.columns(2)
+                    with c_col1:
+                        st.metric("ATR Multiplier TP", f"{config_info.get('atr_multiplier_tp', '-')}")
+                        st.metric("SL Multiplier", f"{config_info.get('trap_safety_sl', '-')}")
+                        st.metric("Risk %", f"{config_info.get('risk_percent', '-')}%")
+                    with c_col2:
+                        st.metric("Leverage", f"x{config_info.get('leverage', '-')}")
+                        st.metric("AI Confidence", f"{config_info.get('ai_confidence', '-')}%")
+                        st.metric("Timeframe", f"{config_info.get('timeframe_exec', '-')}")
+
+                    st.markdown(f"""
+                    <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                        <span style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2); border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; color: #94a3b8;">
+                            Strategy: <b style="color:#f1f5f9">{config_info.get('strategy_mode', '-')}</b>
+                        </span>
+                        <span style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2); border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; color: #94a3b8;">
+                            Exec: <b style="color:#f1f5f9">{config_info.get('exec_mode', '-')}</b>
+                        </span>
+                        <span style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2); border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; color: #94a3b8;">
+                            Model: <b style="color:#f1f5f9">{config_info.get('ai_model', '-')}</b>
+                        </span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.info("Config snapshot belum tersedia untuk trade ini.")
+    else:
+        st.info("Belum ada trade yang selesai (WIN/LOSS) untuk dilihat detailnya.")
 
 
 # =============================================================================

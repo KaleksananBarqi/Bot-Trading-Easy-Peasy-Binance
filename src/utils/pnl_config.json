@@ -13,9 +13,9 @@
         "exchange_logo_max_width": 250,
         "exchange_logo_max_height": 100,
         "watermark_path": "assets/icons/download.png",
-        "show_watermark": true,
-        "right_panel_image_path": "assets/What's Taylor-Nomics Anyway_ 4 Ways Taylor Swift___.jpg",
-        "right_panel_image_opacity": 0.45
+        "show_watermark": false,
+        "right_panel_image_path": "assets/bg.jpg",
+        "right_panel_image_opacity": 0.8
     },
     "style": {
         "theme": "dark",
@@ -23,7 +23,7 @@
         "bg_gradient_colors": [
             "#030201",
             "#030201",
-            "#2f3c58"
+            "#809ab5"
         ],
         "card_bg_color": "#1E2329",
         "right_panel_bg_color": "#1E232966",

@@ -1,7 +1,11 @@
 # 🤖 Easy Peasy Trading Bot: AI Vision & Logic Sniper
 
 <div align="center">
-  <img width="1380" height="962" alt="Image" src="https://github.com/user-attachments/assets/17b117d9-5747-4170-9380-b2fbfa7169c1" />
+<img width="1919" height="940" alt="Image" src="https://github.com/user-attachments/assets/0f9d5322-015d-45bc-8029-6ac10fbe55b0" />
+
+<img width="1392" height="935" alt="Image" src="https://github.com/user-attachments/assets/fc443b1f-f7f8-4d60-b217-bf9886549505" />
+
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/c35c8b34-5762-4242-98ba-4907fe6a762f" />
 
   <br />
   
@@ -161,6 +165,28 @@ Analisis kedalaman order book untuk deteksi buying/selling pressure:
 *   Kalkulasi bid/ask volume dalam USDT
 *   Imbalance percentage untuk konfirmasi momentum
 
+### 14. 📊 Real-Time Streamlit Dashboard - **NEW!**
+Dashboard interaktif berbasis web untuk memantau performa trading secara real-time:
+*   **Equity Curve**: Grafik pertumbuhan modal (floating & closed PnL).
+*   **Win/Loss Distribution**: Pie chart rasio kemenangan.
+*   **PnL Analysis**: Breakdown profit per koin dan per strategi.
+*   **Activity Heatmap**: Visualisasi jam dan hari trading paling aktif.
+*   **Trade History**: Tabel riwayat trade lengkap dengan filter tanggal, simbol, dan strategi.
+
+### 15. 🖼️ Aesthetic PnL Card Generator
+Otomatis membuat kartu PnL (Profit & Loss) yang siap dipamerkan:
+*   **Gradient Background**: Tampilan modern dengan warna dinamis (Hijau/Merah) sesuai hasil trade.
+*   **QR Code Integration**: Tautan verifikasi atau referral link yang dapat discan.
+*   **User Branding**: Foto profil dan username kustom yang diambil dari `pnl_config.json`.
+*   **Watermark Support**: Opsi untuk menambahkan logo komunitas atau watermark transparan.
+
+### 16. 📓 Automated Trade Journaling
+Sistem pencatatan jurnal trading profesional ke format CSV:
+*   **Data Lengkap**: Mencatat Entry, Exit, PnL, ROI, Fee, dan Durasi Trade.
+*   **AI Rationale**: Menyimpan alasan entry dan prompt yang digunakan AI untuk evaluasi strategi.
+*   **Technical Snapshot**: Menyimpan nilai indikator (RSI, MACD, EMA) saat entry untuk analisis post-trade.
+*   **Auto-Export**: Data tersimpan otomatis di `streamlit/data/trade_history.csv` yang terhubung langsung ke dashboard.
+
 ---
 
 ## 🛠️ Instalasi & Konfigurasi
@@ -214,6 +240,9 @@ pip install -e .
 **6. Jalankan Bot**
 ```powershell
 python src/main.py
+
+# Untuk menjalankan Dashboard:
+streamlit run streamlit/dashboard.py
 ```
 
 </details>
@@ -263,6 +292,9 @@ pip install -e .
 **6. Jalankan Bot**
 ```bash
 python src/main.py
+
+# Untuk menjalankan Dashboard:
+streamlit run streamlit/dashboard.py
 ```
 
 </details>
@@ -313,6 +345,10 @@ nano .env
 # Jalankan dalam screen session
 screen -S trading-bot
 python src/main.py
+
+# (Opsional) Jalankan Dashboard di session screen terpisah:
+# screen -S dashboard
+# streamlit run streamlit/dashboard.py
 
 # Lepas dari session: Ctrl+A, D
 # Kembali ke session: screen -r trading-bot
@@ -372,6 +408,12 @@ sudo systemctl status trading-bot
  │    │    └── 🛠️ helper.py             # Logger & Tele Utils
  │    ├── ⚙️ config.py                 # PUSAT KONFIGURASI
  │    └── 🚀 main.py                   # Titik Masuk Bot
+ ├── 📂 streamlit/               # 📊 Dashboard Analytics
+ │    ├── 📂 data/               # Penyimpanan Data CSV & JSON
+ │    └── 📊 dashboard.py        # Source Code Dashboard
+ ├── 📂 assets/                  # 🖼️ Aset Statis
+ │    ├── 📂 fonts/              # Font Kustom untuk PnL Card
+ │    └── 📂 icons/              # Ikon & Logo Exchange
  ├── 📂 backtesting/             # ⏳ Sistem Pengujian Historis
  │    ├── 📊 backtest.py               # Engine Backtest Utama
  │    └── 📈 backtest_result.md        # Hasil & Laporan Backtest

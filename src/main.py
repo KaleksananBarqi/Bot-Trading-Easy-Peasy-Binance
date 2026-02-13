@@ -234,6 +234,8 @@ async def main():
                 reason_text = tracker.get('ai_reason', '-')
                 setup_at_ts = tracker.get('created_at', 0)
                 filled_at_ts = tracker.get('filled_at', 0)
+                tech_snapshot = tracker.get('technical_data', {})
+                cfg_snapshot = tracker.get('config_snapshot', {})
                 
                 # Format timestamps to ISO string if they exist
                 from datetime import datetime
@@ -254,7 +256,9 @@ async def main():
                     'prompt': prompt_text,
                     'reason': reason_text,
                     'setup_at': setup_at_str,
-                    'filled_at': filled_at_str
+                    'filled_at': filled_at_str,
+                    'technical_data': tech_snapshot,
+                    'config_snapshot': cfg_snapshot
                 }
                 
                 if journal:
@@ -674,6 +678,36 @@ async def main():
                     await kirim_tele(msg)
                     
                     atr_val = tech_data.get('atr', 0)
+                    
+                    # --- [NEW] Build Technical & Config Snapshots ---
+                    technical_snapshot = {
+                        'rsi': tech_data.get('rsi', 0),
+                        'atr': atr_val,
+                        'price': tech_data.get('price', 0),
+                        'price_vs_ema': tech_data.get('price_vs_ema', ''),
+                        'btc_trend': tech_data.get('btc_trend', ''),
+                        'btc_correlation': btc_corr,
+                        'stoch_rsi_k': tech_data.get('stoch_rsi_k', 0),
+                        'stoch_rsi_d': tech_data.get('stoch_rsi_d', 0),
+                        'adx': tech_data.get('adx', 0),
+                        'macd_histogram': tech_data.get('macd_histogram', 0),
+                        'bb_upper': tech_data.get('bb_upper', 0),
+                        'bb_lower': tech_data.get('bb_lower', 0),
+                        'order_book_imbalance': tech_data.get('order_book', {}).get('imbalance_pct', 0),
+                    }
+                    config_snapshot = {
+                        'atr_multiplier_tp': config.ATR_MULTIPLIER_TP1,
+                        'trap_safety_sl': config.TRAP_SAFETY_SL,
+                        'risk_percent': config.RISK_PERCENT_PER_TRADE,
+                        'leverage': lev,
+                        'ai_confidence': confidence,
+                        'ai_model': config.AI_MODEL_NAME,
+                        'timeframe_exec': config.TIMEFRAME_EXEC,
+                        'strategy_mode': strategy_mode,
+                        'exec_mode': exec_mode,
+                        'dynamic_size': config.USE_DYNAMIC_SIZE,
+                    }
+
                     await executor.execute_entry(
                         symbol=symbol,
                         side=side,
@@ -684,7 +718,9 @@ async def main():
                         strategy_tag=f"AI_{strategy_mode}_{exec_mode}",
                         atr_value=atr_val,
                         ai_prompt=prompt,
-                        ai_reason=reason
+                        ai_reason=reason,
+                        technical_data=technical_snapshot,
+                        config_snapshot=config_snapshot
                     )
                 else:
                     logger.info(f"🛑 AI Vote Low Confidence: {confidence}% (Need {config.AI_CONFIDENCE_THRESHOLD}%)")

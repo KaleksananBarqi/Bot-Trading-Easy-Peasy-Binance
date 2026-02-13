@@ -1,6 +1,7 @@
 
 import os
 import csv
+import json
 import time
 import pandas as pd
 from datetime import datetime
@@ -20,7 +21,8 @@ class TradeJournal:
             'pnl_usdt', 'pnl_percent', 'roi_percent',
             'fee', 'strategy_tag', 'result',
             'prompt', 'reason',
-            'setup_at', 'filled_at'
+            'setup_at', 'filled_at',
+            'technical_data', 'config_snapshot'
         ]
         self._ensure_file_exists()
 
@@ -64,7 +66,19 @@ class TradeJournal:
             else:
                 result = 'BREAKEVEN'
 
-            # 2. Prepare Row
+            # 2. Serialize Technical & Config Data (JSON)
+            tech_data_raw = data.get('technical_data', {})
+            config_snap_raw = data.get('config_snapshot', {})
+            try:
+                tech_json = json.dumps(tech_data_raw, ensure_ascii=False) if tech_data_raw else '{}'
+            except (TypeError, ValueError):
+                tech_json = '{}'
+            try:
+                config_json = json.dumps(config_snap_raw, ensure_ascii=False) if config_snap_raw else '{}'
+            except (TypeError, ValueError):
+                config_json = '{}'
+
+            # 3. Prepare Row
             row = [
                 data.get('timestamp', datetime.now().isoformat()), # timestamp (allow override)
                 data.get('symbol', 'UNKNOWN'),      # symbol
@@ -82,7 +96,9 @@ class TradeJournal:
                 data.get('prompt', '-').replace('\n', ' '), # prompt (oneline)
                 data.get('reason', '-').replace('\n', ' '), # reason (oneline)
                 data.get('setup_at', ''),                   # setup_at (timestamp/iso)
-                data.get('filled_at', '')                   # filled_at (timestamp/iso)
+                data.get('filled_at', ''),                  # filled_at (timestamp/iso)
+                tech_json,                                  # technical_data (JSON)
+                config_json                                 # config_snapshot (JSON)
             ]
 
             # 3. Append to CSV
