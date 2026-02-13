@@ -61,8 +61,6 @@ Bot tidak hanya mengandalkan satu strategi! AI akan **memilih strategi terbaik**
 
 Bot menggunakan strategi **Liquidity Hunt Specialist** yang fokus mencari titik balik di area "Stop Run" dan "Liquidity Grab" — zona di mana market maker sering memburu stop loss retail trader sebelum membalikkan arah.
 
-
-
 **💡 Konsep Strategi**
 1. **Deteksi Liquidity Zone**: Identifikasi area di mana banyak stop loss berkumpul
 2. **Tunggu "Sweep"**: Sabar menunggu harga menyapu zona likuiditas
