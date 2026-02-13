@@ -30,7 +30,7 @@ CMC_API_KEY = os.getenv("CMC_API_KEY")     # CoinMarketCap
 # ==============================================================================
 # ⚙️ PENGATURAN SISTEM & APLIKASI
 # ==============================================================================
-PAKAI_DEMO = False               # False = Real Money, True = Testnet (Uang Monopoly)
+PAKAI_DEMO = True               # False = Real Money, True = Testnet (Uang Monopoly)
 LOG_FILENAME = 'bot_trading.log'
 TRACKER_FILENAME = 'safety_tracker.json'
 

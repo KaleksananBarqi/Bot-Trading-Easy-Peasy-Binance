@@ -334,7 +334,7 @@ SCENARIO B: Sell/Short Setup
       ✓ USE IF: Price in no-man's land (between S1-R1) OR conflicting signals
 
 7. EXECUTION MODE:
-   {'- Market Order: Available for confirmed setups' if config.ENABLE_MARKET_ORDERS else '- Market Order: DISABLED by config'}
+   {'- Market Order: Available for confirmed setups' if config.ENABLE_MARKET_ORDERS else 'pass'}
    - Limit Order: Use pre-calculated entry from EXECUTION SCENARIOS.
 """
 
