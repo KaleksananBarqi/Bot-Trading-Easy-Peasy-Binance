@@ -35,6 +35,19 @@ class SentimentAnalyzer:
                 # Store if not already present (first match wins)
                 if base not in self._base_keywords:
                     self._base_keywords[base] = (i, kw)
+        
+        # [NEW] Storage untuk hasil analisa AI (Cache)
+        self.analyzed_result = None
+
+    def save_analysis(self, result: dict):
+        """Simpan hasil analisa AI yang sudah matang."""
+        self.analyzed_result = result
+        # Tambahkan timestamp agar tahu kapan terakhir update
+        self.analyzed_result['last_updated'] = datetime.now(timezone.utc).timestamp()
+        
+    def get_analysis(self) -> Optional[dict]:
+        """Ambil hasil analisa AI yang tersimpan."""
+        return self.analyzed_result
 
     def fetch_fng(self):
         """Fetch Fear & Greed Index from CoinMarketCap"""

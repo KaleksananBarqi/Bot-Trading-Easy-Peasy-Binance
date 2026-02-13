@@ -372,6 +372,9 @@ async def main():
                         result = await ai_brain.analyze_sentiment(prompt)
                         
                         if result:
+                            # [NEW] Save Analysis to Cache
+                            sentiment.save_analysis(result)
+
                             # Kirim ke Telegram Channel Sentiment
                             mood = result.get('overall_sentiment', 'UNKNOWN')
                             score = result.get('sentiment_score', 0)
@@ -546,7 +549,19 @@ async def main():
                 atr=tech_data.get('atr', 0)
             )
 
-            prompt = build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_ctx, dual_scenarios, show_btc_context=show_btc_context)
+            # [NEW] Get Cached Sentiment Analysis
+            sentiment_analysis = sentiment.get_analysis()
+
+            prompt = build_market_prompt(
+                symbol, 
+                tech_data, 
+                sentiment_data, 
+                onchain_data, 
+                pattern_ctx, 
+                dual_scenarios, 
+                show_btc_context=show_btc_context,
+                sentiment_analysis=sentiment_analysis
+            )
             
             # Print Prompt for Debugging
             logger.info(f"📝 AI PROMPT INPUT for {symbol}:\n{prompt}")
@@ -645,11 +660,24 @@ async def main():
                         btc_lines = (f"BTC Trend: {btc_trend_icon} {tech_data['btc_trend']}\n"
                                      f"BTC Correlation: {btc_corr_icon} {btc_corr:.2f}\n")
 
+
+                    # [NEW] Prepare Sentiment Context
+                    sentiment_analysis_cached = sentiment.get_analysis() or {}
+                    s_score = sentiment_analysis_cached.get('sentiment_score', 50)
+                    s_mood = sentiment_analysis_cached.get('overall_sentiment', 'NEUTRAL')
+                    
+                    s_icon = "😐"
+                    if s_score > 60: s_icon = "🚀"
+                    elif s_score < 40: s_icon = "🐻"
+                    
+                    sentiment_line = f"Mood: {s_icon} {s_mood} (Score: {s_score})"
+
                     # Execution Type Header
                     type_str = "🚀 AGRESSIVE (MARKET)" if order_type == 'market' else "🪤 PASSIVE (LIQUIDITY HUNT)"
 
                     msg = (f"🧠 <b>AI SIGNAL MATCHED</b>\n"
-                           f"{type_str}\n\n"
+                           f"{type_str}\n"
+                           f"{sentiment_line}\n\n"
                            f"Coin: {symbol}\n"
                            f"Signal: {direction_icon} {decision} ({confidence}%)\n"
                            f"Timeframe: {config.TIMEFRAME_EXEC}\n"

@@ -49,7 +49,7 @@ AI_APP_TITLE = "Bot Trading Easy Peasy"
 # Analisa Berita & Sentimen
 ENABLE_SENTIMENT_ANALYSIS = True          # Aktifkan analisa sentimen berita?
 AI_SENTIMENT_MODEL = 'arcee-ai/trinity-large-preview:free' # Model ekonomis untuk baca berita
-SENTIMENT_ANALYSIS_INTERVAL = '1h'         # Seberapa sering cek sentimen (misal: tiap 3 jam)
+SENTIMENT_ANALYSIS_INTERVAL = '1h'         # Seberapa sering cek sentimen
 SENTIMENT_UPDATE_INTERVAL = '1h'           # Interval update data raw sentimen
 SENTIMENT_PROVIDER = 'RSS_Feed'  # Sumber: 'RSS_Feed'
 
@@ -108,7 +108,7 @@ COOLDOWN_IF_LOSS = 7200          # Jeda trading di koin ini jika LOSS (detik)
 # ------------------------------------------------------------------------------
 # 4.1 GROUP: TREND (Analisa Tren Besar - Daily/4H)
 # ------------------------------------------------------------------------------
-TIMEFRAME_TREND = '1d'           # Timeframe Tren Utama
+TIMEFRAME_TREND = '4h'           # Timeframe Tren Utama
 LIMIT_TREND = 500
 EMA_TREND_MAJOR = 50             # EMA Filter Tren (Trend Direction)
 ADX_PERIOD = 14                  # Filter Kekuatan Tren (ADX)
@@ -230,13 +230,13 @@ WS_URL_FUTURES_LIVE = "wss://fstream.binance.com/stream?streams="
 WS_URL_FUTURES_TESTNET = "wss://stream.binancefuture.com/stream?streams="
 WS_KEEP_ALIVE_INTERVAL = 1800
 
-NEWS_MAX_PER_SOURCE = 10
-NEWS_MAX_TOTAL = 180
-NEWS_RETENTION_LIMIT = 10
+NEWS_MAX_PER_SOURCE = 15
+NEWS_MAX_TOTAL = 200
+NEWS_RETENTION_LIMIT = 15
 NEWS_MAX_AGE_HOURS = 24
-NEWS_COIN_SPECIFIC_MIN = 4
-NEWS_BTC_MAX = 3
-NEWS_MACRO_MAX = 3
+NEWS_COIN_SPECIFIC_MIN = 6
+NEWS_BTC_MAX = 5
+NEWS_MACRO_MAX = 4
 
 RSS_FEED_URLS = [
     "https://www.coindesk.com/arc/outboundfeeds/rss/",

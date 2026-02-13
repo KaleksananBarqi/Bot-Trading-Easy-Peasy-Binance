@@ -51,13 +51,15 @@ def get_trend_narrative(price: float, ema_fast: float, ema_slow: float) -> tuple
     
     return trend_narrative, ema_alignment
 
-def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_analysis=None, dual_scenarios=None, show_btc_context=True):
+def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern_analysis=None, dual_scenarios=None, show_btc_context=True, sentiment_analysis=None):
     """
     Menyusun prompt untuk AI berdasarkan data teknikal, sentimen, dan on-chain.
     Struktur Baru: Multi-Timeframe (Macro -> Setup -> Execution).
     Args:
+    Args:
         dual_scenarios (dict): Result dari calculate_dual_scenarios(), berisi {"long": {...}, "short": {...}}.
         show_btc_context (bool): Jika False, data BTC dan korelasinya akan DISEMBUNYIKAN total dari AI.
+        sentiment_analysis (dict): Hasil analisa sentimen AI yang sudah matang (Optional).
     """
     
     # 0. VALIDATION: Critical Data Check
@@ -157,12 +159,31 @@ def build_market_prompt(symbol, tech_data, sentiment_data, onchain_data, pattern
     # --- C. SENTIMENT & ON-CHAIN ---
     fng_value = sentiment_data.get('fng_value', 50)
     fng_text = sentiment_data.get('fng_text', 'Neutral')
-    news_headlines = sentiment_data.get('news', [])
-    news_str = "\n".join([f"- {n}" for n in news_headlines]) if news_headlines else "No major news."
     
-    whale_activity = onchain_data.get('whale_activity', [])
-    whale_str = "\n".join([f"- {w}" for w in whale_activity]) if whale_activity else "No significant whale activity detected."
-    inflow_status = onchain_data.get('stablecoin_inflow', 'Neutral')
+    sentiment_section_str = ""
+    
+    if sentiment_analysis and isinstance(sentiment_analysis, dict):
+        # [OPTIMIZED] Use Pre-Calculated AI Sentiment
+        s_score = sentiment_analysis.get('sentiment_score', 50)
+        s_status = sentiment_analysis.get('overall_sentiment', 'NEUTRAL')
+        s_summary = sentiment_analysis.get('summary', 'No summary available.')
+        s_risk = sentiment_analysis.get('risk_assessment', 'UNKNOWN')
+        
+        sentiment_section_str = (
+            f"- AI Market Sentiment: {s_status} (Score: {s_score}/100)\n"
+            f"- Fear & Greed Index: {fng_value} ({fng_text})\n"
+            f"- Key Context: {s_summary}\n"
+            f"- Risk Assessment: {s_risk}"
+        )
+    else:
+        # [FALLBACK] Use Raw Data (Mini Mode)
+        # Hemat token: Cuma F&G + Stablecoin Inflow, tanpa list berita panjang
+        inflow_status = onchain_data.get('stablecoin_inflow', 'Neutral')
+        sentiment_section_str = (
+            f"- Fear & Greed Index: {fng_value} ({fng_text})\n"
+            f"- Stablecoin Inflow: {inflow_status}\n"
+            f"- Note: Deep sentiment analysis not available yet (using fallback)."
+        )
 
     # ==========================================
     # 2. CONTEXTUAL LOGIC BUILDER
@@ -354,13 +375,10 @@ TASK: Analyze market data for {symbol} using the Multi-Timeframe logic below. De
 --------------------------------------------------
 
 --------------------------------------------------
+--------------------------------------------------
 4. SENTIMENT & EXTERNAL FACTORS
-- Fear & Greed Index: {fng_value} ({fng_text})
-- Stablecoin Inflow: {inflow_status}
-- Whale Activity:
-{whale_str}
-- Latest News:
-{news_str}
+{sentiment_section_str}
+--------------------------------------------------
 --------------------------------------------------
 
 
