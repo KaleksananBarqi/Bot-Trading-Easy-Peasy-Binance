@@ -87,7 +87,7 @@ DEFAULT_TP_PERCENT = 0.025       # 2.5% (Fallback)
 
 # Dynamic SL/TP (ATR Based)
 ATR_PERIOD = 14
-ATR_MULTIPLIER_SL = 0.75         # Jarak SL dari entry (x ATR)
+ATR_MULTIPLIER_SL = 1.0         # Jarak SL dari entry (x ATR)
 ATR_MULTIPLIER_TP1 = 3.0         # Target TP (x ATR) -> Risk Reward Ratio Setting
 TRAP_SAFETY_SL = 2.0             # Jarak Safety SL khusus setup Liquidity Hunt
 
@@ -149,7 +149,7 @@ BB_STD = 2.0
 
 # Volume Analysis
 VOL_MA_PERIOD = 20
-VOLUME_SPIKE_MULTIPLIER = 2.0    # Volume harus 2x rata-rata untuk konfirmasi sweep
+VOLUME_SPIKE_MULTIPLIER = 1.5    # Volume harus 2x rata-rata untuk konfirmasi sweep
 
 # Order Book Analysis
 ORDERBOOK_RANGE_PERCENT = 0.02   # Kedalaman depth 2%

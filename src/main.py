@@ -229,7 +229,7 @@ async def main():
                 # --- [NEW] RECORD TRADE TO JOURNAL ---
                 # Ambil data tambahan dari tracker sebelum dihapus
                 tracker = executor.safety_orders_tracker.get(symbol, {})
-                strategy_tag = tracker.get('strategy_tag', 'UNKNOWN')
+                strategy_tag = tracker.get('strategy', 'UNKNOWN')
                 prompt_text = tracker.get('ai_prompt', '-')
                 reason_text = tracker.get('ai_reason', '-')
                 setup_at_ts = tracker.get('created_at', 0)
@@ -244,7 +244,7 @@ async def main():
 
                 trade_data = {
                     'symbol': symbol,
-                    'side': order_info['S'], # BUY/SELL (Closing side)
+                    'side': tracker.get('side', 'LONG' if order_info['S'] == 'SELL' else 'SHORT'), 
                     'type': order_type,
                     'entry_price': tracker.get('entry_price', 0), # Ambil dari tracker
                     'exit_price': price,
@@ -670,7 +670,7 @@ async def main():
                     if s_score > 60: s_icon = "🚀"
                     elif s_score < 40: s_icon = "🐻"
                     
-                    sentiment_line = f"Mood: {s_icon} {s_mood} (Score: {s_score})"
+                    sentiment_line = f"Mood: {s_icon} {s_mood} (Score: {s_score}) by {config.AI_SENTIMENT_MODEL}"
 
                     # Execution Type Header
                     type_str = "🚀 AGRESSIVE (MARKET)" if order_type == 'market' else "🪤 PASSIVE (LIQUIDITY HUNT)"
@@ -715,8 +715,8 @@ async def main():
                         'price_vs_ema': tech_data.get('price_vs_ema', ''),
                         'btc_trend': tech_data.get('btc_trend', ''),
                         'btc_correlation': btc_corr,
-                        'stoch_rsi_k': tech_data.get('stoch_rsi_k', 0),
-                        'stoch_rsi_d': tech_data.get('stoch_rsi_d', 0),
+                        'stoch_rsi_k': tech_data.get('stoch_k', 0),
+                        'stoch_rsi_d': tech_data.get('stoch_d', 0),
                         'adx': tech_data.get('adx', 0),
                         'macd_histogram': tech_data.get('macd_histogram', 0),
                         'bb_upper': tech_data.get('bb_upper', 0),
